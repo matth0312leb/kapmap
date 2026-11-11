@@ -889,6 +889,19 @@
     try { rec.start(); } catch (e) { btn.classList.remove('listening'); rec = null; toast('Micro indisponible'); }
   };
 
+
+  // ================= Mise à jour automatique =================
+  var BUILD = '1794417670';
+  function checkUpdate() {
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
+        location.replace(location.pathname + '?v=' + d.v);   // nouvelle version, rechargée à l'arrêt seulement
+      }
+    }).catch(function () {});
+  }
+  setTimeout(checkUpdate, 3000);
+  setInterval(checkUpdate, 120000);
+
   // ================= Son =================
   var soundOn = true, actx = null;
   function unlockAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { actx = null; } }
