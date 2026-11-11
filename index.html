@@ -310,6 +310,59 @@
     #navDist { font-size:22px; } #navText { font-size:14px; }
     body.navigating #alert { top:104px; }
   }
+
+  /* ================= Direction artistique KapMap : noir profond, verre, lueurs rouges ================= */
+  :root { --red:#e31937; --redGlow:rgba(227,25,55,.45); }
+  @keyframes kIn { from { opacity:0; transform:translateY(8px) scale(.985); } to { opacity:1; transform:none; } }
+  .overlay { background:rgba(0,0,0,.68) !important; }
+  /* Panneaux */
+  body:not(.light) .panel { background:linear-gradient(180deg, rgba(26,26,29,.94), rgba(10,10,11,.94)); border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06); }
+  /* Cartes (bienvenue, compte, partage, localisation…) */
+  body:not(.light) .card { background:radial-gradient(120% 60% at 0% 0%, rgba(227,25,55,.15), transparent 55%), linear-gradient(180deg,#151517,#0a0a0b);
+    border:1px solid rgba(255,255,255,.08); border-radius:24px; box-shadow:0 30px 90px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.06); }
+  .overlay.show .card { animation:kIn .25s ease-out; }
+  body:not(.light) .feat div { background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); border:1px solid rgba(255,255,255,.07); border-radius:14px; }
+  .feat svg { color:var(--red); filter:drop-shadow(0 0 6px var(--redGlow)); }
+  /* Boutons */
+  .btn { border-radius:14px !important; transition:box-shadow .15s, transform .15s, border-color .15s; }
+  .btn.pri, .btn.red, #trip button#stopNav { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; color:#fff !important;
+    box-shadow:0 10px 30px rgba(227,25,55,.35), inset 0 1px 0 rgba(255,255,255,.25); }
+  .btn.pri:active, .btn.red:active, #trip button#stopNav:active { box-shadow:0 12px 40px rgba(227,25,55,.55), inset 0 1px 0 rgba(255,255,255,.25); transform:translateY(-1px); }
+  body:not(.light) .btn.sec, body:not(.light) #trip button#shareTrip { background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)) !important; border:1px solid rgba(255,255,255,.1); color:#f2f2f2; }
+  .btn.sec:active, #trip button#shareTrip:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
+  /* Colonne d'outils */
+  .tbtn { transition:box-shadow .15s, border-color .15s, background .15s, transform .15s; }
+  body:not(.light) .tbtn { background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.07); color:#ececef; }
+  body:not(.light) .tbtn.on { background:rgba(227,25,55,.16); border-color:rgba(227,25,55,.6); color:#fff; box-shadow:0 0 16px rgba(227,25,55,.3); }
+  body:not(.light) .tbtn.rep { background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); color:var(--red); border-color:rgba(227,25,55,.35); }
+  .tbtn.go { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; color:#fff !important; border-color:transparent !important; box-shadow:0 6px 20px rgba(227,25,55,.45), inset 0 1px 0 rgba(255,255,255,.25); }
+  .tbtn:active { transform:scale(.96); border-color:rgba(227,25,55,.7) !important; box-shadow:0 0 18px rgba(227,25,55,.45); }
+  body:not(.light) #btnCompass { background:linear-gradient(180deg, rgba(30,30,33,.95), rgba(10,10,11,.95)); border:1px solid rgba(255,255,255,.1); }
+  /* Recherche et raccourcis */
+  body:not(.light) #q { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); }
+  #q { transition:box-shadow .15s, border-color .15s; }
+  #q:focus { border-color:rgba(227,25,55,.7) !important; box-shadow:0 0 0 3px rgba(227,25,55,.18), 0 0 22px rgba(227,25,55,.25); }
+  body:not(.light) #chips button { background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.07); }
+  #chips button { transition:border-color .15s, box-shadow .15s; }
+  #chips button:active { border-color:rgba(227,25,55,.65); box-shadow:0 0 18px rgba(227,25,55,.3); }
+  #chips svg { color:var(--red); }
+  .res { transition:background .15s; } .res:active { background:rgba(227,25,55,.1); }
+  /* Vitesse, statut, message */
+  #speed { text-shadow:0 0 18px rgba(255,255,255,.12); }
+  #toast { border-left:3px solid var(--red) !important; }
+  /* Réglages : états sélectionnés en rouge */
+  #layers label.sw2 input:checked { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; box-shadow:0 0 12px rgba(227,25,55,.45); }
+  #layers label.sw2 input:checked::after { background:#fff !important; }
+  #themeRow button.sel, #satRow button.sel { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; color:#fff !important; border-color:transparent !important; box-shadow:0 6px 18px rgba(227,25,55,.35); }
+  #layers label.chip:has(input:checked) { background:rgba(227,25,55,.16) !important; color:#fff !important; border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 12px rgba(227,25,55,.25); }
+  body.light #layers label.chip:has(input:checked) { color:#111 !important; }
+  #layers .lyHead { display:flex; align-items:center; gap:8px; color:#a8a8ad; font-weight:700; letter-spacing:.12em; }
+  #layers .lyHead::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--red); box-shadow:0 0 10px var(--red); }
+  body:not(.light) #layers .lyTop button:active { box-shadow:0 0 16px rgba(227,25,55,.45); }
+  /* Signalement : tuiles avec lueur */
+  #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
+  #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
 </style>
 </head>
 <body>
@@ -1755,7 +1808,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794433436';
+  var BUILD = '1794433525';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1949,7 +2002,7 @@
 
   // ================= Mode pause (contenus utilisables seulement à l'arrêt complet) =================
   var LINKS = [['YouTube', 'https://www.youtube.com'], ['Twitch', 'https://www.twitch.tv'], ['Prime Video', 'https://www.primevideo.com'], ['Netflix', 'https://www.netflix.com'],
-    ['Disney+', 'https://www.disneyplus.com'], ['myCANAL', 'https://www.canalplus.com'], ['Spotify', 'https://open.spotify.com'], ['Deezer', 'https://www.deezer.com']];
+    ['Disney+', 'https://www.disneyplus.com'], ['myCANAL', 'https://www.canalplus.com']];
   // Icône officielle de chaque service, chargée depuis le service d'icônes de Google (lettre de secours si indisponible)
   var ALT_HOST = { 'open.spotify.com': 'www.spotify.com', 'www.netflix.com': 'about.netflix.com' };
   function iconCandidates(host) {
