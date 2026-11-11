@@ -315,6 +315,7 @@ export default {
             speed: sec.filter(x => x.sectionType === 'SPEED_LIMIT').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
               v: x.maxSpeedLimitInKmh || x.maxSpeedLimitInKilometersPerHour || (x.speedRestrictions && x.speedRestrictions[0] && x.speedRestrictions[0].maxSpeedLimitInKilometersPerHour) || null })).filter(x => x.v),
             toll: sec.some(x => x.sectionType === 'TOLL_ROAD'),
+            tollSecs: sec.filter(x => x.sectionType === 'TOLL_ROAD').map(x => [x.startPointIndex, x.endPointIndex]),
             jams: sec.filter(x => x.sectionType === 'TRAFFIC').map(x => ({ s: x.startPointIndex, e: x.endPointIndex, cat: x.simpleCategory || 'JAM', mag: x.magnitudeOfDelay || 0 })),
             lanes: sec.filter(x => x.sectionType === 'LANES').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
               l: (x.lanes || []).map(ln => ({ d: ln.directions || [], f: ln.follow || null })) })).filter(x => x.l.length > 1),

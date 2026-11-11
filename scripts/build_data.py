@@ -352,6 +352,114 @@ def build_irve():
     print(f"IRVE : {len(st)} stations, {len(tiles)} tuiles, réseaux : {sorted(nets.items(), key=lambda x: -x[1])[:12]}")
 
 
+# ---------------- Péages : tarifs entrée → sortie (APRR, AREA) + position des gares ----------------
+TOLL_DATASET = "tarifs-autoroutes-aprr"            # tarifs APRR et AREA par paire entrée-sortie (Licence Ouverte)
+GARES_DATASET = "gares-de-peage-du-reseau-routier-national-concede"   # position des gares de péage (Licence Ouverte)
+
+
+def lambert93_to_wgs84(x, y):
+    """Lambert-93 (RGF93) vers latitude / longitude."""
+    import math
+    n, c, xs, ys, e, lon0 = 0.7256077650532670, 11754255.426096, 700000.0, 12655612.049876, 0.0818191910428158, math.radians(3)
+    dx, dy = x - xs, ys - y
+    R = math.hypot(dx, dy)
+    gamma = math.atan2(dx, dy)
+    lon = lon0 + gamma / n
+    latiso = -1 / n * math.log(abs(R / c))
+    phi = 2 * math.atan(math.exp(latiso)) - math.pi / 2
+    for _ in range(12):
+        phi = 2 * math.atan(((1 + e * math.sin(phi)) / (1 - e * math.sin(phi))) ** (e / 2) * math.exp(latiso)) - math.pi / 2
+    return math.degrees(phi), math.degrees(lon)
+
+
+def gare_key(name):
+    """Nom de gare normalisé pour rapprocher les tarifs et les positions."""
+    import re
+    s = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().upper()
+    s = re.sub(r"[\-'’/().]", " ", s)
+    s = re.sub(r"\bSTE\b", "SAINTE", s)
+    s = re.sub(r"\bST\b", "SAINT", s)
+    s = re.sub(r"\b(ENTREE|SORTIE|ENT|SOR|S\d|E\d|A\d{1,3}|BIS)\b", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def read_rows(raw):
+    for enc in ("utf-8-sig", "latin-1"):
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    delim = ";" if text[:5000].count(";") > text[:5000].count(",") else ","
+    return list(csv.DictReader(io.StringIO(text), delimiter=delim))
+
+
+def latest_resources(slug):
+    meta = json.loads(get(f"https://www.data.gouv.fr/api/1/datasets/{slug}/"))
+    return meta.get("resources", [])
+
+
+def build_tolls():
+    import re
+    # 1) Tarifs : la grille la plus récente de chaque réseau
+    best = {}
+    for r in latest_resources(TOLL_DATASET):
+        m = re.match(r"\s*([A-Z]+)\s*-\s*tarifs au\s*(\d{4}-\d{2})", r.get("title") or "")
+        if not m or not (r.get("url") or "").endswith(".csv"):
+            continue
+        net, date = m.group(1), m.group(2)
+        if net not in best or date > best[net][0]:
+            best[net] = (date, r["url"])
+    gates, gate_idx, pairs = [], {}, {}
+
+    def gid(net, name):
+        k = net + ":" + gare_key(name)
+        if k not in gate_idx:
+            gate_idx[k] = len(gates)
+            gates.append({"net": net, "name": name.strip(), "key": gare_key(name), "pts": []})
+        return gate_idx[k]
+
+    for net, (date, url) in best.items():
+        rows = read_rows(get(url))
+        for row in rows:
+            a = row.get("gare_entree") or row.get("libelle_gare_entree")
+            b = row.get("gare_sortie") or row.get("libelle_gare_sortie")
+            p = to_float(row.get("tarif_classe_1"))
+            if not a or not b or p is None:
+                continue
+            pairs[f"{gid(net, a)},{gid(net, b)}"] = round(p, 2)
+        print(f"Péages {net} : grille {date}, {len(rows)} paires")
+    # 2) Positions des gares (fichier CSV le plus récent)
+    csvs = [r for r in latest_resources(GARES_DATASET) if (r.get("url") or "").endswith(".csv")]
+    csvs.sort(key=lambda r: r.get("url"), reverse=True)
+    by_key = {}
+    for row in read_rows(get(csvs[0]["url"])):
+        x, y = to_float(row.get("x")), to_float(row.get("y"))
+        if x is None or y is None:
+            continue
+        lat, lon = lambert93_to_wgs84(x, y)
+        by_key.setdefault(gare_key(row.get("nomGare")), []).append([round(lat, 5), round(lon, 5)])
+    found = 0
+    for g in gates:
+        pts = by_key.get(g["key"])
+        if not pts:   # nom un peu différent : on essaie sans le dernier mot (« NORD », « CENTRE »… gardés si possible)
+            cand = [k for k in by_key if k.startswith(g["key"] + " ") or g["key"].startswith(k + " ")]
+            pts = by_key.get(cand[0]) if len(cand) == 1 else None
+        if pts:
+            g["pts"] = pts[:6]
+            found += 1
+    print(f"Péages : {len(gates)} gares, {found} localisées, {len(pairs)} tarifs")
+    out = {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "source": "Tarifs APRR / AREA (data.gouv.fr, Licence Ouverte) ; gares de péage (data.gouv.fr)",
+           "class": 1,
+           "gates": [[g["net"], g["name"], g["pts"]] for g in gates],
+           "pairs": pairs}
+    if found < 50 or len(pairs) < 1000:
+        raise RuntimeError("trop peu de données de péage")
+    with open("data/tolls.json", "w") as fh:
+        json.dump(out, fh, separators=(",", ":"), ensure_ascii=False)
+
+
 def main():
     os.makedirs("data", exist_ok=True)
     pts = build_points()
@@ -379,6 +487,10 @@ def main():
         build_irve()
     except Exception as e:  # noqa: BLE001
         print(f"IRVE : échec ({e}), fichiers précédents conservés")
+    try:
+        build_tolls()
+    except Exception as e:  # noqa: BLE001
+        print(f"Péages : échec ({e}), fichier précédent conservé")
     print(f"OK : {pts['count']} points")
 
 

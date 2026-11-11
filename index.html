@@ -1527,22 +1527,81 @@
     $('avMoto').onchange = function () { routePrefs.motorways = this.checked; saveRoutePrefs(); startNav(pendingDest); };
   }
   // ---------- Prix des péages (calculé par le serveur, une fois par itinéraire) ----------
+  function fmtToll(price, exact) { return 'Péage ' + (exact ? '' : '≈ ') + (exact ? price.toFixed(2).replace('.', ',') : Math.round(price)) + ' €'; }
   function tollText(rt) {
-    if (typeof rt.tollPrice === 'number' && rt.tollPrice > 0) return 'Péage ≈ ' + rt.tollPrice.toFixed(2).replace('.', ',') + ' €';
+    if (typeof rt.tollPrice === 'number' && rt.tollPrice > 0) return fmtToll(rt.tollPrice, rt.tollExact);
     return 'Péage';
+  }
+  // Grilles officielles APRR / AREA (entrée → sortie) + position des gares, préparées par le robot de données
+  var tollData = null, tollDataP = null;
+  function loadTollData() {
+    if (!tollDataP) tollDataP = fetch('data/tolls.json?t=' + Math.floor(Date.now() / 86400000)).then(function (r) { return r.json(); })
+      .then(function (d) {
+        d.near = function (lat, lon, maxM) {   // gare la plus proche d'un point
+          var best = null;
+          d.gates.forEach(function (g, i) { g[2].forEach(function (p) { var m = dist(lat, lon, p[0], p[1]); if (m <= maxM && (!best || m < best.m)) best = { i: i, m: m }; }); });
+          return best;
+        };
+        tollData = d; return d;
+      }).catch(function () { tollDataP = null; return null; });
+    return tollDataP;
+  }
+  var TOLL_EUR_KM = 0.115;   // tarif moyen voiture, pour les réseaux sans grille
+  // Prix d'un itinéraire : tarifs officiels quand on reconnaît l'entrée et la sortie, sinon estimation au kilomètre
+  function localToll(rt, d) {
+    var pts = rt.points, cum = [0];
+    for (var k = 1; k < pts.length; k++) cum.push(cum[k - 1] + dist(pts[k - 1][1], pts[k - 1][0], pts[k][1], pts[k][0]));
+    var total = 0, exact = true;
+    function price(a, b) { if (!d || a === b || d.gates[a][0] !== d.gates[b][0]) return null; var p = d.pairs[a + ',' + b]; if (p === undefined) p = d.pairs[b + ',' + a]; return p === undefined ? null : p; }
+    (rt.tollSecs || []).forEach(function (sec) {
+      var s0 = sec[0], e0 = Math.min(sec[1], pts.length - 1);
+      var seq = [];
+      if (d) {
+        var g0 = d.near(pts[s0][1], pts[s0][0], 2500);
+        if (g0) seq.push({ g: g0.i, at: cum[s0] });
+        // gares traversées le long de la section (barrières en pleine voie, échangeurs empruntés)
+        for (var q = s0; q <= e0; q += Math.max(1, Math.floor((e0 - s0) / 400))) {
+          var gq = d.near(pts[q][1], pts[q][0], 120);
+          if (gq && (!seq.length || seq[seq.length - 1].g !== gq.i)) seq.push({ g: gq.i, at: cum[q] });
+        }
+        var g1 = d.near(pts[e0][1], pts[e0][0], 2500);
+        if (g1 && (!seq.length || seq[seq.length - 1].g !== g1.i)) seq.push({ g: g1.i, at: cum[e0] });
+      }
+      if (seq.length < 2) { total += (cum[e0] - cum[s0]) / 1000 * TOLL_EUR_KM; exact = false; return; }
+      // partie avant la première gare reconnue / après la dernière : estimée au km
+      var lead = Math.max(0, seq[0].at - cum[s0]), tail = Math.max(0, cum[e0] - seq[seq.length - 1].at);
+      if (lead > 3000 || tail > 3000) { total += (lead + tail) / 1000 * TOLL_EUR_KM; exact = false; }
+      var i = 0;
+      while (i < seq.length - 1) {
+        var j = seq.length - 1, p = null;
+        for (; j > i; j--) { p = price(seq[i].g, seq[j].g); if (p !== null) break; }
+        if (p !== null && j > i) { total += p; i = j; }
+        else { total += (seq[i + 1].at - seq[i].at) / 1000 * TOLL_EUR_KM; exact = false; i++; }
+      }
+    });
+    return { price: Math.round(total * 100) / 100, exact: exact };
   }
   function loadTollPrice(rt, cb) {
     if (rt.tollState) { if (cb && rt.tollState === 'ok') cb(); return; }
     rt.tollState = 'loading';
+    function show() {
+      if (pendingRoutes && pendingRoutes.indexOf(rt) >= 0) showRouteChoice();
+      if (nav && nav.srcRoute === rt) { nav.tollPrice = rt.tollPrice; nav.tollExact = rt.tollExact; }
+    }
+    // 1) calcul local (grilles officielles + estimation)
+    loadTollData().then(function (d) {
+      if (rt.tollFromHere) return;
+      var r = localToll(rt, d);
+      if (r.price > 0) { rt.tollPrice = r.price; rt.tollExact = r.exact; show(); }
+    });
+    // 2) prix exact HERE si la clé est configurée sur le serveur (prioritaire)
     fetch(API + '/tolls', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pts: rt.points }) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         rt.tollState = 'ok';
-        if (typeof d.price === 'number') rt.tollPrice = d.price;
-        if (pendingRoutes && pendingRoutes.indexOf(rt) >= 0) showRouteChoice();
-        if (nav && nav.srcRoute === rt) nav.tollPrice = rt.tollPrice;
+        if (typeof d.price === 'number' && d.price > 0) { rt.tollPrice = d.price; rt.tollExact = true; rt.tollFromHere = true; show(); }
         if (cb) cb();
-      }).catch(function () { rt.tollState = 'err'; });
+      }).catch(function () { rt.tollState = 'ok'; });
   }
   // Le bandeau d'alerte se place toujours juste sous le bandeau de guidage, quelle que soit sa hauteur
   (function () {
@@ -1610,7 +1669,7 @@
   function beginNav(dest, n, resumed, from) {
     if (!resumed) addRecent(dest);
     nav = n; nav.dest = dest; nav.idx = 0; nav.offCount = 0; nav.lastReroute = Date.now();
-    if (n.toll && n.srcRoute) { n.tollPrice = n.srcRoute.tollPrice; loadTollPrice(n.srcRoute); }
+    if (n.toll && n.srcRoute) { n.tollPrice = n.srcRoute.tollPrice; n.tollExact = n.srcRoute.tollExact; loadTollPrice(n.srcRoute); }
     setRoute(nav.coords);
     if (destMarker) destMarker.remove();
     destMarker = new maplibregl.Marker({ color: '#e31937' }).setLngLat([dest.lon, dest.lat]).addTo(map);
@@ -1736,7 +1795,7 @@
       if (!nav.workAhead && dW < 1500) nav.workAhead = { d: Math.max(0, dW), inside: dW <= 0, cat: w.cat, len: endAlong - Math.max(startAlong, pos.along) };
       if (dW < 1500 && dW > 0 && !w.said) { w.said = true; beep(1); speak((w.cat === 'ROAD_CLOSURE' ? 'Route fermée' : 'Travaux') + ' dans ' + formatDist(dW)); }
     });
-    if (nav.toll) late += ' · ' + (typeof nav.tollPrice === 'number' && nav.tollPrice > 0 ? 'Péage ≈ ' + nav.tollPrice.toFixed(2).replace('.', ',') + ' €' : 'Péage');
+    if (nav.toll) late += ' · ' + (typeof nav.tollPrice === 'number' && nav.tollPrice > 0 ? fmtToll(nav.tollPrice, nav.tollExact) : 'Péage');
     if (worksLeft) late += ' · ' + worksLeft + ' zone' + (worksLeft > 1 ? 's' : '') + ' de travaux';
     $('tripInfo').innerHTML = formatDist(remaining) + ' · ' + Math.max(1, Math.round(secs / 60)) + ' min' + late + (hz ? '<br>' + hz + ' danger' + (hz > 1 ? 's' : '') + ' signalé' + (hz > 1 ? 's' : '') + ' sur le trajet' : '');
     // Annonces vocales
@@ -1818,7 +1877,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794433787';
+  var BUILD = '1794440085';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
