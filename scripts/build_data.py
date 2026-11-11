@@ -421,12 +421,27 @@ def build_tolls():
 
     for net, (date, url) in best.items():
         rows = read_rows(get(url))
+        # Dans certaines grilles (extraites de PDF), un nom d'entrée en plusieurs mots est coupé :
+        # « AMBOISE » + « CH.RENAULT AMBERIEU » au lieu de « AMBOISE CH.RENAULT » + « AMBERIEU ».
+        # Les vrais noms de sortie sont ceux qu'on retrouve avec beaucoup d'entrées différentes.
+        seen = {}
         for row in rows:
-            a = row.get("gare_entree") or row.get("libelle_gare_entree")
-            b = row.get("gare_sortie") or row.get("libelle_gare_sortie")
+            b0 = (row.get("gare_sortie") or row.get("libelle_gare_sortie") or "").strip()
+            a0 = (row.get("gare_entree") or row.get("libelle_gare_entree") or "").strip()
+            seen.setdefault(b0, set()).add(a0)
+        known = {k for k, v in seen.items() if len(v) >= 5}
+        for row in rows:
+            a = (row.get("gare_entree") or row.get("libelle_gare_entree") or "").strip()
+            b = (row.get("gare_sortie") or row.get("libelle_gare_sortie") or "").strip()
             p = to_float(row.get("tarif_classe_1"))
             if not a or not b or p is None:
                 continue
+            if b not in known:
+                words = b.split(" ")
+                for cut in range(1, len(words)):
+                    if " ".join(words[cut:]) in known:
+                        a, b = a + " " + " ".join(words[:cut]), " ".join(words[cut:])
+                        break
             pairs[f"{gid(net, a)},{gid(net, b)}"] = round(p, 2)
         print(f"Péages {net} : grille {date}, {len(rows)} paires")
     # 2) Positions des gares (fichier CSV le plus récent)
@@ -441,10 +456,22 @@ def build_tolls():
         by_key.setdefault(gare_key(row.get("nomGare")), []).append([round(lat, 5), round(lon, 5)])
     found = 0
     for g in gates:
-        pts = by_key.get(g["key"])
-        if not pts:   # nom un peu différent : on essaie sans le dernier mot (« NORD », « CENTRE »… gardés si possible)
-            cand = [k for k in by_key if k.startswith(g["key"] + " ") or g["key"].startswith(k + " ")]
-            pts = by_key.get(cand[0]) if len(cand) == 1 else None
+        variants = [g["key"], gare_key(re.sub(r"\(.*?\)", " ", g["name"])),
+                    gare_key(re.sub(r"\(([^)]*)\)", r" \1 ", g["name"]).split("(")[0])]
+        m = re.search(r"\(([^)]*)\)", g["name"])
+        if m:
+            variants.append(gare_key(m.group(1)))
+        pts = None
+        for v in variants:
+            if v and by_key.get(v):
+                pts = by_key[v]
+                break
+        if not pts:   # nom un peu différent : préfixe commun unique
+            for v in variants:
+                cand = [k for k in by_key if v and (k.startswith(v + " ") or v.startswith(k + " "))]
+                if len(cand) == 1:
+                    pts = by_key[cand[0]]
+                    break
         if pts:
             g["pts"] = pts[:6]
             found += 1
@@ -453,6 +480,7 @@ def build_tolls():
            "source": "Tarifs APRR / AREA (data.gouv.fr, Licence Ouverte) ; gares de péage (data.gouv.fr)",
            "class": 1,
            "gates": [[g["net"], g["name"], g["pts"]] for g in gates],
+           "missing": sorted(g["net"] + ":" + g["name"] for g in gates if not g["pts"]),
            "pairs": pairs}
     if found < 50 or len(pairs) < 1000:
         raise RuntimeError("trop peu de données de péage")
