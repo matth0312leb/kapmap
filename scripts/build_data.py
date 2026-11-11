@@ -377,6 +377,8 @@ def gare_key(name):
     import re
     s = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().upper()
     s = re.sub(r"[\-'’/().]", " ", s)
+    s = re.sub(r"\bCH\b", "CHATEAU", s)
+    s = re.sub(r"\bS\b", "SUR", s)
     s = re.sub(r"\bSTE\b", "SAINTE", s)
     s = re.sub(r"\bST\b", "SAINT", s)
     s = re.sub(r"\b(ENTREE|SORTIE|ENT|SOR|S\d|E\d|A\d{1,3}|BIS)\b", " ", s)
@@ -430,6 +432,8 @@ def build_tolls():
             a0 = (row.get("gare_entree") or row.get("libelle_gare_entree") or "").strip()
             seen.setdefault(b0, set()).add(a0)
         known = {k for k, v in seen.items() if len(v) >= 5}
+        # « NORD ALLAINES » (reste d'un nom coupé + vrai nom) n'est pas un vrai nom de sortie
+        known = {k for k in known if not (" " in k and k.split(" ", 1)[1] in known and len(seen[k]) < len(seen[k.split(" ", 1)[1]]))}
         for row in rows:
             a = (row.get("gare_entree") or row.get("libelle_gare_entree") or "").strip()
             b = (row.get("gare_sortie") or row.get("libelle_gare_sortie") or "").strip()
