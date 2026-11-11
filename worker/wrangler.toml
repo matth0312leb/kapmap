@@ -1,4 +1,4 @@
-name = "vigie-api"
+name = "test-gps-tesla1"
 main = "src/index.js"
 compatibility_date = "2026-11-01"
 
