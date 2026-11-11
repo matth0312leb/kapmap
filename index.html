@@ -6,16 +6,16 @@
 <title>Vigie – carte et zones de danger</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
-  :root { --bg:#0b0c0e; --panel:rgba(20,22,26,.92); --line:rgba(255,255,255,.08); --txt:#f4f4f5; --mut:#9aa0a8; --ok:#3ecf8e; --warn:#f5a524; --err:#f04438; --acc:#e82127; --blue:#3b82f6; }
+  :root { --bg:#0b0c0e; --panel:rgba(14,14,15,.92); --line:rgba(255,255,255,.09); --txt:#f5f5f5; --mut:#9a9a9a; --ok:#f5f5f5; --warn:#9a9a9a; --err:#e31937; --acc:#e31937; --blue:#f5f5f5; --inv:#0e0e0f; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; overflow:hidden; }
   #map { position:absolute; inset:0; background:#111; }
-  body.light { --panel:rgba(255,255,255,.95); --line:rgba(0,0,0,.08); --txt:#1f2328; --mut:#5d6570; }
+  body.light { --panel:rgba(255,255,255,.96); --line:rgba(0,0,0,.08); --txt:#111111; --mut:#6b6b6b; --blue:#111111; --ok:#111111; --inv:#ffffff; }
   body.light .panel { box-shadow:0 6px 22px rgba(0,0,0,.16); }
   body.light .tbtn { background:rgba(0,0,0,.05); color:#1f2328; }
-  body.light .tbtn.on { background:rgba(59,130,246,.16); color:#1d4ed8; }
+  body.light .tbtn.on { background:#111; color:#fff; }
   body.light .tbtn.go { background:var(--acc); color:#fff; }
-  body.light .tbtn.rep { background:var(--warn); color:#1a1205; }
+  body.light .tbtn.rep { background:#111; color:#fff; }
   body.light #alert.off { background:rgba(255,255,255,.95); }
   body.light #alert:not(.danger):not(.hazard) #alertSub { color:#4b5563; }
   body.light #alert.danger, body.light #alert.hazard { color:#fff; }
@@ -43,7 +43,7 @@
   .res .t b { display:block; font-size:17px; }
   .res .t span { font-size:14px; color:var(--mut); }
   .res button { font:inherit; font-size:13px; padding:8px 10px; border-radius:10px; border:0; background:rgba(127,127,127,.14); color:var(--txt); cursor:pointer; }
-  .res button.go { background:var(--blue); color:#fff; font-weight:600; font-size:15px; padding:10px 14px; }
+  .res button.go { background:var(--txt); color:var(--inv); font-weight:600; font-size:15px; padding:10px 14px; }
   #trip { display:none; align-items:center; gap:12px; padding:4px 6px; }
   #trip.show { display:flex; }
   #tripEta { font-size:26px; font-weight:800; }
@@ -52,7 +52,9 @@
   body.navigating #searchRow, body.navigating #chips, body.navigating #results { display:none; }
 
   /* Bandeau de guidage */
-  #nav { top:16px; left:16px; right:96px; max-width:620px; padding:14px 20px; display:none; align-items:center; gap:18px; background:#1d4ed8; color:#fff; border:0; }
+  #nav { top:16px; left:16px; right:96px; max-width:620px; padding:14px 20px; display:none; align-items:center; gap:18px; background:#0e0e0f; color:#fff; border:1px solid rgba(255,255,255,.12); }
+  body.light #nav { background:#ffffff; color:#111; border-color:rgba(0,0,0,.08); }
+  body.light #navIcon svg path, body.light #navIcon svg circle { fill:#111; } body.light #navIcon svg[stroke] , body.light #navIcon svg [stroke] { stroke:#111; } body.light #navIcon text { fill:#111; }
   #nav.show { display:flex; }
   #navIcon { width:64px; height:64px; flex:none; display:flex; align-items:center; justify-content:center; }
   #navIcon svg { width:60px; height:60px; }
@@ -63,7 +65,7 @@
 
   #themeRow { display:flex; gap:6px; padding:8px 12px 4px; }
   #themeRow button { flex:1; font:inherit; font-size:15px; padding:10px 6px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
-  #themeRow button.sel { background:var(--blue); color:#fff; border-color:var(--blue); }
+  #themeRow button.sel { background:var(--txt); color:var(--inv); border-color:var(--txt); }
   .maplibregl-popup-content { background:#1b1d22; color:var(--txt); border-radius:14px; padding:14px 18px; box-shadow:0 8px 30px rgba(0,0,0,.5); font-size:16px; line-height:1.4; }
   .maplibregl-popup-tip { border-top-color:#1b1d22 !important; border-bottom-color:#1b1d22 !important; }
   .maplibregl-popup-content b { font-size:17px; }
@@ -96,7 +98,7 @@
   #tools { right:16px; top:16px; padding:8px; display:flex; flex-direction:column; gap:8px; }
   .tbtn { width:60px; height:60px; border-radius:14px; border:0; background:rgba(255,255,255,.06); color:var(--txt); display:flex; align-items:center; justify-content:center; cursor:pointer; }
   .tbtn:active { transform:scale(.96); }
-  .tbtn.on { background:rgba(59,130,246,.25); color:#9cc3ff; }
+  .tbtn.on { background:#f5f5f5; color:#111; }
   .tbtn.go { background:var(--acc); color:#fff; }
   .tbtn svg { width:28px; height:28px; }
 
@@ -117,8 +119,9 @@
   .sc svg { width:16px; height:16px; }
   .poi { width:26px; height:26px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.5); font-weight:800; color:#fff; }
 
-  #alert.hazard { background:rgba(120,72,6,.95); box-shadow:0 0 0 3px var(--warn), 0 10px 40px rgba(245,165,36,.3); }
-  .tbtn.rep { background:var(--warn); color:#1a1205; }
+  #alert.hazard { background:#0e0e0f; color:#fff; box-shadow:inset 6px 0 0 var(--acc), 0 10px 30px rgba(0,0,0,.4); }
+  body.light #alert.hazard { background:#fff; color:#111; } body.light #alert.hazard #alertSub { color:#444; }
+  .tbtn.rep { background:#f5f5f5; color:#111; }
   #sheet { left:50%; bottom:24px; transform:translateX(-50%); padding:18px; width:min(640px, calc(100% - 32px)); display:none; z-index:600; }
   #sheet.show { display:block; }
   #sheet h3 { margin:0 0 4px; font-size:22px; }
@@ -128,7 +131,7 @@
   #sheet .grid button:active { background:rgba(255,255,255,.12); }
   #sheet .grid b { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff; }
   #sheet .cancel { margin-top:12px; width:100%; font:inherit; font-size:16px; padding:14px; border-radius:12px; border:0; background:rgba(255,255,255,.08); color:var(--txt); cursor:pointer; }
-  .hz { cursor:pointer; width:34px; height:34px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.5); }
+  .hz { cursor:pointer; background:#111 !important; border-color:#fff !important; width:34px; height:34px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.5); }
   .votes { display:flex; gap:8px; margin-top:10px; }
   .votes button { flex:1; font:inherit; font-size:14px; font-weight:600; padding:9px 10px; border-radius:10px; border:0; cursor:pointer; color:#fff; background:#2f3239; }
   .votes button.yes { background:#166534; }
@@ -175,9 +178,9 @@
 
 <div id="layers" class="panel">
   <label><input type="checkbox" id="lyZones" checked><span class="sw" style="background:var(--err)"></span>Zones de danger</label>
-  <label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--acc);border:2px solid #fff"></span>Superchargeurs Tesla</label>
-  <label><input type="checkbox" id="lyHz" checked><span class="sw" style="background:var(--warn)"></span>Dangers signalés</label>
-  <label><input type="checkbox" id="lyPoi" checked><span class="sw" style="background:var(--blue)"></span>Lieux autour de moi</label>
+  <label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--txt);border:2px solid var(--mut)"></span>Superchargeurs Tesla</label>
+  <label><input type="checkbox" id="lyHz" checked><span class="sw" style="background:var(--txt)"></span>Dangers signalés</label>
+  <label><input type="checkbox" id="lyPoi" checked><span class="sw" style="background:var(--mut)"></span>Lieux autour de moi</label>
   <div class="note" style="padding-top:10px">Apparence de la carte</div>
   <div id="themeRow"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
   <div class="note">Zones visibles en France uniquement, sans position précise.<br>Lieux : touche la loupe pour charger ceux de la zone affichée.</div>
@@ -223,7 +226,7 @@
 
   // ================= Carte (vectorielle, 3D) =================
   // ---- Thème jour / nuit (selon le soleil à ta position) ----
-  var STYLES = { light: 'https://tiles.openfreemap.org/styles/liberty', dark: 'https://tiles.openfreemap.org/styles/dark' };
+  var STYLES = { light: 'https://tiles.openfreemap.org/styles/positron', dark: 'https://tiles.openfreemap.org/styles/dark' };
   var themePref = 'auto';
   try { themePref = localStorage.getItem('vigie-theme') || 'auto'; } catch (e) {}
   function sunAltitude(lat, lon, date) {
@@ -271,6 +274,7 @@
     if (t === theme) return;
     theme = t;
     document.body.classList.toggle('light', theme === 'light');
+    drawCar();
     mapReady = false;
     map.setStyle(STYLES[theme]);
   }
@@ -299,7 +303,11 @@
 
   var carEl = document.createElement('div');
   carEl.className = 'car';
-  carEl.innerHTML = '<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="rgba(59,130,246,.20)"/><path d="M26 8l12 33-12-7-12 7z" fill="#3b82f6" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg>';
+  function drawCar() {
+    var l = theme === 'light';
+    carEl.innerHTML = '<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="' + (l ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.12)') + '"/><path d="M26 8l12 33-12-7-12 7z" fill="' + (l ? '#111' : '#fff') + '" stroke="' + (l ? '#fff' : '#111') + '" stroke-width="3" stroke-linejoin="round"/></svg>';
+  }
+  drawCar();
   var carMarker = null;
   function popup(lngLat, node) { return new maplibregl.Popup({ offset: 18, closeButton: false, maxWidth: '300px' }).setLngLat(lngLat).setDOMContent(node).addTo(map); }
   function el(html) { var d = document.createElement('div'); d.innerHTML = html; return d; }
@@ -419,11 +427,11 @@
       return { type: 'Feature', properties: { name: s[2], stalls: s[3] || 0, kw: s[4] || 0 }, geometry: { type: 'Point', coordinates: [s[1], s[0]] } };
     }) } });
     map.addLayer({ id: 'sc-circle', type: 'circle', source: 'sc', paint: {
-      'circle-color': '#e82127', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2,
+      'circle-color': light ? '#111111' : '#f5f5f5', 'circle-stroke-color': light ? '#ffffff' : '#111111', 'circle-stroke-width': 2,
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 4, 10, 7, 15, 11] } });
     map.addLayer({ id: 'sc-label', type: 'symbol', source: 'sc', minzoom: 12, layout: {
       'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 13, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-max-width': 12 },
-      paint: { 'text-color': light ? '#9f1239' : '#ffd1d1', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
+      paint: { 'text-color': light ? '#111111' : '#f5f5f5', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
     if (!scClickBound) {
       scClickBound = true;
       map.on('click', 'sc-circle', function (e) {
@@ -441,8 +449,8 @@
   $('btnLayers').onclick = function () { $('layers').classList.toggle('show'); this.classList.toggle('on'); };
 
   var POI = {
-    restaurant: ['#f59e0b', 'Restaurant'], fast_food: ['#f97316', 'Restauration rapide'], cafe: ['#c08457', 'Café'],
-    toilets: ['#06b6d4', 'Toilettes'], fuel: ['#94a3b8', 'Station-service'], supermarket: ['#22c55e', 'Supermarché'], charging_station: ['#3b82f6', 'Borne de recharge']
+    restaurant: ['#3a3a3a', 'Restaurant'], fast_food: ['#3a3a3a', 'Restauration rapide'], cafe: ['#3a3a3a', 'Café'],
+    toilets: ['#6b6b6b', 'Toilettes'], fuel: ['#6b6b6b', 'Station-service'], supermarket: ['#3a3a3a', 'Supermarché'], charging_station: ['#6b6b6b', 'Borne de recharge']
   };
   var poiFC = null, poiClickBound = false;
   function addPoiLayers() {
@@ -487,8 +495,8 @@
   // ================= Signalements de dangers (tous pays) =================
   var API = 'https://test-gps-tesla1.matth0312.workers.dev';
   var HZ = {
-    accident: ['#dc2626', '!', 'Accident'], vehicule_arrete: ['#ea580c', 'V', 'Véhicule arrêté'], objet: ['#d97706', 'O', 'Objet sur la route'],
-    bouchon: ['#b91c1c', 'B', 'Bouchon'], travaux: ['#ca8a04', 'T', 'Travaux'], nid_de_poule: ['#78716c', 'N', 'Nid de poule'], meteo: ['#0284c7', 'M', 'Météo dangereuse']
+    accident: ['#111111', '!', 'Accident'], vehicule_arrete: ['#111111', 'V', 'Véhicule arrêté'], objet: ['#111111', 'O', 'Objet sur la route'],
+    bouchon: ['#111111', 'B', 'Bouchon'], travaux: ['#111111', 'T', 'Travaux'], nid_de_poule: ['#111111', 'N', 'Nid de poule'], meteo: ['#111111', 'M', 'Météo dangereuse']
   };
   // Pictogrammes Vigie (dessins originaux, blancs sur pastille colorée)
   var HZ_SVG = {
@@ -641,8 +649,8 @@
     if (!routeGeo || map.getSource('route')) return;
     map.addSource('route', { type: 'geojson', data: routeGeo });
     var before = firstSymbolId();
-    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#0b3a8f', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 6, 16, 16] } }, before);
-    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#3b82f6', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3.5, 16, 10] } }, before);
+    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': theme === 'light' ? '#ffffff' : '#000000', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 6, 16, 16] } }, before);
+    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': theme === 'light' ? '#111111' : '#f5f5f5', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3.5, 16, 10] } }, before);
   }
   function setRoute(coords) {
     routeGeo = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } };
