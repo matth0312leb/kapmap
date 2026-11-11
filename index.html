@@ -83,6 +83,7 @@
   // ---------- Données ----------
   var points = [];             // [lat, lon, vma, type]
   var rings = null;            // contours de la France [lon,lat,lon,lat,...]
+  var banned = [];             // contours précis des pays interdits (Suisse, Allemagne)
   var dataReady = false;
 
   function loadJSON(url) {
@@ -94,7 +95,9 @@
   Promise.all([loadJSON('data/points.json'), loadJSON('data/france.json')]).then(function (res) {
     points = res[0].items || [];
     rings = res[1].rings || null;
-    dataReady = points.length > 0 && !!rings;
+    var b = res[1].banned || {};
+    banned = Object.keys(b).reduce(function (acc, k) { return acc.concat(b[k]); }, []);
+    dataReady = points.length > 0 && !!rings && banned.length > 0;
     $('dataInfo').textContent = 'Données : ' + points.length + ' zones, source publique du ' + (res[0].source_date || '').slice(0, 10) + ', mise à jour ' + res[0].updated + '.';
   }).catch(function () {
     $('dataInfo').textContent = 'Données : pas encore disponibles (la mise à jour automatique est peut-être en cours).';
@@ -121,10 +124,35 @@
     }
     return inside;
   }
+  // Distance (m) jusqu'à la frontière la plus proche, pour garder une marge de sécurité.
+  var BORDER_MARGIN_M = 300;
+  function borderDistance(lat, lon, list) {
+    var kx = 111320 * Math.cos(lat * toR), ky = 110540, best = Infinity;
+    for (var k = 0; k < list.length; k++) {
+      var r = list[k], n = r.length / 2;
+      var bx0 = (r[0] - lon) * kx, by0 = (r[1] - lat) * ky;
+      if (n > 50 && Math.sqrt(bx0 * bx0 + by0 * by0) > 400000) continue;
+      for (var i = 0, j = n - 1; i < n; j = i++) {
+        var ax = (r[2 * j] - lon) * kx, ay = (r[2 * j + 1] - lat) * ky;
+        var bx = (r[2 * i] - lon) * kx, by = (r[2 * i + 1] - lat) * ky;
+        if (Math.min(Math.abs(ax), Math.abs(bx)) > best && Math.abs(ax - bx) < best) continue;
+        var dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+        var t = L2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / L2)) : 0;
+        var px = ax + t * dx, py = ay + t * dy, d = Math.sqrt(px * px + py * py);
+        if (d < best) best = d;
+      }
+    }
+    return best;
+  }
+  function inAny(lat, lon, list) {
+    for (var k = 0; k < list.length; k++) if (inRing(lon, lat, list[k])) return true;
+    return false;
+  }
+  // France = dans le contour de la France ET hors des pays interdits (contour précis),
+  // avec une marge de sécurité autour de leur frontière.
   function inFrance(lat, lon) {
     if (!rings) return false;
-    for (var k = 0; k < rings.length; k++) if (inRing(lon, lat, rings[k])) return true;
-    return false;
+    return inAny(lat, lon, rings) && !inAny(lat, lon, banned);
   }
 
   // Longueur de zone selon le type de route (déduit de la vitesse limite) :
@@ -190,16 +218,17 @@
     setStatus('GPS actif — précision ' + Math.round(accuracy) + ' m', accuracy <= 25 ? 'ok' : 'warn');
 
     var france = forceFrance || inFrance(lat, lon);
-    $('country').textContent = forceFrance ? 'Démo' : (rings ? (france ? 'France' : 'Hors France') : '…');
+    var nearBorder = !forceFrance && france && borderDistance(lat, lon, banned) < BORDER_MARGIN_M;
+    $('country').textContent = forceFrance ? 'Démo' : (rings ? (france ? (nearBorder ? 'Frontière' : 'France') : 'Hors France') : '…');
 
     var list = demoPoints || points;
     if (!demoPoints && !dataReady) { showIdle('Chargement des données…', 'Les alertes démarreront dès que les données seront prêtes.'); return; }
-    if (!france) {
+    if (!france || nearBorder) {
       active = null;
       $('near').textContent = '–';
       $('zone').className = 'off';
-      $('zoneTitle').textContent = 'Alertes désactivées';
-      $('zoneSub').textContent = 'Tu es hors de France : la réglementation locale interdit ce type d\'alerte.';
+      $('zoneTitle').textContent = nearBorder ? 'Alertes en pause' : 'Alertes désactivées';
+      $('zoneSub').textContent = nearBorder ? 'Tu es tout près de la frontière : les alertes reprennent plus loin en France.' : 'Tu es hors de France : la réglementation locale interdit ce type d\'alerte.';
       $('limit').className = 'limit';
       return;
     }

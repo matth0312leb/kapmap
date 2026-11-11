@@ -124,12 +124,60 @@ def build_border():
     raise SystemExit("Contour de la France introuvable")
 
 
+BANNED = ["CHE", "DEU"]  # pays où toute alerte est interdite
+
+
+def flatten_geometry(g, min_step_m=15):
+    """Anneaux extérieurs en liste plate [lon, lat, ...], points trop proches retirés."""
+    polys = g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]
+    rings = []
+    for poly in polys:
+        flat, last = [], None
+        for lon, lat in poly[0]:
+            if last:
+                dx = (lon - last[0]) * 111320 * 0.69
+                dy = (lat - last[1]) * 110540
+                if dx * dx + dy * dy < min_step_m * min_step_m:
+                    continue
+            flat += [round(lon, 5), round(lat, 5)]
+            last = (lon, lat)
+        if len(flat) >= 8:
+            rings.append(flat)
+    return rings
+
+
+def build_banned():
+    """Contours précis (geoBoundaries) des pays où les alertes sont interdites."""
+    out = {}
+    for iso in BANNED:
+        meta = json.loads(get(f"https://www.geoboundaries.org/api/current/gbOpen/{iso}/ADM0/"))
+        for key in ("gjDownloadURL", "simplifiedGeometryGeoJSON"):
+            url = meta.get(key)
+            if not url:
+                continue
+            try:
+                gj = json.loads(get(url))
+                rings = []
+                for f in gj["features"]:
+                    rings += flatten_geometry(f["geometry"])
+                pts = sum(len(r) // 2 for r in rings)
+                print(f"{iso} : {len(rings)} polygones, {pts} points ({key})")
+                out[iso] = rings
+                break
+            except Exception as e:  # noqa: BLE001
+                print(f"{iso} : échec {key} ({e})")
+        if iso not in out:
+            raise SystemExit(f"Contour précis introuvable pour {iso}")
+    return out
+
+
 def main():
     os.makedirs("data", exist_ok=True)
     pts = build_points()
     with open("data/points.json", "w") as fh:
         json.dump(pts, fh, separators=(",", ":"))
     border = build_border()
+    border["banned"] = build_banned()
     with open("data/france.json", "w") as fh:
         json.dump(border, fh, separators=(",", ":"))
     print(f"OK : {pts['count']} points")
