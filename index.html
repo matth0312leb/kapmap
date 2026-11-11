@@ -242,6 +242,7 @@
   <label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--txt);border:2px solid var(--mut)"></span>Superchargeurs Tesla</label>
   <label><input type="checkbox" id="lyHz" checked><span class="sw" style="background:var(--txt)"></span>Dangers signalés</label>
   <label><input type="checkbox" id="lyPoi" checked><span class="sw" style="background:var(--mut)"></span>Lieux autour de moi</label>
+  <label><input type="checkbox" id="optVoice"><span class="sw" style="background:var(--mut)"></span>Voix (annonces parlées)</label>
   <div class="note" style="padding-top:10px">Apparence de la carte</div>
   <div id="themeRow"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
   <div class="note">Zones visibles en France uniquement, sans position précise.<br>Lieux : touche la loupe pour charger ceux de la zone affichée.</div>
@@ -985,8 +986,17 @@
     return n;
   }
   // Voix (synthèse vocale du navigateur)
+  // Voix désactivée par défaut (les bips restent) ; réglage mémorisé
+  var voiceOn = false;
+  try { voiceOn = localStorage.getItem('vigie-voice') === '1'; } catch (e) {}
+  $('optVoice').checked = voiceOn;
+  $('optVoice').onchange = function () {
+    voiceOn = this.checked;
+    try { localStorage.setItem('vigie-voice', voiceOn ? '1' : '0'); } catch (e) {}
+    if (voiceOn) { unlockAudio(); speak('Voix activée'); } else { try { window.speechSynthesis.cancel(); } catch (e) {} }
+  };
   function speak(text) {
-    if (!soundOn || !('speechSynthesis' in window)) return;
+    if (!soundOn || !voiceOn || !('speechSynthesis' in window)) return;
     try { var u = new SpeechSynthesisUtterance(text); u.lang = 'fr-FR'; u.rate = 1; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {}
   }
 
@@ -1030,7 +1040,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794422355';
+  var BUILD = '1794422445';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
