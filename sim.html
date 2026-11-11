@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vigie – simulateur</title>
+<title>KapMap – simulateur</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23e31937'/%3E%3Cpath d='M32 12 L46 50 L32 42 L18 50 Z' fill='%23fff'/%3E%3C/svg%3E">
 <style>
   :root { --bg:#0b0b0c; --panel:#161618; --line:rgba(255,255,255,.09); --txt:#f2f2f2; --mut:#9a9a9a; --acc:#e31937; }
   * { box-sizing:border-box; }
@@ -41,12 +42,12 @@
 <button id="toggle">Réglages</button>
 <div id="stage"><div id="frameWrap"><div id="bezel">
   <div id="fakeBar"><span>&#8592; &#8594;</span><div class="url">matth0312leb.github.io/test-gps-tesla1</div></div>
-  <iframe id="app" title="Vigie"></iframe>
+  <iframe id="app" title="KapMap"></iframe>
 </div></div></div>
 
 <aside>
-  <h1>Simulateur Vigie</h1>
-  <p class="sub">Vigie comme dans la voiture, avec un trajet simulé.</p>
+  <h1>Simulateur KapMap</h1>
+  <p class="sub">KapMap comme dans la voiture, avec un trajet simulé.</p>
 
   <h2>Écran</h2>
   <select id="preset">
@@ -56,7 +57,7 @@
     <option value="custom">Taille personnalisée…</option>
   </select>
   <div class="row" id="customRow" style="display:none"><input id="cw" type="number" value="1280"><input id="ch" type="number" value="760"><button id="applySize">OK</button></div>
-  <div class="row"><button id="reload">Recharger Vigie</button><button id="resetApp">Effacer les données</button></div>
+  <div class="row"><button id="reload">Recharger KapMap</button><button id="resetApp">Effacer les données</button></div>
 
   <h2>Voiture à l'arrêt</h2>
   <div class="row"><button id="parkHome">Garé au Domicile</button><button id="parkWork">Garé au Travail</button></div>
@@ -71,7 +72,7 @@
   <input id="qFrom" placeholder="Départ (adresse)" style="margin-top:10px"><div class="res" id="rFrom"></div>
   <input id="qTo" placeholder="Arrivée (adresse)" style="margin-top:8px"><div class="res" id="rTo"></div>
   <div class="row"><button class="pri" id="go">Lancer le trajet</button></div>
-  <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;color:var(--mut)"><input type="checkbox" id="guide" checked style="width:auto">Lancer aussi le guidage dans Vigie</label>
+  <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;color:var(--mut)"><input type="checkbox" id="guide" checked style="width:auto">Lancer aussi le guidage dans KapMap</label>
 
   <h2>Lecture</h2>
   <div class="row"><button id="pause">Pause</button><button id="stop" class="red">Arrêter</button></div>
@@ -110,7 +111,7 @@
   $('reload').onclick = loadApp;
   $('resetApp').onclick = function () {
     try { localStorage.clear(); } catch (e) {}
-    loadApp(); log('Données effacées : Vigie repart comme au premier lancement.');
+    loadApp(); log('Données effacées : KapMap repart comme au premier lancement.');
   };
 
   // ---------- Recherche d'adresses ----------
@@ -148,7 +149,7 @@
         var k = sv.split('>'), A = place(k[0]), B = place(k[1]);
         from = { lat: A.lat, lon: A.lon }; to = { lat: B.lat, lon: B.lon, name: k[1] === 'home' ? 'Domicile' : 'Travail' };
         $('qFrom').value = k[0] === 'home' ? 'Domicile' : 'Travail'; $('qTo').value = to.name;
-        if (!saved(k[0]) || !saved(k[1])) log('Astuce : enregistre Domicile et Travail dans Vigie pour utiliser tes vraies adresses.');
+        if (!saved(k[0]) || !saved(k[1])) log('Astuce : enregistre Domicile et Travail dans KapMap pour utiliser tes vraies adresses.');
         start(); return;
       }
       var f = b.getAttribute('data-from').split(','), t = b.getAttribute('data-to').split(',');

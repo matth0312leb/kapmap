@@ -27,4 +27,5 @@ jobs:
           git add data/
           if git diff --cached --quiet; then echo "Rien de nouveau"; exit 0; fi
           git commit -m "Mise à jour automatique des données"
+          git pull --rebase -X theirs origin main || true
           git push

@@ -280,10 +280,12 @@ def irve_csv_url():
         except Exception as e:  # noqa: BLE001
             print(f"IRVE : jeu {slug} indisponible ({e})")
             continue
-        res = [r for r in meta.get("resources", []) if (r.get("format") or "").lower() == "csv"]
-        res.sort(key=lambda r: (("consolid" in (r.get("title") or "").lower()), r.get("last_modified") or ""), reverse=True)
+        res = [r for r in meta.get("resources", []) if (r.get("format") or "").lower() == "csv"
+               and "documentation" not in (r.get("title") or "").lower()]
+        # le fichier consolidé des stations est de loin le plus volumineux
+        res.sort(key=lambda r: (r.get("filesize") or 0, "statique" in (r.get("title") or "").lower(), r.get("last_modified") or ""), reverse=True)
         if res:
-            print(f"IRVE : {res[0].get('title')} ({res[0].get('last_modified')})")
+            print(f"IRVE : {res[0].get('title')} ({res[0].get('last_modified')}, {res[0].get('filesize')} octets)")
             return res[0]["url"]
     raise RuntimeError("Fichier IRVE introuvable")
 

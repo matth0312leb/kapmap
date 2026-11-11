@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Vigie – carte et zones de danger</title>
+<title>KapMap</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23e31937'/%3E%3Cpath d='M32 12 L46 50 L32 42 L18 50 Z' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
   :root { --bg:#0b0c0e; --panel:rgba(14,14,15,.92); --line:rgba(255,255,255,.09); --txt:#f5f5f5; --mut:#9a9a9a; --ok:#f5f5f5; --warn:#9a9a9a; --err:#e31937; --acc:#e31937; --blue:#f5f5f5; --inv:#0e0e0f; }
@@ -294,13 +295,13 @@
 </div>
 
 <div id="welcome" class="overlay"><div class="card">
-  <h2>Bienvenue sur Vigie</h2>
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><svg viewBox="0 0 64 64" width="56" height="56" aria-label="KapMap"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><h2>Bienvenue sur KapMap</h2></div>
   <p class="lead">La carte de conduite pensée pour ta Tesla.</p>
   <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alertes sonores en France, désactivées là où c'est interdit</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons sur ton trajet et heure d'arrivée réelle</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l7 19-7-4-7 4z"/></svg><p style="margin:0"><b>Navigation guidée</b><span>Instructions vocales, Domicile et Travail en 1 touche</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg><p style="margin:0"><b>Signalements</b><span>Accidents, travaux, objets… partagés par la communauté</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Superchargeurs</b><span>Tous les sites d'Europe et les lieux utiles autour</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg><p style="margin:0"><b>Commande vocale</b><span>« Maison », « Signaler un accident »…</span></p></div></div>
   <button class="btn pri" id="wRegister">Créer mon compte</button>
   <button class="btn sec" id="wLogin">J'ai déjà un compte</button>
   <button class="btn link" id="wSkip">Continuer sans compte</button>
-  <p class="small">Vigie signale des zones de danger sans position précise, conformément à la réglementation française. Reste attentif à la route et respecte les limitations.</p>
+  <p class="small">KapMap signale des zones de danger sans position précise, conformément à la réglementation française. Reste attentif à la route et respecte les limitations.</p>
 </div></div>
 
 <div id="account" class="overlay"><div class="card" id="accountCard"></div></div>
@@ -843,7 +844,7 @@
     accident: ['#111111', '!', 'Accident'], vehicule_arrete: ['#111111', 'V', 'Véhicule arrêté'], objet: ['#111111', 'O', 'Objet sur la route'],
     bouchon: ['#111111', 'B', 'Bouchon'], travaux: ['#111111', 'T', 'Travaux'], nid_de_poule: ['#111111', 'N', 'Nid de poule'], meteo: ['#111111', 'M', 'Météo dangereuse']
   };
-  // Pictogrammes Vigie (dessins originaux, blancs sur pastille colorée)
+  // Pictogrammes KapMap (dessins originaux, blancs sur pastille colorée)
   var HZ_SVG = {
     accident: '<path d="M12 2l2.2 5.1 5.3-1.6-2.6 4.9 4.6 3-5.4 1.1.6 5.5-4.7-3-4.7 3 .6-5.5L2.5 13.4l4.6-3-2.6-4.9 5.3 1.6z" fill="#fff"/>',
     vehicule_arrete: '<path d="M5 15V11l2-4h10l2 4v4M4 15h16v3H4z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="18" r="1.6" fill="#fff"/><circle cx="16.5" cy="18" r="1.6" fill="#fff"/><path d="M12 3v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
@@ -1274,7 +1275,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794424131';
+  var BUILD = '1794424234';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
