@@ -27,7 +27,7 @@
 </style>
 </head>
 <body>
-  <h1>Test GPS navigateur Tesla</h1>
+  <h1>Test GPS navigateur Tesla <span style="font-size:16px;color:#8a8f98">v2</span></h1>
   <p class="sub">Appuie sur Démarrer, accepte la demande de position, puis roule quelques minutes.</p>
 
   <button id="start">Démarrer</button>
@@ -72,7 +72,7 @@
   }
 
   function onPos(p) {
-    var c = p.coords, t = p.timestamp;
+    var c = p.coords, t = Date.now(), tGps = p.timestamp;
     count++;
     var gap = null, calc = null;
     if (last) {
@@ -99,7 +99,7 @@
     setStatus('Position reçue — précision ' + c.accuracy.toFixed(0) + ' m', cls);
 
     var tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + new Date(t).toLocaleTimeString('fr-FR') + '</td>' +
+    tr.innerHTML = '<td>' + new Date(t).toLocaleTimeString('fr-FR') + ' <span style="color:#8a8f98">(GPS ' + new Date(tGps).toLocaleTimeString('fr-FR') + ')</span></td>' +
       '<td>' + (spd === null ? 'n/d' : spd.toFixed(0) + ' km/h') + '</td>' +
       '<td>' + (calc === null ? '–' : calc.toFixed(0) + ' km/h') + '</td>' +
       '<td>' + c.accuracy.toFixed(0) + ' m</td>' +
