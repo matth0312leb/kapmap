@@ -1,4 +1,4 @@
-// API des signalements de dangers réels sur la route (Vigie).
+// Vigie — API des signalements de dangers réels sur la route (Vigie).
 // Pas de texte libre et aucune catégorie « police » ou « contrôle » :
 // seuls des dangers matériels peuvent être signalés.
 
