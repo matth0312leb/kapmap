@@ -137,21 +137,48 @@
   .votes button.yes { background:#166534; }
   #toast { left:50%; top:110px; transform:translateX(-50%); padding:12px 18px; font-size:16px; display:none; z-index:700; }
   #toast.show { display:block; }
+  /* ---- Tailles plus discrètes ---- */
+  .tbtn { width:48px; height:48px; border-radius:12px; } .tbtn svg { width:22px; height:22px; }
+  #tools { padding:6px; gap:6px; }
+  #alert { right:80px; max-width:520px; padding:12px 16px; gap:12px; }
+  #alertIcon { width:36px; height:36px; } #alertIcon svg { width:20px; height:20px; }
+  #alertTitle { font-size:19px; } #alertSub { font-size:14px; }
+  /* Hors alerte : simple pastille d'état */
+  #alert.off, #alert:not(.danger):not(.hazard) { right:auto; max-width:340px; padding:7px 14px 7px 8px; gap:8px; border-radius:999px; }
+  #alert.off #alertIcon, #alert:not(.danger):not(.hazard) #alertIcon { width:24px; height:24px; background:transparent; }
+  #alert.off #alertIcon svg, #alert:not(.danger):not(.hazard) #alertIcon svg { width:16px; height:16px; }
+  #alert.off #alertTitle, #alert:not(.danger):not(.hazard) #alertTitle { font-size:14px; font-weight:600; }
+  #alert.off #alertSub, #alert:not(.danger):not(.hazard) #alertSub { display:none; }
+  #speedBox { padding:10px 14px; gap:12px; }
+  #speed { font-size:38px; } #speedUnit { font-size:12px; }
+  #limit { width:56px; height:56px; border-width:6px; font-size:22px; }
+  #nav { right:80px; max-width:520px; padding:10px 16px; gap:14px; }
+  #navIcon { width:46px; height:46px; } #navIcon svg { width:42px; height:42px; }
+  #navDist { font-size:26px; } #navText { font-size:15px; }
+  body.navigating #alert { top:96px; }
+  #bottom { width:min(480px, calc(100% - 32px)); padding:8px; }
+  #q { font-size:16px; padding:11px 14px; border-radius:12px; }
+  #btnMic { width:42px; height:42px; border-radius:12px; } #btnMic svg { width:20px; height:20px; }
+  #chips { gap:6px; margin-top:6px; } #chips button { font-size:14px; padding:9px; border-radius:10px; } #chips svg { width:16px; height:16px; }
+  #chips small { font-size:12px; }
+  .res .t b { font-size:15px; } .res .t span { font-size:13px; } .res { padding:9px 8px; }
+  #tripEta { font-size:20px; } #tripInfo { font-size:13px; } #trip button { font-size:14px; padding:10px 14px; }
+  #layers { right:80px; } #layers label { font-size:15px; padding:9px 10px; } #layers input { width:18px; height:18px; }
+  #statusPill { font-size:12px; padding:7px 11px; }
+  #sheet h3 { font-size:18px; } #sheet .grid button { font-size:14px; padding:12px 8px; } #sheet .grid b { width:34px; height:34px; }
+  .hz { width:30px; height:30px; } .hz svg { width:18px; height:18px; }
+  .maplibregl-popup-content { font-size:14px; padding:11px 14px; } .maplibregl-popup-content b { font-size:15px; }
   @media (max-width: 700px) {
     #alert { right:86px; padding:12px 14px; gap:12px; }
     #alertIcon { width:38px; height:38px; }
     #alertTitle { font-size:19px; }
     #alertSub { font-size:14px; }
-    .tbtn { width:52px; height:52px; }
     #layers { right:86px; }
-    #speed { font-size:42px; }
-    #limit { width:62px; height:62px; font-size:24px; border-width:7px; }
     #statusPill { display:none; }
     #nav { right:86px; padding:12px 14px; gap:12px; }
     #navIcon { width:48px; height:48px; } #navIcon svg { width:46px; height:46px; }
-    #navDist { font-size:26px; } #navText { font-size:15px; }
+    #navDist { font-size:22px; } #navText { font-size:14px; }
     body.navigating #alert { top:104px; }
-    #q { font-size:17px; padding:13px 14px; }
   }
 </style>
 </head>
