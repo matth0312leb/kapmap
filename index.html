@@ -1030,10 +1030,10 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794420403';
+  var BUILD = '1794421934';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
-      if (d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
+      if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
         location.replace(location.pathname + '?v=' + d.v);   // nouvelle version, rechargée à l'arrêt seulement
       }
     }).catch(function () {});
@@ -1228,14 +1228,25 @@
     setAlert('', 'Route dégagée', heading === null ? 'Commence à rouler pour activer la détection.' : 'Aucune zone de danger devant toi.');
   }
 
-  // ================= GPS réel =================
+  // ================= GPS réel (ou simulateur) =================
   var watchId = null;
+  var SIM = /[?&]sim=1/.test(location.search);
+  if (SIM) {
+    window.addEventListener('message', function (e) {
+      if (e.origin !== location.origin || !e.data || !e.data.vigieSim) return;
+      var d = e.data;
+      if (d.reset) { last = null; heading = null; active = null; return; }
+      if (watchId === null) { watchId = 'sim'; follow = true; }
+      update(d.lat, d.lon, d.speed, d.heading, 4, false, null);
+    });
+  }
   $('btnStart').onclick = function () {
     unlockAudio();
     follow = true; this.classList.add('go');
     if (last) navTo(last.lat, last.lon, false);
     if (demoTimer) stopDemo();
     if (watchId !== null) return;
+    if (SIM) { setAlert('off', 'Simulation', 'Lance un trajet depuis le simulateur.'); return; }
     if (!('geolocation' in navigator)) { setStatus('Géolocalisation indisponible', 'err'); return; }
     try { localStorage.setItem('vigie-autostart', '1'); } catch (e) {}
     keepAwake();
@@ -1259,7 +1270,7 @@
   setTimeout(function () {
     var auto = null, dest = null;
     try { auto = localStorage.getItem('vigie-autostart'); dest = JSON.parse(localStorage.getItem('vigie-nav') || 'null'); } catch (e) {}
-    if (auto === '1' && watchId === null) $('btnStart').onclick.call($('btnStart'));
+    if (auto === '1' && watchId === null && !SIM) $('btnStart').onclick.call($('btnStart'));
     if (dest && dest.lat) setTimeout(function () { startNav(dest, true); }, 2500);
   }, 800);
 

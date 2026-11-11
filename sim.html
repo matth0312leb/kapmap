@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vigie – simulateur</title>
+<style>
+  :root { --bg:#0b0b0c; --panel:#161618; --line:rgba(255,255,255,.09); --txt:#f2f2f2; --mut:#9a9a9a; --acc:#e31937; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  body { display:flex; height:100vh; overflow:hidden; }
+  #stage { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; min-width:0; }
+  #frameWrap { position:relative; }
+  #bezel { background:#000; border-radius:22px; padding:14px; box-shadow:0 30px 80px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.06); transform-origin:center center; }
+  #fakeBar { height:34px; display:flex; align-items:center; gap:10px; padding:0 12px; background:#1b1b1d; border-radius:8px 8px 0 0; color:#8a8a8a; font-size:13px; }
+  #fakeBar .url { flex:1; background:#0f0f10; border-radius:6px; padding:5px 10px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  iframe { display:block; border:0; background:#111; border-radius:0 0 8px 8px; }
+  aside { width:340px; flex:none; background:var(--panel); border-left:1px solid var(--line); padding:18px; overflow:auto; }
+  h1 { font-size:20px; margin:0 0 4px; } .sub { color:var(--mut); font-size:13px; margin:0 0 16px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--mut); margin:20px 0 8px; }
+  select, input, button { font:inherit; font-size:14px; color:var(--txt); }
+  select, input { width:100%; background:#0f0f10; border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .row { display:flex; gap:8px; margin-top:8px; } .row > * { flex:1; }
+  button { border:0; border-radius:10px; padding:10px 12px; background:#2a2a2d; cursor:pointer; }
+  button.pri { background:var(--txt); color:#0b0b0c; font-weight:600; }
+  button.red { background:var(--acc); color:#fff; font-weight:600; }
+  button.sel { outline:2px solid var(--txt); }
+  .quick button { width:100%; text-align:left; margin-top:6px; }
+  #log { margin-top:10px; font-size:13px; color:var(--mut); line-height:1.5; min-height:40px; }
+  .res { max-height:180px; overflow:auto; margin-top:4px; }
+  .res div { padding:8px; border-radius:8px; cursor:pointer; font-size:13px; } .res div:hover { background:#232326; }
+  .res small { color:var(--mut); display:block; }
+  #bar { height:6px; background:#2a2a2d; border-radius:3px; margin-top:10px; overflow:hidden; } #bar i { display:block; height:100%; width:0; background:var(--acc); }
+  .note { font-size:12px; color:var(--mut); margin-top:14px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="frameWrap"><div id="bezel">
+  <div id="fakeBar"><span>&#8592; &#8594;</span><div class="url">matth0312leb.github.io/test-gps-tesla1</div></div>
+  <iframe id="app" title="Vigie"></iframe>
+</div></div></div>
+
+<aside>
+  <h1>Simulateur Vigie</h1>
+  <p class="sub">Vigie comme dans la voiture, avec un trajet simulé.</p>
+
+  <h2>Écran</h2>
+  <select id="preset">
+    <option value="880x700">Tesla – navigateur à côté de la carte (≈ 880 × 700)</option>
+    <option value="1280x700">Tesla – navigateur plein écran (≈ 1280 × 700)</option>
+    <option value="412x880">Téléphone (412 × 880)</option>
+    <option value="custom">Taille personnalisée…</option>
+  </select>
+  <div class="row" id="customRow" style="display:none"><input id="cw" type="number" value="1280"><input id="ch" type="number" value="760"><button id="applySize">OK</button></div>
+  <div class="row"><button id="reload">Recharger Vigie</button><button id="resetApp">Effacer les données</button></div>
+
+  <h2>Trajet</h2>
+  <div class="quick">
+    <button data-from="46.2418,6.2063" data-to="46.3405,6.4180">Vésenaz → Margencel</button>
+    <button data-from="46.3405,6.4180" data-to="46.2418,6.2063">Margencel → Vésenaz</button>
+    <button data-from="46.3705,6.4795" data-to="45.8992,6.1294">Thonon → Annecy</button>
+  </div>
+  <input id="qFrom" placeholder="Départ (adresse)" style="margin-top:10px"><div class="res" id="rFrom"></div>
+  <input id="qTo" placeholder="Arrivée (adresse)" style="margin-top:8px"><div class="res" id="rTo"></div>
+  <div class="row"><button class="pri" id="go">Lancer le trajet</button></div>
+  <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;color:var(--mut)"><input type="checkbox" id="guide" checked style="width:auto">Lancer aussi le guidage dans Vigie</label>
+
+  <h2>Lecture</h2>
+  <div class="row"><button id="pause">Pause</button><button id="stop" class="red">Arrêter</button></div>
+  <div class="row" id="speeds"><button data-x="1">×1</button><button data-x="2" class="sel">×2</button><button data-x="5">×5</button><button data-x="10">×10</button></div>
+  <div id="bar"><i id="barFill"></i></div>
+  <div id="log">Choisis un trajet.</div>
+
+  <p class="note">La taille exacte de l'écran Tesla : ouvre <b>matth0312leb.github.io/test-gps-tesla1/taille.html</b> dans la voiture et envoie les chiffres à Claude. Les données de Vigie (compte, Domicile…) sont celles de ce navigateur.</p>
+</aside>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var app = $('app'), W = 880, H = 700;
+  var base = location.pathname.replace(/sim\.html$/, '');
+  function loadApp() { app.src = base + 'index.html?sim=1&t=' + Date.now(); }
+
+  // ---------- Taille de l'écran simulé, mise à l'échelle pour tenir dans la fenêtre ----------
+  function fit() {
+    app.style.width = W + 'px'; app.style.height = H + 'px';
+    var st = $('stage'), availW = st.clientWidth - 48, availH = st.clientHeight - 48;
+    var fullW = W + 28, fullH = H + 34 + 28;
+    var k = Math.min(1, availW / fullW, availH / fullH);
+    $('bezel').style.transform = 'scale(' + k + ')';
+    $('frameWrap').style.width = fullW * k + 'px'; $('frameWrap').style.height = fullH * k + 'px';
+    $('bezel').style.transformOrigin = 'top left';
+  }
+  function setSize(v) { var p = v.split('x'); W = +p[0]; H = +p[1]; fit(); }
+  $('preset').onchange = function () {
+    $('customRow').style.display = this.value === 'custom' ? 'flex' : 'none';
+    if (this.value !== 'custom') setSize(this.value);
+  };
+  $('applySize').onclick = function () { setSize($('cw').value + 'x' + $('ch').value); };
+  addEventListener('resize', fit);
+  $('reload').onclick = loadApp;
+  $('resetApp').onclick = function () {
+    try { localStorage.clear(); } catch (e) {}
+    loadApp(); log('Données effacées : Vigie repart comme au premier lancement.');
+  };
+
+  // ---------- Recherche d'adresses ----------
+  var from = null, to = null;
+  function searchBox(input, box, set) {
+    var t = null;
+    input.addEventListener('input', function () {
+      clearTimeout(t); var q = this.value.trim(); if (q.length < 3) { box.innerHTML = ''; return; }
+      t = setTimeout(function () {
+        fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&lang=fr&limit=5&lat=46.3&lon=6.3').then(function (r) { return r.json(); }).then(function (d) {
+          box.innerHTML = '';
+          (d.features || []).forEach(function (f) {
+            var a = f.properties, div = document.createElement('div');
+            div.innerHTML = (a.name || a.street || a.city) + '<small>' + [a.city, a.country].filter(Boolean).join(', ') + '</small>';
+            div.onclick = function () { set({ lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], name: a.name || a.street || a.city }); input.value = div.firstChild.textContent; box.innerHTML = ''; };
+            box.appendChild(div);
+          });
+        }).catch(function () {});
+      }, 300);
+    });
+  }
+  searchBox($('qFrom'), $('rFrom'), function (p) { from = p; });
+  searchBox($('qTo'), $('rTo'), function (p) { to = p; });
+  [].forEach.call(document.querySelectorAll('.quick button'), function (b) {
+    b.onclick = function () {
+      var f = b.getAttribute('data-from').split(','), t = b.getAttribute('data-to').split(',');
+      from = { lat: +f[0], lon: +f[1] }; to = { lat: +t[0], lon: +t[1], name: b.textContent.split('→')[1].trim() };
+      $('qFrom').value = b.textContent.split('→')[0].trim(); $('qTo').value = to.name;
+      start();
+    };
+  });
+  $('go').onclick = function () { if (!from || !to) { log('Choisis un départ et une arrivée.'); return; } start(); };
+
+  // ---------- Simulation du déplacement le long d'un itinéraire réel ----------
+  var path = [], total = 0, pos = 0, mult = 2, timer = null, paused = false;
+  function log(t) { $('log').textContent = t; }
+  function dist(a, b) {
+    var R = 6371000, r = Math.PI / 180, dLat = (b[1] - a[1]) * r, dLon = (b[0] - a[0]) * r;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a[1] * r) * Math.cos(b[1] * r) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function bearing(a, b) {
+    var r = Math.PI / 180, y = Math.sin((b[0] - a[0]) * r) * Math.cos(b[1] * r);
+    var x = Math.cos(a[1] * r) * Math.sin(b[1] * r) - Math.sin(a[1] * r) * Math.cos(b[1] * r) * Math.cos((b[0] - a[0]) * r);
+    return (Math.atan2(y, x) / r + 360) % 360;
+  }
+  function send(msg) { msg.vigieSim = true; try { app.contentWindow.postMessage(msg, location.origin); } catch (e) {} }
+  function start() {
+    stop(true);
+    log('Calcul de l\'itinéraire…');
+    fetch('https://router.project-osrm.org/route/v1/driving/' + from.lon + ',' + from.lat + ';' + to.lon + ',' + to.lat + '?overview=false&steps=true&geometries=geojson')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var route = d.routes && d.routes[0]; if (!route) throw new Error();
+        path = []; total = 0;
+        route.legs[0].steps.forEach(function (st) {
+          var v = st.duration > 0 ? st.distance / st.duration : 13;     // vitesse moyenne du tronçon
+          v = Math.max(4, Math.min(36, v * 1.05));
+          var c = st.geometry.coordinates;
+          for (var i = 0; i < c.length - 1; i++) {
+            var L = dist(c[i], c[i + 1]); if (L < 0.5) continue;
+            path.push({ a: c[i], b: c[i + 1], len: L, start: total, v: v }); total += L;
+          }
+        });
+        pos = 0; paused = false; $('pause').textContent = 'Pause';
+        send({ reset: true });
+        if ($('guide').checked) {
+          // lance le guidage dans Vigie vers la destination
+          setTimeout(function () {
+            try {
+              var w = app.contentWindow;
+              w.localStorage.setItem('vigie-nav', JSON.stringify({ lat: to.lat, lon: to.lon, short: to.name || 'Destination', title: to.name || 'Destination', sub: '' }));
+            } catch (e) {}
+          }, 0);
+        }
+        log('Trajet : ' + (total / 1000).toFixed(1).replace('.', ',') + ' km. Vitesse ×' + mult + '.');
+        tick(); timer = setInterval(tick, 1000);
+        if ($('guide').checked) setTimeout(function () { try { app.contentWindow.location.reload(); } catch (e) {} setTimeout(function () { tick(); }, 2500); }, 300);
+      })
+      .catch(function () { log('Itinéraire indisponible, réessaie.'); });
+  }
+  var seg = 0;
+  function tick() {
+    if (paused || !path.length) return;
+    while (seg < path.length - 1 && pos > path[seg].start + path[seg].len) seg++;
+    while (seg > 0 && pos < path[seg].start) seg--;
+    var s = path[seg], t = Math.max(0, Math.min(1, (pos - s.start) / s.len));
+    var lon = s.a[0] + (s.b[0] - s.a[0]) * t, lat = s.a[1] + (s.b[1] - s.a[1]) * t;
+    var v = s.v * (0.95 + Math.random() * 0.1);
+    send({ lat: lat, lon: lon, speed: v, heading: bearing(s.a, s.b) });
+    $('barFill').style.width = Math.min(100, pos / total * 100) + '%';
+    if (pos >= total) { stop(true); log('Arrivé.'); return; }
+    pos += v * mult;
+  }
+  function stop(silent) { clearInterval(timer); timer = null; seg = 0; if (!silent) log('Simulation arrêtée.'); }
+  $('stop').onclick = function () { stop(false); path = []; };
+  $('pause').onclick = function () { paused = !paused; this.textContent = paused ? 'Reprendre' : 'Pause'; };
+  [].forEach.call(document.querySelectorAll('#speeds button'), function (b) {
+    b.onclick = function () { mult = +b.getAttribute('data-x'); [].forEach.call(document.querySelectorAll('#speeds button'), function (x) { x.classList.toggle('sel', x === b); }); };
+  });
+
+  setSize('880x700'); loadApp();
+})();
+</script>
+</body>
+</html>
