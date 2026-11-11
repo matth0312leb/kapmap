@@ -10,6 +10,7 @@ Lancé par .github/workflows/data.yml (au push, à la main, et chaque mois).
 import csv
 import io
 import json
+import os
 import sys
 import unicodedata
 import urllib.request
@@ -124,6 +125,7 @@ def build_border():
 
 
 def main():
+    os.makedirs("data", exist_ok=True)
     pts = build_points()
     with open("data/points.json", "w") as fh:
         json.dump(pts, fh, separators=(",", ":"))
