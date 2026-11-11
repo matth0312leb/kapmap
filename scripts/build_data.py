@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import unicodedata
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -191,6 +192,68 @@ def build_superchargers():
     return {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "count": len(out), "items": out}
 
 
+# Réseaux de recharge rapide connus (France + Suisse), repérés dans OpenStreetMap
+NETWORKS = [
+    ("Ionity", r"ionity"), ("Fastned", r"fastned"), ("Electra", r"electra"), ("Atlante", r"atlante"),
+    ("Allego", r"allego"), ("TotalEnergies", r"total"), ("Engie Vianeo", r"vianeo|engie"), ("Izivia", r"izivia"),
+    ("Power Dot", r"power ?dot"), ("Zunder", r"zunder"), ("Shell Recharge", r"shell"), ("bp pulse", r"bp ?pulse|aral pulse"),
+    ("Lidl", r"lidl"), ("GOFAST", r"gofast"), ("Move", r"^move|move mobility"), ("evpass", r"evpass"), ("Swisscharge", r"swisscharge"),
+    ("Leclerc", r"leclerc"), ("Carrefour", r"carrefour"),
+]
+OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
+
+
+def build_chargers():
+    import re as _re
+    rx = "|".join(r for _, r in NETWORKS).replace("^", "")
+    q = f"""[out:json][timeout:300];
+(area["ISO3166-1"="FR"][admin_level=2];area["ISO3166-1"="CH"][admin_level=2];)->.a;
+(
+  nwr["amenity"="charging_station"]["network"~"{rx}",i](area.a);
+  nwr["amenity"="charging_station"]["operator"~"{rx}",i](area.a);
+  nwr["amenity"="charging_station"]["brand"~"{rx}",i](area.a);
+);
+out center tags;"""
+    data = None
+    for url in OVERPASS:
+        try:
+            req = urllib.request.Request(url, data=("data=" + urllib.parse.quote(q)).encode(), headers={"User-Agent": "zones-app-data/1.0"})
+            with urllib.request.urlopen(req, timeout=330) as r:
+                data = json.loads(r.read())
+            break
+        except Exception as e:  # noqa: BLE001
+            print(f"Bornes : échec {url} ({e})")
+    if not data:
+        raise RuntimeError("Overpass indisponible")
+    out, seen = [], set()
+    for el in data.get("elements", []):
+        t = el.get("tags", {})
+        lat = el.get("lat") or (el.get("center") or {}).get("lat")
+        lon = el.get("lon") or (el.get("center") or {}).get("lon")
+        if lat is None or lon is None:
+            continue
+        hay = " ".join([t.get("network", ""), t.get("operator", ""), t.get("brand", "")]).lower()
+        if "tesla" in hay:
+            continue  # déjà couverts par la couche Superchargeurs
+        net = next((n for n, r in NETWORKS if _re.search(r, hay)), None)
+        if not net:
+            continue
+        key = (round(lat, 4), round(lon, 4), net)
+        if key in seen:
+            continue
+        seen.add(key)
+        cap = t.get("capacity", "")
+        kw = ""
+        for k, v in t.items():
+            if k.endswith(":output") and "kw" in v.lower():
+                m = _re.search(r"([0-9]+(?:[.,][0-9]+)?)", v)
+                if m:
+                    kw = max(kw or 0, float(m.group(1).replace(",", ".")))
+        out.append([round(lat, 5), round(lon, 5), net, (t.get("name") or "")[:60], int(cap) if str(cap).isdigit() else 0, int(kw) if kw else 0])
+    print(f"Bornes : {len(out)} stations de {len(set(o[2] for o in out))} réseaux")
+    return {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "count": len(out), "items": out}
+
+
 def main():
     os.makedirs("data", exist_ok=True)
     pts = build_points()
@@ -207,6 +270,13 @@ def main():
                 json.dump(sc, fh, separators=(",", ":"), ensure_ascii=False)
     except Exception as e:  # noqa: BLE001
         print(f"Superchargeurs : échec ({e}), fichier précédent conservé")
+    try:
+        ch = build_chargers()
+        if ch["count"] > 200:
+            with open("data/chargers.json", "w") as fh:
+                json.dump(ch, fh, separators=(",", ":"), ensure_ascii=False)
+    except Exception as e:  # noqa: BLE001
+        print(f"Bornes : échec ({e}), fichier précédent conservé")
     print(f"OK : {pts['count']} points")
 
 
