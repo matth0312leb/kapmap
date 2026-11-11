@@ -1093,7 +1093,7 @@
   }
   $('q').addEventListener('input', function () {
     var v = this.value.trim(); clearTimeout(searchTimer);
-    if (v.length < 3) { clearResults(); return; }
+    if (v.length < 3) { clearResults(); if (!v) showRecents(); return; }
     searchTimer = setTimeout(function () { search(v, showResults); }, 350);
   });
   $('q').addEventListener('keydown', function (e) { if (e.key === 'Enter') { var v = this.value.trim(); if (v) search(v, showResults); this.blur(); } });
@@ -1277,7 +1277,33 @@
       map.fitBounds(b, { padding: { top: 90, bottom: 260, left: 60, right: 120 }, pitch: 0, bearing: 0, duration: 700 });
     }).catch(function () { setStatus('Itinéraire indisponible', 'err'); toast('Impossible de calculer l\'itinéraire pour le moment'); });
   }
+  // Historique : 5 dernières destinations (sans doublon)
+  function recentList() { try { return JSON.parse(localStorage.getItem('vigie-recent') || '[]'); } catch (e) { return []; } }
+  function addRecent(d) {
+    if (!d || !d.lat) return;
+    var list = recentList().filter(function (x) { return dist(x.lat, x.lon, d.lat, d.lon) > 80; });
+    list.unshift({ lat: d.lat, lon: d.lon, short: d.short || d.title || 'Destination', title: d.title || d.short || '', sub: d.sub || '' });
+    try { localStorage.setItem('vigie-recent', JSON.stringify(list.slice(0, 5))); } catch (e) {}
+  }
+  function showRecents() {
+    var list = recentList(), box = $('results');
+    if (!list.length || $('q').value.trim()) return;
+    box.innerHTML = '<div class="lyHead2" style="margin:6px 4px 2px">Récents</div>';
+    list.forEach(function (p, i) {
+      var row = document.createElement('div'); row.className = 'res';
+      row.innerHTML = '<div class="t"><b>' + esc(p.short) + '</b><span>' + esc(p.sub || p.title || '') + '</span></div><button data-x="1" title="Retirer">✕</button><button class="go">Y aller</button>';
+      row.querySelector('.go').onclick = function () { startNav(p); };
+      row.querySelector('[data-x]').onclick = function () {
+        var l = recentList(); l.splice(i, 1);
+        try { localStorage.setItem('vigie-recent', JSON.stringify(l)); } catch (e) {}
+        clearResults(); showRecents();
+      };
+      box.appendChild(row);
+    });
+  }
+  $('q').addEventListener('focus', showRecents);
   function beginNav(dest, n, resumed, from) {
+    if (!resumed) addRecent(dest);
     nav = n; nav.dest = dest; nav.idx = 0; nav.offCount = 0; nav.lastReroute = Date.now();
     setRoute(nav.coords);
     if (destMarker) destMarker.remove();
@@ -1473,7 +1499,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794426045';
+  var BUILD = '1794426117';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
