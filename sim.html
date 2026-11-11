@@ -59,13 +59,13 @@
   <div class="row"><button id="reload">Recharger Vigie</button><button id="resetApp">Effacer les données</button></div>
 
   <h2>Voiture à l'arrêt</h2>
-  <div class="row"><button id="parkHome">Garé à Margencel</button><button id="parkWork">Garé à Vésenaz</button></div>
+  <div class="row"><button id="parkHome">Garé au Domicile</button><button id="parkWork">Garé au Travail</button></div>
   <p class="note" style="margin-top:8px">Ou clique n'importe où sur la carte pour y poser la voiture.</p>
 
   <h2>Trajet</h2>
   <div class="quick">
-    <button data-from="46.2418,6.2063" data-to="46.3405,6.4180">Vésenaz → Margencel</button>
-    <button data-from="46.3405,6.4180" data-to="46.2418,6.2063">Margencel → Vésenaz</button>
+    <button data-saved="work>home">Travail → Domicile</button>
+    <button data-saved="home>work">Domicile → Travail</button>
     <button data-from="46.3705,6.4795" data-to="45.8992,6.1294">Thonon → Annecy</button>
   </div>
   <input id="qFrom" placeholder="Départ (adresse)" style="margin-top:10px"><div class="res" id="rFrom"></div>
@@ -134,8 +134,23 @@
   }
   searchBox($('qFrom'), $('rFrom'), function (p) { from = p; });
   searchBox($('qTo'), $('rTo'), function (p) { to = p; });
+  // Domicile / Travail : lus dans Vigie (ce navigateur). Par défaut : centres de Vésenaz et Margencel.
+  var DEFAULTS = { work: { lat: 46.2418, lon: 6.2063, short: 'Vésenaz' }, home: { lat: 46.3405, lon: 6.4180, short: 'Margencel' } };
+  function saved(kind) {
+    try { var p = JSON.parse(app.contentWindow.localStorage.getItem('vigie-' + kind) || 'null'); if (p && p.lat) return p; } catch (e) {}
+    return null;
+  }
+  function place(kind) { return saved(kind) || DEFAULTS[kind]; }
   [].forEach.call(document.querySelectorAll('.quick button'), function (b) {
     b.onclick = function () {
+      var sv = b.getAttribute('data-saved');
+      if (sv) {
+        var k = sv.split('>'), A = place(k[0]), B = place(k[1]);
+        from = { lat: A.lat, lon: A.lon }; to = { lat: B.lat, lon: B.lon, name: k[1] === 'home' ? 'Domicile' : 'Travail' };
+        $('qFrom').value = k[0] === 'home' ? 'Domicile' : 'Travail'; $('qTo').value = to.name;
+        if (!saved(k[0]) || !saved(k[1])) log('Astuce : enregistre Domicile et Travail dans Vigie pour utiliser tes vraies adresses.');
+        start(); return;
+      }
       var f = b.getAttribute('data-from').split(','), t = b.getAttribute('data-to').split(',');
       from = { lat: +f[0], lon: +f[1] }; to = { lat: +t[0], lon: +t[1], name: b.textContent.split('→')[1].trim() };
       $('qFrom').value = b.textContent.split('→')[0].trim(); $('qTo').value = to.name;
@@ -208,8 +223,8 @@
   function stop(silent) { clearInterval(timer); timer = null; seg = 0; if (!silent) log('Simulation arrêtée.'); }
   $('stop').onclick = function () { stop(false); path = []; };
   function park(lat, lon, name) { stop(true); path = []; send({ reset: true }); send({ lat: lat, lon: lon, speed: 0, heading: null }); log('Voiture garée à ' + name + '.'); }
-  $('parkHome').onclick = function () { park(46.3405, 6.4180, 'Margencel'); };
-  $('parkWork').onclick = function () { park(46.2418, 6.2063, 'Vésenaz'); };
+  $('parkHome').onclick = function () { var p = place('home'); park(p.lat, p.lon, saved('home') ? 'ton Domicile' : 'Margencel (Domicile pas encore défini)'); };
+  $('parkWork').onclick = function () { var p = place('work'); park(p.lat, p.lon, saved('work') ? 'ton Travail' : 'Vésenaz (Travail pas encore défini)'); };
   $('pause').onclick = function () { paused = !paused; this.textContent = paused ? 'Reprendre' : 'Pause'; };
   [].forEach.call(document.querySelectorAll('#speeds button'), function (b) {
     b.onclick = function () { mult = +b.getAttribute('data-x'); [].forEach.call(document.querySelectorAll('#speeds button'), function (x) { x.classList.toggle('sel', x === b); }); };
