@@ -171,6 +171,26 @@ def build_banned():
     return out
 
 
+def build_superchargers():
+    """Superchargeurs ouverts en Europe (base communautaire supercharge.info)."""
+    sites = json.loads(get("https://supercharge.info/service/supercharge/allSites"))
+    out = []
+    for x in sites:
+        addr = x.get("address") or {}
+        gps = x.get("gps") or {}
+        if (x.get("status") or "").upper() != "OPEN":
+            continue
+        if (addr.get("region") or "").lower() != "europe":
+            continue
+        lat, lon = gps.get("latitude"), gps.get("longitude")
+        if lat is None or lon is None:
+            continue
+        out.append([round(lat, 5), round(lon, 5), x.get("name") or "",
+                    x.get("stallCount") or 0, x.get("powerKilowatt") or 0])
+    print(f"Superchargeurs : {len(out)} sites ouverts en Europe")
+    return {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "count": len(out), "items": out}
+
+
 def main():
     os.makedirs("data", exist_ok=True)
     pts = build_points()
@@ -180,6 +200,13 @@ def main():
     border["banned"] = build_banned()
     with open("data/france.json", "w") as fh:
         json.dump(border, fh, separators=(",", ":"))
+    try:
+        sc = build_superchargers()
+        if sc["count"] > 500:
+            with open("data/superchargers.json", "w") as fh:
+                json.dump(sc, fh, separators=(",", ":"), ensure_ascii=False)
+    except Exception as e:  # noqa: BLE001
+        print(f"Superchargeurs : échec ({e}), fichier précédent conservé")
     print(f"OK : {pts['count']} points")
 
 

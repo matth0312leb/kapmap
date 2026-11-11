@@ -2,120 +2,154 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vigie – zones de danger</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Vigie – carte et zones de danger</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-  :root { --bg:#0b0c0e; --card:#17191d; --line:#2a2d33; --txt:#f4f4f5; --mut:#8a8f98; --ok:#3ecf8e; --warn:#f5a524; --err:#f04438; --acc:#e82127; }
-  * { box-sizing:border-box; }
-  html, body { margin:0; height:100%; }
-  body { background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:22px 26px; display:flex; flex-direction:column; gap:18px; }
-  header { display:flex; align-items:center; justify-content:space-between; gap:16px; }
-  .brand { font-size:26px; font-weight:800; letter-spacing:.02em; }
-  .brand small { font-size:15px; color:var(--mut); font-weight:500; margin-left:8px; }
-  .btns { display:flex; gap:10px; flex-wrap:wrap; }
-  button { font:inherit; font-size:20px; font-weight:600; padding:14px 22px; border-radius:12px; border:0; color:#fff; background:#33363d; cursor:pointer; }
-  button.main { background:var(--acc); }
-  button.on { outline:2px solid var(--ok); }
+  :root { --bg:#0b0c0e; --panel:rgba(20,22,26,.92); --line:rgba(255,255,255,.08); --txt:#f4f4f5; --mut:#9aa0a8; --ok:#3ecf8e; --warn:#f5a524; --err:#f04438; --acc:#e82127; --blue:#3b82f6; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; overflow:hidden; }
+  #map { position:absolute; inset:0; background:#111; }
+  .leaflet-container { background:#111; font-family:inherit; }
+  .leaflet-control-attribution { background:rgba(0,0,0,.55) !important; color:#888 !important; font-size:10px; }
+  .leaflet-control-attribution a { color:#aaa !important; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background:#1b1d22; color:var(--txt); box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  .leaflet-popup-content { margin:14px 18px; font-size:16px; line-height:1.4; }
+  .leaflet-popup-content b { font-size:17px; }
+  .leaflet-popup-content .m { color:var(--mut); font-size:14px; }
 
-  #zone { border-radius:20px; padding:26px 30px; background:var(--card); display:flex; align-items:center; justify-content:space-between; gap:24px; min-height:190px; transition:background .25s; }
-  #zone.active { background:#5a1013; box-shadow:0 0 0 3px var(--err) inset; }
-  #zone.off { opacity:.75; }
-  #zoneTitle { font-size:44px; font-weight:800; line-height:1.1; }
-  #zoneSub { font-size:22px; color:#d6d6d8; margin-top:10px; }
-  .limit { width:150px; height:150px; border-radius:50%; background:#fff; border:16px solid var(--acc); color:#111; display:none; align-items:center; justify-content:center; font-size:56px; font-weight:800; flex:none; }
-  #zone.active .limit.has { display:flex; }
+  .panel { position:absolute; z-index:500; background:var(--panel); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:18px; box-shadow:0 10px 30px rgba(0,0,0,.45); }
 
-  .grid { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:16px; }
-  .card { background:var(--card); border-radius:16px; padding:18px 22px; }
-  .lbl { color:var(--mut); font-size:15px; text-transform:uppercase; letter-spacing:.06em; }
-  .val { font-size:58px; font-weight:800; margin-top:4px; font-variant-numeric:tabular-nums; line-height:1.05; }
-  .val.mid { font-size:30px; }
-  .unit { font-size:20px; color:var(--mut); font-weight:500; margin-left:6px; }
-  .over { color:var(--err); }
-  #status { font-size:18px; color:var(--mut); }
-  .dot { display:inline-block; width:12px; height:12px; border-radius:50%; background:var(--mut); margin-right:8px; vertical-align:middle; }
+  #alert { top:16px; left:16px; right:96px; max-width:620px; padding:16px 22px; display:flex; align-items:center; gap:18px; transition:background .25s, box-shadow .25s; }
+  #alert.danger { background:rgba(120,14,18,.95); box-shadow:0 0 0 3px var(--err), 0 10px 40px rgba(240,68,56,.35); }
+  #alert.off { background:rgba(40,42,48,.92); }
+  #alertIcon { width:46px; height:46px; flex:none; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.07); }
+  #alert.danger #alertIcon { background:rgba(255,255,255,.15); animation:pulse 1.2s infinite; }
+  @keyframes pulse { 50% { transform:scale(1.08); } }
+  #alertTitle { font-size:24px; font-weight:800; }
+  #alertSub { font-size:16px; color:#d6d6d8; margin-top:3px; }
+  #zoneBar { height:6px; border-radius:3px; background:rgba(255,255,255,.18); margin-top:10px; overflow:hidden; display:none; }
+  #zoneBar i { display:block; height:100%; width:0; background:#fff; transition:width .9s linear; }
+  #alert.danger #zoneBar { display:block; }
+
+  #speedBox { left:16px; bottom:28px; padding:14px 20px; display:flex; align-items:center; gap:18px; }
+  #speed { font-size:54px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1; }
+  #speed.over { color:var(--err); }
+  #speedUnit { font-size:15px; color:var(--mut); margin-top:2px; }
+  #limit { width:78px; height:78px; border-radius:50%; background:#fff; border:9px solid var(--acc); color:#111; display:none; align-items:center; justify-content:center; font-size:30px; font-weight:800; }
+  #limit.show { display:flex; }
+
+  #tools { right:16px; top:16px; padding:8px; display:flex; flex-direction:column; gap:8px; }
+  .tbtn { width:60px; height:60px; border-radius:14px; border:0; background:rgba(255,255,255,.06); color:var(--txt); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .tbtn:active { transform:scale(.96); }
+  .tbtn.on { background:rgba(59,130,246,.25); color:#9cc3ff; }
+  .tbtn.go { background:var(--acc); color:#fff; }
+  .tbtn svg { width:28px; height:28px; }
+
+  #layers { right:96px; top:16px; padding:10px; display:none; min-width:250px; }
+  #layers.show { display:block; }
+  #layers label { display:flex; align-items:center; gap:12px; padding:12px; font-size:17px; border-radius:10px; cursor:pointer; }
+  #layers input { width:22px; height:22px; accent-color:var(--blue); }
+  #layers .sw { width:14px; height:14px; border-radius:50%; flex:none; }
+  #layers .note { font-size:13px; color:var(--mut); padding:4px 12px 8px; line-height:1.4; }
+
+  #statusPill { right:16px; bottom:28px; padding:10px 14px; font-size:14px; color:var(--mut); display:flex; align-items:center; gap:8px; max-width:340px; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--mut); flex:none; }
   .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); } .dot.err { background:var(--err); }
-  footer { color:var(--mut); font-size:14px; margin-top:auto; line-height:1.5; }
+
+  .car svg { width:44px; height:44px; filter:drop-shadow(0 2px 6px rgba(0,0,0,.6)); transition:transform .6s; }
+  .sc { width:30px; height:30px; border-radius:50%; background:var(--acc); border:2px solid #fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.5); }
+  .sc svg { width:16px; height:16px; }
+  .poi { width:26px; height:26px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.5); font-weight:800; color:#fff; }
+
   @media (max-width: 700px) {
-    body { padding:14px; gap:12px; }
-    header { flex-direction:column; align-items:flex-start; }
-    button { font-size:17px; padding:12px 16px; }
-    #zone { padding:18px; min-height:140px; }
-    #zoneTitle { font-size:30px; }
-    #zoneSub { font-size:17px; }
-    .limit { width:96px; height:96px; border-width:10px; font-size:36px; }
-    .grid { grid-template-columns:1fr 1fr; }
-    .grid .card:first-child { grid-column:1 / -1; }
-    .val { font-size:44px; }
+    #alert { right:86px; padding:12px 14px; gap:12px; }
+    #alertIcon { width:38px; height:38px; }
+    #alertTitle { font-size:19px; }
+    #alertSub { font-size:14px; }
+    .tbtn { width:52px; height:52px; }
+    #layers { right:86px; }
+    #speed { font-size:42px; }
+    #limit { width:62px; height:62px; font-size:24px; border-width:7px; }
+    #statusPill { display:none; }
   }
 </style>
 </head>
 <body>
-  <header>
-    <div class="brand">Vigie <small>version de test</small></div>
-    <div class="btns">
-      <button id="start" class="main">Démarrer</button>
-      <button id="sound" class="on">Son : oui</button>
-      <button id="demo">Démo</button>
-    </div>
-  </header>
+<div id="map"></div>
 
-  <section id="zone" class="off">
-    <div>
-      <div id="zoneTitle">Appuie sur Démarrer</div>
-      <div id="zoneSub">L'appli a besoin de ta position pour fonctionner.</div>
-    </div>
-    <div class="limit" id="limit">–</div>
-  </section>
+<div id="alert" class="panel off">
+  <div id="alertIcon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg></div>
+  <div style="flex:1;min-width:0">
+    <div id="alertTitle">Bienvenue</div>
+    <div id="alertSub">Appuie sur le bouton rouge pour démarrer.</div>
+    <div id="zoneBar"><i id="zoneFill"></i></div>
+  </div>
+</div>
 
-  <section class="grid">
-    <div class="card"><div class="lbl">Vitesse</div><div class="val" id="speed">–<span class="unit">km/h</span></div></div>
-    <div class="card"><div class="lbl">Zones à moins de 10 km</div><div class="val" id="near">–</div></div>
-    <div class="card"><div class="lbl">Pays</div><div class="val mid" id="country">–</div></div>
-  </section>
+<div id="tools" class="panel">
+  <button class="tbtn go" id="btnStart" title="Démarrer / recentrer"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg></button>
+  <button class="tbtn" id="btnLayers" title="Calques"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
+  <button class="tbtn" id="btnPoi" title="Autour de moi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button>
+  <button class="tbtn on" id="btnSound" title="Son"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/></svg></button>
+  <button class="tbtn" id="btnDemo" title="Démo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+</div>
 
-  <div id="status"><span class="dot" id="dot"></span><span id="statusTxt">En attente</span></div>
+<div id="layers" class="panel">
+  <label><input type="checkbox" id="lyZones" checked><span class="sw" style="background:var(--err)"></span>Zones de danger</label>
+  <label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--acc);border:2px solid #fff"></span>Superchargeurs Tesla</label>
+  <label><input type="checkbox" id="lyPoi" checked><span class="sw" style="background:var(--blue)"></span>Lieux autour de moi</label>
+  <div class="note">Zones visibles en France uniquement, sans position précise.<br>Lieux : touche la loupe pour charger ceux de la zone affichée.</div>
+</div>
 
-  <footer>
-    Vigie signale des zones de danger, sans position précise, conformément à la réglementation française.
-    Les alertes sont coupées hors de France (Suisse, Allemagne…). Reste attentif à la route et respecte les limitations.
-    <br><span id="dataInfo">Données : chargement…</span>
-  </footer>
+<div id="speedBox" class="panel">
+  <div><div id="speed">–</div><div id="speedUnit">km/h</div></div>
+  <div id="limit">–</div>
+</div>
 
+<div id="statusPill" class="panel"><span class="dot" id="dot"></span><span id="statusTxt">GPS en attente</span></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
 
-  // ---------- Réglages ----------
-  var LOOKAHEAD_DEG = 35;      // angle max entre le cap et la direction de la zone
-  var SEARCH_KM = 10;          // rayon de recherche des zones
-  var MIN_MOVE_M = 8;          // déplacement minimal pour recalculer le cap
+  var LOOKAHEAD_DEG = 35, SEARCH_KM = 10, MIN_MOVE_M = 8, BORDER_MARGIN_M = 300;
 
-  // ---------- Données ----------
-  var points = [];             // [lat, lon, vma, type]
-  var rings = null;            // contours de la France [lon,lat,lon,lat,...]
-  var banned = [];             // contours précis des pays interdits (Suisse, Allemagne)
-  var dataReady = false;
+  // ================= Carte =================
+  var map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([46.35, 6.45], 11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, subdomains: 'abcd',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  }).addTo(map);
+  var canvas = L.canvas({ padding: 0.3 });
+  var zonesLayer = L.layerGroup(), scLayer = L.layerGroup().addTo(map), poiLayer = L.layerGroup().addTo(map);
 
+  var follow = true;
+  map.on('dragstart', function () { follow = false; $('btnStart').classList.remove('go'); });
+
+  var carIcon = L.divIcon({ className: 'car', iconSize: [44, 44], iconAnchor: [22, 22],
+    html: '<svg id="carSvg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="rgba(59,130,246,.18)"/><path d="M22 7l10 28-10-6-10 6z" fill="#3b82f6" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg>' });
+  var carMarker = null;
+
+  // ================= Données =================
+  var points = [], rings = null, banned = [], dataReady = false;
   function loadJSON(url) {
-    return fetch(url + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) {
-      if (!r.ok) throw new Error(r.status);
-      return r.json();
-    });
+    return fetch(url + '?t=' + Math.floor(Date.now() / 3600000), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
   }
   Promise.all([loadJSON('data/points.json'), loadJSON('data/france.json')]).then(function (res) {
     points = res[0].items || [];
     rings = res[1].rings || null;
     var b = res[1].banned || {};
-    banned = Object.keys(b).reduce(function (acc, k) { return acc.concat(b[k]); }, []);
+    banned = Object.keys(b).reduce(function (a, k) { return a.concat(b[k]); }, []);
     dataReady = points.length > 0 && !!rings && banned.length > 0;
-    $('dataInfo').textContent = 'Données : ' + points.length + ' zones, source publique du ' + (res[0].source_date || '').slice(0, 10) + ', mise à jour ' + res[0].updated + '.';
-  }).catch(function () {
-    $('dataInfo').textContent = 'Données : pas encore disponibles (la mise à jour automatique est peut-être en cours).';
-  });
+    refreshZonesLayer();
+  }).catch(function () { setStatus('Données des zones indisponibles', 'err'); });
 
-  // ---------- Géométrie ----------
+  loadJSON('data/superchargers.json').then(function (d) { drawSuperchargers(d.items || []); }).catch(function () {});
+
+  // ================= Géométrie =================
   var R = 6371000, toR = Math.PI / 180;
   function dist(aLat, aLon, bLat, bLon) {
     var dLat = (bLat - aLat) * toR, dLon = (bLon - aLon) * toR;
@@ -136,8 +170,6 @@
     }
     return inside;
   }
-  // Distance (m) jusqu'à la frontière la plus proche, pour garder une marge de sécurité.
-  var BORDER_MARGIN_M = 300;
   function ringBox(r) {
     var b = [Infinity, Infinity, -Infinity, -Infinity];
     for (var i = 0; i < r.length; i += 2) {
@@ -165,66 +197,102 @@
     }
     return best;
   }
-  function inAny(lat, lon, list) {
-    for (var k = 0; k < list.length; k++) if (inRing(lon, lat, list[k])) return true;
-    return false;
-  }
-  // France = dans le contour de la France ET hors des pays interdits (contour précis),
-  // avec une marge de sécurité autour de leur frontière.
-  // Le contour de la France est approximatif : on l'élargit de 3 km. Ce sont les contours
-  // précis de la Suisse et de l'Allemagne qui décident près de ces frontières.
+  function inAny(lat, lon, list) { for (var k = 0; k < list.length; k++) if (inRing(lon, lat, list[k])) return true; return false; }
   function inFrance(lat, lon) {
     if (!rings || inAny(lat, lon, banned)) return false;
     return inAny(lat, lon, rings) || borderDistance(lat, lon, rings) < 3000;
   }
+  function alertsAllowed(lat, lon) { return inFrance(lat, lon) && borderDistance(lat, lon, banned) >= BORDER_MARGIN_M; }
 
-  // Longueur de zone selon le type de route (déduit de la vitesse limite) :
-  // 4 km autoroute, 2 km hors agglomération, 500 m en agglomération.
-  function zoneLength(vma) {
-    if (vma >= 110) return 4000;
-    if (vma > 0 && vma <= 50) return 500;
-    return 2000;
-  }
-  // Position de la zone autour du point : variable selon le point, pour ne jamais
-  // indiquer d'emplacement précis.
-  function zoneStartFraction(i, p) {
-    var h = Math.abs(Math.sin(i * 12.9898 + p[0] * 78.233 + p[1] * 37.719) * 43758.5453) % 1;
-    return 0.3 + 0.4 * h;
+  function zoneLength(vma) { if (vma >= 110) return 4000; if (vma > 0 && vma <= 50) return 500; return 2000; }
+  function hash(i, p, salt) { return Math.abs(Math.sin(i * 12.9898 + p[0] * 78.233 + p[1] * 37.719 + salt) * 43758.5453) % 1; }
+  function zoneStartFraction(i, p) { return 0.3 + 0.4 * hash(i, p, 0); }
+  function zoneShape(i, p) {
+    var L = zoneLength(p[2]), r = L * 0.6, off = L * 0.3 * (0.4 + 0.6 * hash(i, p, 7)), ang = hash(i, p, 3) * 2 * Math.PI;
+    return { lat: p[0] + (off * Math.cos(ang)) / 110540, lon: p[1] + (off * Math.sin(ang)) / (111320 * Math.cos(p[0] * toR)), r: r };
   }
 
-  // ---------- Son ----------
-  var soundOn = true, ctx = null;
-  function unlockAudio() {
-    try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) { ctx = null; }
-  }
-  function beep(times) {
-    if (!soundOn || !ctx) return;
-    for (var k = 0; k < times; k++) {
-      var t0 = ctx.currentTime + k * 0.28;
-      var o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'sine'; o.frequency.value = 880;
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
-      o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + 0.22);
+  // ================= Calques =================
+  var zonesShown = false, zonesAllowedNow = false;
+  function refreshZonesLayer() {
+    var want = $('lyZones').checked && zonesAllowedNow && dataReady;
+    if (want && !zonesShown) {
+      zonesLayer.clearLayers();
+      for (var i = 0; i < points.length; i++) {
+        var z = zoneShape(i, points[i]);
+        L.circle([z.lat, z.lon], { radius: z.r, renderer: canvas, color: '#f04438', weight: 1.5, opacity: .7, fillColor: '#f04438', fillOpacity: .16, interactive: false }).addTo(zonesLayer);
+      }
+      zonesLayer.addTo(map); zonesShown = true;
+    } else if (!want && zonesShown) {
+      map.removeLayer(zonesLayer); zonesLayer.clearLayers(); zonesShown = false;
     }
   }
-
-  // ---------- État de conduite ----------
-  var last = null, heading = null, active = null, lastOverBeep = 0;
-
-  function setStatus(txt, cls) { $('statusTxt').textContent = txt; $('dot').className = 'dot ' + (cls || ''); }
-
-  function showIdle(title, sub) {
-    $('zone').className = '';
-    $('zoneTitle').textContent = title;
-    $('zoneSub').textContent = sub;
-    $('limit').className = 'limit';
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var boltSvg = '<svg viewBox="0 0 24 24" fill="#fff"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>';
+  function drawSuperchargers(items) {
+    var icon = L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], html: '<div class="sc">' + boltSvg + '</div>' });
+    items.forEach(function (s) {
+      L.marker([s[0], s[1]], { icon: icon }).bindPopup('<b>' + esc(s[2]) + '</b><br><span class="m">Superchargeur · ' + (s[3] || '?') + ' bornes' + (s[4] ? ' · ' + s[4] + ' kW' : '') + '</span>').addTo(scLayer);
+    });
   }
+  $('lyZones').onchange = refreshZonesLayer;
+  $('lySc').onchange = function () { this.checked ? scLayer.addTo(map) : map.removeLayer(scLayer); };
+  $('lyPoi').onchange = function () { this.checked ? poiLayer.addTo(map) : map.removeLayer(poiLayer); };
+  $('btnLayers').onclick = function () { $('layers').classList.toggle('show'); this.classList.toggle('on'); };
 
-  function update(lat, lon, gpsSpeed, gpsHeading, accuracy, forceFrance, demoPoints) {
-    var now = Date.now();
-    var moved = 0, calcSpeed = null;
+  var POI = {
+    restaurant: ['#f59e0b', 'R', 'Restaurant'], fast_food: ['#f97316', 'F', 'Restauration rapide'], cafe: ['#a16207', 'C', 'Café'],
+    toilets: ['#06b6d4', 'WC', 'Toilettes'], fuel: ['#64748b', 'S', 'Station-service'], supermarket: ['#22c55e', 'M', 'Supermarché'], charging_station: ['#3b82f6', 'B', 'Borne de recharge']
+  };
+  $('btnPoi').onclick = function () {
+    var btn = this;
+    if (map.getZoom() < 13) map.setZoom(14);
+    var b = map.getBounds(), bbox = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].map(function (v) { return v.toFixed(4); }).join(',');
+    var q = '[out:json][timeout:20];(node["amenity"~"^(restaurant|fast_food|cafe|toilets|fuel|charging_station)$"](' + bbox + ');node["shop"="supermarket"](' + bbox + '););out body 300;';
+    btn.classList.add('on'); setStatus('Recherche des lieux…', 'warn');
+    fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        poiLayer.clearLayers();
+        (d.elements || []).forEach(function (e) {
+          var t = e.tags || {}, kind = t.shop === 'supermarket' ? 'supermarket' : t.amenity, def = POI[kind];
+          if (!def) return;
+          var icon = L.divIcon({ className: '', iconSize: [26, 26], iconAnchor: [13, 13], html: '<div class="poi" style="background:' + def[0] + ';font-size:' + (def[1].length > 1 ? 10 : 13) + 'px">' + def[1] + '</div>' });
+          var lines = [def[2]]; if (t.opening_hours) lines.push('Horaires : ' + t.opening_hours);
+          L.marker([e.lat, e.lon], { icon: icon }).bindPopup('<b>' + esc(t.name || t.brand || def[2]) + '</b><br><span class="m">' + lines.map(esc).join('<br>') + '</span>').addTo(poiLayer);
+        });
+        setStatus((d.elements || []).length + ' lieux trouvés', 'ok');
+      })
+      .catch(function () { setStatus('Lieux indisponibles pour le moment', 'err'); })
+      .then(function () { btn.classList.remove('on'); });
+  };
+
+  // ================= Son =================
+  var soundOn = true, actx = null;
+  function unlockAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { actx = null; } }
+  function beep(times) {
+    if (!soundOn || !actx) return;
+    for (var k = 0; k < times; k++) {
+      var t0 = actx.currentTime + k * 0.28, o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      o.connect(g); g.connect(actx.destination); o.start(t0); o.stop(t0 + 0.22);
+    }
+  }
+  $('btnSound').onclick = function () {
+    unlockAudio(); soundOn = !soundOn; this.classList.toggle('on', soundOn);
+    $('waves').style.display = soundOn ? '' : 'none'; if (soundOn) beep(1);
+  };
+
+  // ================= Affichage =================
+  function setStatus(txt, cls) { $('statusTxt').textContent = txt; $('dot').className = 'dot ' + (cls || ''); }
+  function setAlert(mode, title, sub) { $('alert').className = 'panel ' + mode; $('alertTitle').textContent = title; $('alertSub').textContent = sub; }
+
+  // ================= Logique de conduite =================
+  var last = null, heading = null, active = null, lastOverBeep = 0, lastBorderCheck = 0, allowedCache = false;
+
+  function update(lat, lon, gpsSpeed, gpsHeading, accuracy, demo, demoPoints) {
+    var now = Date.now(), moved = 0, calcSpeed = null;
     if (last) {
       moved = dist(last.lat, last.lon, lat, lon);
       var dt = (now - last.t) / 1000;
@@ -237,118 +305,96 @@
     else if (now - last.t > 5000) { last.t = now; }
 
     var speed = (gpsSpeed !== null && !isNaN(gpsSpeed)) ? gpsSpeed * 3.6 : calcSpeed;
-    $('speed').innerHTML = (speed === null ? '–' : Math.round(speed)) + '<span class="unit">km/h</span>';
-    setStatus('GPS actif — précision ' + Math.round(accuracy) + ' m', accuracy <= 25 ? 'ok' : 'warn');
+    $('speed').textContent = speed === null ? '–' : Math.round(speed);
 
-    var france = forceFrance || inFrance(lat, lon);
-    var nearBorder = !forceFrance && france && borderDistance(lat, lon, banned) < BORDER_MARGIN_M;
-    $('country').textContent = forceFrance ? 'Démo' : (rings ? (france ? (nearBorder ? 'Frontière' : 'France') : 'Hors France') : '…');
+    if (!carMarker) carMarker = L.marker([lat, lon], { icon: carIcon, interactive: false, zIndexOffset: 1000 }).addTo(map);
+    else carMarker.setLatLng([lat, lon]);
+    var svg = document.getElementById('carSvg'); if (svg && heading !== null) svg.style.transform = 'rotate(' + heading + 'deg)';
+    if (follow) map.setView([lat, lon], Math.max(map.getZoom(), 14), { animate: true });
+    setStatus(demo ? 'Mode démo' : 'GPS actif · précision ' + Math.round(accuracy) + ' m', demo ? 'warn' : (accuracy <= 25 ? 'ok' : 'warn'));
+
+    if (demo) allowedCache = true;
+    else if (dataReady && now - lastBorderCheck > 3000) { allowedCache = alertsAllowed(lat, lon); lastBorderCheck = now; }
+    if (zonesAllowedNow !== allowedCache) { zonesAllowedNow = allowedCache; refreshZonesLayer(); }
 
     var list = demoPoints || points;
-    if (!demoPoints && !dataReady) { showIdle('Chargement des données…', 'Les alertes démarreront dès que les données seront prêtes.'); return; }
-    if (!france || nearBorder) {
-      active = null;
-      $('near').textContent = '–';
-      $('zone').className = 'off';
-      $('zoneTitle').textContent = nearBorder ? 'Alertes en pause' : 'Alertes désactivées';
-      $('zoneSub').textContent = nearBorder ? 'Tu es tout près de la frontière : les alertes reprennent plus loin en France.' : 'Tu es hors de France : la réglementation locale interdit ce type d\'alerte.';
-      $('limit').className = 'limit';
+    if (!demo && !dataReady) { setAlert('off', 'Chargement…', 'Préparation des zones de danger.'); return; }
+    if (!allowedCache) {
+      active = null; $('limit').className = ''; $('speed').className = '';
+      setAlert('off', 'Alertes désactivées', 'Hors de France ou trop près de la frontière : ce type d\'alerte y est interdit.');
       return;
     }
 
-    // Recherche des zones proches
-    var dLatMax = SEARCH_KM / 111, dLonMax = SEARCH_KM / (111 * Math.cos(lat * toR));
-    var nearCount = 0, candidate = null;
-    for (var i = 0; i < list.length; i++) {
-      var p = list[i];
-      if (Math.abs(p[0] - lat) > dLatMax || Math.abs(p[1] - lon) > dLonMax) continue;
-      var d = dist(lat, lon, p[0], p[1]);
-      if (d > SEARCH_KM * 1000) continue;
-      nearCount++;
-      if (active || heading === null) continue;
-      var L = zoneLength(p[2]), f = zoneStartFraction(i, p);
-      if (d < L * f && angleDiff(heading, bearing(lat, lon, p[0], p[1])) < LOOKAHEAD_DEG) {
-        if (!candidate || d < candidate.d) candidate = { i: i, p: p, d: d, L: L };
+    if (!active && heading !== null) {
+      var dLatMax = SEARCH_KM / 111, dLonMax = SEARCH_KM / (111 * Math.cos(lat * toR)), cand = null;
+      for (var i = 0; i < list.length; i++) {
+        var p = list[i];
+        if (Math.abs(p[0] - lat) > dLatMax || Math.abs(p[1] - lon) > dLonMax) continue;
+        var d = dist(lat, lon, p[0], p[1]), L0 = zoneLength(p[2]);
+        if (d < L0 * zoneStartFraction(i, p) && angleDiff(heading, bearing(lat, lon, p[0], p[1])) < LOOKAHEAD_DEG) {
+          if (!cand || d < cand.d) cand = { p: p, d: d, L: L0 };
+        }
       }
-    }
-    $('near').textContent = nearCount;
-
-    if (candidate && !active) {
-      active = { p: candidate.p, L: candidate.L, done: 0 };
-      beep(2);
+      if (cand) { active = { p: cand.p, L: cand.L, done: 0 }; beep(2); }
     }
 
     if (active) {
       active.done += stepMoved < 500 ? stepMoved : 0;
-      var remaining = active.L - active.done;
-      var dNow = dist(lat, lon, active.p[0], active.p[1]);
-      if (remaining <= 0 || dNow > active.L * 1.3) {
-        active = null;
-      } else {
+      var remaining = active.L - active.done, dNow = dist(lat, lon, active.p[0], active.p[1]);
+      if (remaining <= 0 || dNow > active.L * 1.3) { active = null; }
+      else {
         var vma = active.p[2];
-        $('zone').className = 'active';
-        $('zoneTitle').textContent = 'Zone de danger';
-        $('zoneSub').textContent = 'Fin de zone dans ' + (remaining >= 1000 ? (remaining / 1000).toFixed(1) + ' km' : Math.round(remaining / 10) * 10 + ' m');
-        $('limit').className = 'limit' + (vma ? ' has' : '');
-        $('limit').textContent = vma || '–';
+        setAlert('danger', 'Zone de danger', 'Fin de zone dans ' + (remaining >= 1000 ? (remaining / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(remaining / 10) * 10 + ' m'));
+        $('zoneFill').style.width = Math.min(100, active.done / active.L * 100) + '%';
+        $('limit').className = vma ? 'show' : ''; $('limit').textContent = vma || '–';
         var over = vma && speed !== null && speed > vma + 2;
-        $('speed').className = 'val' + (over ? ' over' : '');
+        $('speed').className = over ? 'over' : '';
         if (over && now - lastOverBeep > 6000) { beep(1); lastOverBeep = now; }
         return;
       }
     }
-    $('speed').className = 'val';
-    $('zone').className = '';
-    $('zoneTitle').textContent = 'Route dégagée';
-    $('zoneSub').textContent = heading === null ? 'Commence à rouler pour activer la détection.' : 'Aucune zone de danger devant toi.';
-    $('limit').className = 'limit';
+    $('limit').className = ''; $('speed').className = ''; $('zoneFill').style.width = '0';
+    setAlert('', 'Route dégagée', heading === null ? 'Commence à rouler pour activer la détection.' : 'Aucune zone de danger devant toi.');
   }
 
-  // ---------- GPS réel ----------
+  // ================= GPS réel =================
   var watchId = null;
-  $('start').onclick = function () {
+  $('btnStart').onclick = function () {
     unlockAudio();
-    stopDemo();
-    if (!('geolocation' in navigator)) { setStatus('Géolocalisation indisponible sur ce navigateur', 'err'); return; }
+    follow = true; this.classList.add('go');
+    if (last) map.setView([last.lat, last.lon], Math.max(map.getZoom(), 14));
+    if (demoTimer) stopDemo();
     if (watchId !== null) return;
-    setStatus('Demande de position…', 'warn');
-    $('zoneTitle').textContent = 'Recherche du GPS…';
-    $('zoneSub').textContent = 'Accepte la demande de position si elle s\'affiche.';
+    if (!('geolocation' in navigator)) { setStatus('Géolocalisation indisponible', 'err'); return; }
+    setAlert('off', 'Recherche du GPS…', 'Accepte la demande de position si elle s\'affiche.');
     watchId = navigator.geolocation.watchPosition(function (pos) {
-      var c = pos.coords;
-      update(c.latitude, c.longitude, c.speed, c.heading, c.accuracy, false, null);
+      var c = pos.coords; update(c.latitude, c.longitude, c.speed, c.heading, c.accuracy, false, null);
     }, function (e) {
-      var msg = { 1: 'Accès à la position refusé', 2: 'Position indisponible', 3: 'Délai dépassé' }[e.code] || 'Erreur GPS';
-      setStatus(msg + ' (code ' + e.code + ')', 'err');
+      setStatus(({ 1: 'Position refusée', 2: 'Position indisponible', 3: 'Délai dépassé' }[e.code] || 'Erreur GPS'), 'err');
+      setAlert('off', 'GPS indisponible', 'Vérifie que la page a le droit d\'utiliser la position.');
     }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
-    $('start').textContent = 'En marche';
   };
 
-  $('sound').onclick = function () {
-    unlockAudio();
-    soundOn = !soundOn;
-    this.textContent = 'Son : ' + (soundOn ? 'oui' : 'non');
-    this.className = soundOn ? 'on' : '';
-    if (soundOn) beep(1);
-  };
-
-  // ---------- Démo (voiture simulée, utilisable à l'arrêt) ----------
+  // ================= Démo =================
   var demoTimer = null;
-  function stopDemo() { if (demoTimer) { clearInterval(demoTimer); demoTimer = null; $('demo').textContent = 'Démo'; last = null; heading = null; active = null; } }
-  $('demo').onclick = function () {
+  function resetDrive() { last = null; heading = null; active = null; }
+  function stopDemo() {
+    if (!demoTimer) return; clearInterval(demoTimer); demoTimer = null; $('btnDemo').classList.remove('on'); resetDrive();
+    zonesAllowedNow = false; allowedCache = false; refreshZonesLayer();
+    setAlert('off', 'Démo terminée', 'Appuie sur le bouton rouge pour utiliser ton GPS.');
+  }
+  $('btnDemo').onclick = function () {
     unlockAudio();
     if (demoTimer) { stopDemo(); return; }
-    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; $('start').textContent = 'Démarrer'; }
-    last = null; heading = null; active = null;
-    var lat0 = 46.30, lon0 = 6.30, kmh = 90, step = 0;
-    var target = [[lat0 + 1.6 / 111, lon0, 80, 'demo']];   // zone à 1,6 km au nord
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    resetDrive(); follow = true; $('btnStart').classList.add('go'); this.classList.add('on');
+    var lat0 = 46.3205, lon0 = 6.4050, kmh = 90, step = 0;
+    var target = [[lat0 + 1.6 / 111, lon0, 80, 'demo']];
     demoTimer = setInterval(function () {
       step++;
-      var lat = lat0 + (kmh / 3.6) * step / 111000;
-      update(lat, lon0, kmh / 3.6, 0, 3, true, target);
-      if (step > 200) stopDemo();
+      update(lat0 + (kmh / 3.6) * step / 111000, lon0, kmh / 3.6, 0, 3, true, target);
+      if (step > 110) stopDemo();
     }, 1000);
-    this.textContent = 'Arrêter la démo';
   };
 })();
 </script>
