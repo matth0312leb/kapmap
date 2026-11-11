@@ -490,6 +490,17 @@
     accident: ['#dc2626', '!', 'Accident'], vehicule_arrete: ['#ea580c', 'V', 'Véhicule arrêté'], objet: ['#d97706', 'O', 'Objet sur la route'],
     bouchon: ['#b91c1c', 'B', 'Bouchon'], travaux: ['#ca8a04', 'T', 'Travaux'], nid_de_poule: ['#78716c', 'N', 'Nid de poule'], meteo: ['#0284c7', 'M', 'Météo dangereuse']
   };
+  // Pictogrammes Vigie (dessins originaux, blancs sur pastille colorée)
+  var HZ_SVG = {
+    accident: '<path d="M12 2l2.2 5.1 5.3-1.6-2.6 4.9 4.6 3-5.4 1.1.6 5.5-4.7-3-4.7 3 .6-5.5L2.5 13.4l4.6-3-2.6-4.9 5.3 1.6z" fill="#fff"/>',
+    vehicule_arrete: '<path d="M5 15V11l2-4h10l2 4v4M4 15h16v3H4z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="18" r="1.6" fill="#fff"/><circle cx="16.5" cy="18" r="1.6" fill="#fff"/><path d="M12 3v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
+    objet: '<path d="M4 9l8-4 8 4-8 4z" fill="#fff"/><path d="M4 9v7l8 4 8-4V9" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>',
+    bouchon: '<rect x="3" y="5" width="7" height="5" rx="1.5" fill="#fff"/><rect x="14" y="5" width="7" height="5" rx="1.5" fill="#fff"/><rect x="8.5" y="14" width="7" height="5" rx="1.5" fill="#fff"/>',
+    travaux: '<path d="M10 3h4l4.5 15h-13z" fill="#fff"/><path d="M8.3 9h7.4M7 13.5h10" stroke="currentColor" stroke-width="2"/><rect x="4" y="18" width="16" height="2.5" rx="1" fill="#fff"/>',
+    nid_de_poule: '<ellipse cx="12" cy="14" rx="8" ry="4.5" fill="#fff"/><path d="M8 13.5l2.5 1.5 2-2 3 1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 8l2 1.5M19 8l-2 1.5M12 5v2.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
+    meteo: '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><path d="M9.5 4.5L12 7l2.5-2.5M9.5 19.5L12 17l2.5 2.5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+  };
+  function hzIcon(type, color) { return '<svg viewBox="0 0 24 24" width="22" height="22" style="color:' + color + '">' + (HZ_SVG[type] || '') + '</svg>'; }
   var hzMarkers = [], hazards = [], lastHzFetch = null;
   function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove('show'); }, 3500); }
   function ago(ms) { var m = Math.round(ms / 60000); return m < 1 ? 'à l\'instant' : m < 60 ? 'il y a ' + m + ' min' : 'il y a ' + Math.round(m / 60) + ' h'; }
@@ -503,7 +514,7 @@
     hazards.forEach(function (h) {
       var def = HZ[h.type]; if (!def) return;
       var d = document.createElement('div');
-      d.className = 'hz'; d.style.background = def[0]; d.textContent = def[1];
+      d.className = 'hz'; d.style.background = def[0]; d.innerHTML = hzIcon(h.type, def[0]);
       d.style.display = $('lyHz').checked ? '' : 'none';
       d.onclick = function (ev) {
         ev.stopPropagation();
@@ -527,7 +538,7 @@
   $('lyHz').onchange = function () { var on = this.checked; hzMarkers.forEach(function (m) { m.getElement().style.display = on ? '' : 'none'; }); };
   Object.keys(HZ).forEach(function (k) {
     var b = document.createElement('button');
-    b.innerHTML = '<b style="background:' + HZ[k][0] + '">' + HZ[k][1] + '</b>' + HZ[k][2];
+    b.innerHTML = '<b style="background:' + HZ[k][0] + '">' + hzIcon(k, HZ[k][0]) + '</b>' + HZ[k][2];
     b.onclick = function () { sendReport(k); };
     $('sheetGrid').appendChild(b);
   });
