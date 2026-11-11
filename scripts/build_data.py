@@ -386,12 +386,14 @@ def gare_key(name):
 
 
 def read_rows(raw):
-    for enc in ("utf-8-sig", "latin-1"):
+    # Certains fichiers mélangent UTF-8 et Latin-1 selon les lignes : on décode ligne par ligne
+    lines = []
+    for ln in raw.split(b"\n"):
         try:
-            text = raw.decode(enc)
-            break
+            lines.append(ln.decode("utf-8"))
         except UnicodeDecodeError:
-            continue
+            lines.append(ln.decode("latin-1"))
+    text = "\n".join(lines).lstrip("\ufeff")
     delim = ";" if text[:5000].count(";") > text[:5000].count(",") else ","
     return list(csv.DictReader(io.StringIO(text), delimiter=delim))
 
@@ -458,6 +460,11 @@ def build_tolls():
             continue
         lat, lon = lambert93_to_wgs84(x, y)
         by_key.setdefault(gare_key(row.get("nomGare")), []).append([round(lat, 5), round(lon, 5)])
+    def compact(k):
+        return "".join(w for w in k.split(" ") if w not in ("DE", "DU", "DES", "LA", "LE", "LES", "D", "L", "EN", "BARRIERE", "BPV", "SENS", "ECH"))
+    by_compact = {}
+    for k, v in by_key.items():
+        by_compact.setdefault(compact(k), []).extend(v)
     found = 0
     for g in gates:
         variants = [g["key"], gare_key(re.sub(r"\(.*?\)", " ", g["name"])),
@@ -470,11 +477,17 @@ def build_tolls():
             if v and by_key.get(v):
                 pts = by_key[v]
                 break
-        if not pts:   # nom un peu différent : préfixe commun unique
+        if not pts:   # même nom sans les petits mots ni les espaces (« TIL CHATEL » = « Tilchatel »)
             for v in variants:
-                cand = [k for k in by_key if v and (k.startswith(v + " ") or v.startswith(k + " "))]
-                if len(cand) == 1:
-                    pts = by_key[cand[0]]
+                if v and by_compact.get(compact(v)):
+                    pts = by_compact[compact(v)]
+                    break
+        if not pts:   # nom plus court ou plus long : préfixe commun (« MOIRANS » → Moirans Nord + Moirans Sud)
+            for v in variants:
+                cv = compact(v)
+                cand = [k for k in by_compact if cv and len(cv) >= 6 and (k.startswith(cv) or cv.startswith(k))]
+                if 1 <= len(cand) <= 3:
+                    pts = [p for k in cand for p in by_compact[k]]
                     break
         if pts:
             g["pts"] = pts[:6]

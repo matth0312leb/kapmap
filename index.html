@@ -1542,6 +1542,8 @@
           d.gates.forEach(function (g, i) { g[2].forEach(function (p) { var m = dist(lat, lon, p[0], p[1]); if (m <= maxM && (!best || m < best.m)) best = { i: i, m: m }; }); });
           return best;
         };
+        d.so = {};   // gare « Système Ouvert » de chaque réseau
+        d.gates.forEach(function (g, i) { if (/syst.me ouvert/i.test(g[1])) d.so[g[0]] = i; });
         tollData = d; return d;
       }).catch(function () { tollDataP = null; return null; });
     return tollDataP;
@@ -1561,7 +1563,7 @@
         if (g0) seq.push({ g: g0.i, at: cum[s0] });
         // gares traversées le long de la section (barrières en pleine voie, échangeurs empruntés)
         for (var q = s0; q <= e0; q += Math.max(1, Math.floor((e0 - s0) / 400))) {
-          var gq = d.near(pts[q][1], pts[q][0], 120);
+          var gq = d.near(pts[q][1], pts[q][0], 400);   // gares proches du trajet (les échangeurs non empruntés sont sautés plus bas)
           if (gq && (!seq.length || seq[seq.length - 1].g !== gq.i)) seq.push({ g: gq.i, at: cum[q] });
         }
         var g1 = d.near(pts[e0][1], pts[e0][0], 2500);
@@ -1575,8 +1577,11 @@
       while (i < seq.length - 1) {
         var j = seq.length - 1, p = null;
         for (; j > i; j--) { p = price(seq[i].g, seq[j].g); if (p !== null) break; }
-        if (p !== null && j > i) { total += p; i = j; }
-        else { total += (seq[i + 1].at - seq[i].at) / 1000 * TOLL_EUR_KM; exact = false; i++; }
+        if (p !== null && j > i) { total += p; i = j; continue; }
+        // barrière isolée en système ouvert : tarif fixe « Système Ouvert → barrière »
+        var so = d.so && d.so[d.gates[seq[i + 1].g][0]], ps = so !== undefined ? price(so, seq[i + 1].g) : null;
+        if (ps !== null) { total += ps; i++; continue; }
+        total += (seq[i + 1].at - seq[i].at) / 1000 * TOLL_EUR_KM; exact = false; i++;
       }
     });
     return { price: Math.round(total * 100) / 100, exact: exact };
@@ -1877,7 +1882,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794440085';
+  var BUILD = '1794440769';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
