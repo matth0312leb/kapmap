@@ -65,6 +65,34 @@
   body.navigating #statusPill { display:none; }
   @media (max-width: 1100px) { #statusPill { display:none; } }
 
+  /* Bienvenue + compte */
+  .overlay { position:fixed; inset:0; z-index:900; background:rgba(0,0,0,.55); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; padding:16px; }
+  .overlay.show { display:flex; }
+  .card { background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:20px; width:min(560px, 100%); max-height:calc(100vh - 32px); overflow:auto; padding:26px 26px 20px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+  body.light .card { background:#fff; }
+  .card h2 { margin:0; font-size:26px; letter-spacing:.01em; }
+  .card .lead { color:var(--mut); margin:6px 0 18px; font-size:15px; }
+  .feat { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+  .feat div { display:flex; gap:10px; align-items:flex-start; padding:12px; border-radius:12px; background:rgba(127,127,127,.08); font-size:14px; line-height:1.35; }
+  .feat svg { width:20px; height:20px; flex:none; margin-top:1px; }
+  .feat b { display:block; font-size:14px; }
+  .feat span { color:var(--mut); font-size:13px; }
+  .btn { display:block; width:100%; font:inherit; font-size:16px; font-weight:600; padding:14px; border-radius:12px; border:0; cursor:pointer; margin-top:8px; }
+  .btn.pri { background:var(--txt); color:var(--inv); }
+  .btn.sec { background:rgba(127,127,127,.14); color:var(--txt); }
+  .btn.link { background:transparent; color:var(--mut); font-weight:500; font-size:14px; }
+  .btn.red { background:var(--acc); color:#fff; }
+  .field { margin-top:12px; }
+  .field label { display:block; font-size:13px; color:var(--mut); margin-bottom:6px; }
+  .field input { width:100%; font:inherit; font-size:17px; padding:13px 14px; border-radius:12px; border:1px solid var(--line); background:rgba(127,127,127,.08); color:var(--txt); outline:none; }
+  .field input:focus { border-color:var(--txt); }
+  .field input.pin { letter-spacing:.5em; font-size:22px; text-align:center; }
+  .err { color:var(--acc); font-size:14px; min-height:20px; margin-top:10px; }
+  .small { color:var(--mut); font-size:12px; margin-top:14px; line-height:1.45; }
+  .stat { display:flex; gap:10px; margin:14px 0 6px; }
+  .stat div { flex:1; padding:12px; border-radius:12px; background:rgba(127,127,127,.08); }
+  .stat b { display:block; font-size:22px; } .stat span { font-size:12px; color:var(--mut); }
+  @media (max-width: 520px) { .feat { grid-template-columns:1fr; } .card { padding:20px 18px 16px; } .card h2 { font-size:22px; } }
   #themeRow { display:flex; gap:6px; padding:8px 12px 4px; }
   #themeRow button { flex:1; font:inherit; font-size:15px; padding:10px 6px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
   #themeRow button.sel { background:var(--txt); color:var(--inv); border-color:var(--txt); }
@@ -200,6 +228,7 @@
 
 <div id="tools" class="panel">
   <button class="tbtn go" id="btnStart" title="Démarrer / recentrer"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg></button>
+  <button class="tbtn" id="btnAccount" title="Mon compte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
   <button class="tbtn" id="btnLayers" title="Calques"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
   <button class="tbtn" id="btnPoi" title="Autour de moi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button>
   <button class="tbtn on" id="btnSound" title="Son"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/></svg></button>
@@ -232,6 +261,18 @@
   <div id="results"></div>
   <div id="trip"><div id="tripEta"></div><div id="tripInfo"></div><button id="stopNav">Arrêter</button></div>
 </div>
+
+<div id="welcome" class="overlay"><div class="card">
+  <h2>Bienvenue sur Vigie</h2>
+  <p class="lead">La carte de conduite pensée pour ta Tesla.</p>
+  <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alertes sonores en France, coupées en Suisse</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons sur ton trajet et heure d'arrivée réelle</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l7 19-7-4-7 4z"/></svg><p style="margin:0"><b>Navigation guidée</b><span>Instructions vocales, Domicile et Travail en 1 touche</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg><p style="margin:0"><b>Signalements</b><span>Accidents, travaux, objets… partagés par la communauté</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Superchargeurs</b><span>Tous les sites d'Europe et les lieux utiles autour</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg><p style="margin:0"><b>Commande vocale</b><span>« Maison », « Signaler un accident »…</span></p></div></div>
+  <button class="btn pri" id="wRegister">Créer mon compte</button>
+  <button class="btn sec" id="wLogin">J'ai déjà un compte</button>
+  <button class="btn link" id="wSkip">Continuer sans compte</button>
+  <p class="small">Vigie signale des zones de danger sans position précise, conformément à la réglementation française. Reste attentif à la route et respecte les limitations.</p>
+</div></div>
+
+<div id="account" class="overlay"><div class="card" id="accountCard"></div></div>
 
 <div id="sheet" class="panel">
   <h3>Signaler un danger</h3>
@@ -630,9 +671,9 @@
   function sendReport(type) {
     $('sheet').classList.remove('show');
     if (!last) { toast('Appuie d\'abord sur le bouton rouge pour activer le GPS'); return; }
-    fetch(API + '/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: last.lat, lon: last.lon, type: type }) })
+    fetch(API + '/reports', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ lat: last.lat, lon: last.lon, type: type }) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-      .then(function (x) { toast(x.ok ? (x.d.merged ? 'Déjà signalé : ta confirmation est ajoutée' : 'Danger signalé, merci') : (x.d.error || 'Envoi impossible')); loadHazards(last.lat, last.lon, true); })
+      .then(function (x) { if (x.ok && me && !x.d.merged) me.reports = (me.reports || 0) + 1; toast(x.ok ? (x.d.merged ? 'Déjà signalé : ta confirmation est ajoutée' : 'Danger signalé, merci') : (x.d.error || 'Envoi impossible')); loadHazards(last.lat, last.lon, true); })
       .catch(function () { toast('Serveur indisponible pour le moment'); });
   }
   function hazardAhead(lat, lon) {
@@ -695,6 +736,7 @@
     if (kind === 'home') homeAddr = p; else workAddr = p;
     try { localStorage.setItem('vigie-' + kind, JSON.stringify(p)); } catch (e) {}
     refreshPlaces(); toast((kind === 'home' ? 'Domicile' : 'Travail') + ' enregistré : ' + p.short);
+    if (me) { var b = {}; b[kind] = p; apiJSON('PUT', '/me/places', b).catch(function () {}); me[kind] = p; }
   }
   var destMarker = null;
   function previewPlace(p) {
@@ -957,7 +999,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794419915';
+  var BUILD = '1794420063';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -967,6 +1009,90 @@
   }
   setTimeout(checkUpdate, 3000);
   setInterval(checkUpdate, 120000);
+
+
+  // ================= Comptes =================
+  var token = null, me = null;
+  try { token = localStorage.getItem('vigie-token'); } catch (e) {}
+  function authHeaders(h) { h = h || {}; if (token) h.Authorization = 'Bearer ' + token; return h; }
+  function apiJSON(method, path, body) {
+    return fetch(API + path, { method: method, headers: authHeaders({ 'Content-Type': 'application/json' }), body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || 'Erreur'); return d; }); });
+  }
+  function setSession(t, user) {
+    token = t; me = user;
+    try { if (t) localStorage.setItem('vigie-token', t); else localStorage.removeItem('vigie-token'); } catch (e) {}
+    $('btnAccount').classList.toggle('on', !!me);
+    if (me) syncPlaces();
+  }
+  // Domicile / Travail : le compte fait foi, sinon on y envoie ce qui est enregistré ici
+  function syncPlaces() {
+    var push = {};
+    if (me.home) { homeAddr = me.home; try { localStorage.setItem('vigie-home', JSON.stringify(me.home)); } catch (e) {} } else if (homeAddr) push.home = homeAddr;
+    if (me.work) { workAddr = me.work; try { localStorage.setItem('vigie-work', JSON.stringify(me.work)); } catch (e) {} } else if (workAddr) push.work = workAddr;
+    refreshPlaces();
+    if (push.home || push.work) apiJSON('PUT', '/me/places', push).catch(function () {});
+  }
+  function hello() { return me ? (me.name || me.pseudo) : ''; }
+
+  function showWelcome(on) { $('welcome').classList.toggle('show', on); }
+  function closeAccount() { $('account').classList.remove('show'); }
+  function accountView(view) {
+    var c = $('accountCard');
+    if (view === 'me' && me) {
+      var since = new Date(me.since || Date.now());
+      c.innerHTML = '<h2>Salut ' + esc(hello()) + '</h2><p class="lead">Connecté en tant que <b>' + esc(me.pseudo) + '</b></p>' +
+        '<div class="stat"><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div><div><b>' + since.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) + '</b><span>membre depuis</span></div></div>' +
+        '<p class="small">Domicile : ' + esc(homeAddr ? homeAddr.short : 'non défini') + '<br>Travail : ' + esc(workAddr ? workAddr.short : 'non défini') + '<br>Ces adresses suivent ton compte, sur la voiture comme sur ton téléphone.</p>' +
+        '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>';
+      $('aClose').onclick = closeAccount;
+      $('aLogout').onclick = function () { apiJSON('POST', '/auth/logout').catch(function () {}); setSession(null, null); closeAccount(); toast('Déconnecté'); };
+    } else {
+      var reg = view === 'register';
+      c.innerHTML = '<h2>' + (reg ? 'Créer mon compte' : 'Connexion') + '</h2>' +
+        '<p class="lead">' + (reg ? 'Un pseudo et un code à 4 à 6 chiffres, c\'est tout.' : 'Ton pseudo et ton code.') + '</p>' +
+        '<div class="field"><label>Pseudo</label><input id="fPseudo" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="20" placeholder="ex. matthieu74"></div>' +
+        (reg ? '<div class="field"><label>Prénom (facultatif)</label><input id="fName" maxlength="30" placeholder="ex. Matthieu"></div>' : '') +
+        '<div class="field"><label>Code (4 à 6 chiffres)</label><input id="fPin" class="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="' + (reg ? 'new-password' : 'current-password') + '"></div>' +
+        (reg ? '<div class="field"><label>Confirme ton code</label><input id="fPin2" class="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password"></div>' : '') +
+        '<div class="err" id="fErr"></div>' +
+        '<button class="btn pri" id="fGo">' + (reg ? 'Créer mon compte' : 'Me connecter') + '</button>' +
+        '<button class="btn sec" id="fSwitch">' + (reg ? 'J\'ai déjà un compte' : 'Créer un compte') + '</button>' +
+        '<button class="btn link" id="fCancel">Plus tard</button>';
+      ['fPin', 'fPin2'].forEach(function (id) { var el2 = $(id); if (el2) el2.addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 6); }); });
+      $('fSwitch').onclick = function () { accountView(reg ? 'login' : 'register'); };
+      $('fCancel').onclick = closeAccount;
+      $('fGo').onclick = function () {
+        var pseudo = $('fPseudo').value.trim(), pin = $('fPin').value, err = $('fErr');
+        err.textContent = '';
+        if (!/^[A-Za-z0-9_.-]{3,20}$/.test(pseudo)) { err.textContent = 'Pseudo : 3 à 20 caractères (lettres, chiffres, . _ -)'; return; }
+        if (!/^\d{4,6}$/.test(pin)) { err.textContent = 'Le code doit faire 4 à 6 chiffres'; return; }
+        if (reg && pin !== $('fPin2').value) { err.textContent = 'Les deux codes ne sont pas identiques'; return; }
+        var btn = this; btn.disabled = true; btn.textContent = '…';
+        apiJSON('POST', reg ? '/auth/register' : '/auth/login', reg ? { pseudo: pseudo, name: $('fName').value.trim(), pin: pin } : { pseudo: pseudo, pin: pin })
+          .then(function (d) {
+            setSession(d.token, d.user); closeAccount(); showWelcome(false);
+            try { localStorage.setItem('vigie-welcomed', '1'); } catch (e) {}
+            toast(reg ? 'Bienvenue ' + hello() + ' !' : 'Content de te revoir, ' + hello());
+          })
+          .catch(function (e) { err.textContent = e.message; btn.disabled = false; btn.textContent = reg ? 'Créer mon compte' : 'Me connecter'; });
+      };
+      setTimeout(function () { try { $('fPseudo').focus(); } catch (e) {} }, 50);
+    }
+    $('account').classList.add('show');
+  }
+  $('btnAccount').onclick = function () { accountView(me ? 'me' : 'login'); };
+  $('account').onclick = function (e) { if (e.target === this) closeAccount(); };
+  $('wRegister').onclick = function () { showWelcome(false); accountView('register'); };
+  $('wLogin').onclick = function () { showWelcome(false); accountView('login'); };
+  $('wSkip').onclick = function () { showWelcome(false); try { localStorage.setItem('vigie-welcomed', '1'); } catch (e) {} };
+
+  // Au démarrage : reprendre la session, ou accueillir au premier passage
+  setTimeout(function () {
+    if (token) apiJSON('GET', '/me').then(function (d) { setSession(token, d.user); }).catch(function (e) { if (/connect/i.test(e.message)) setSession(null, null); });
+    var welcomed = null; try { welcomed = localStorage.getItem('vigie-welcomed'); } catch (e) {}
+    if (!token && !welcomed) showWelcome(true);
+  }, 0);
 
   // ================= Son =================
   var soundOn = true, actx = null;
