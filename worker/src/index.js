@@ -44,7 +44,7 @@ function sameText(a, b) {
 const WEAK_PINS = ['0000', '1111', '1234', '4321', '00000', '12345', '000000', '111111', '123456', '654321', '123123'];
 function publicUser(u) {
   return { pseudo: u.pseudo, name: u.name || '', reports: u.reports_count || 0, since: u.created_at,
-    home: u.home ? JSON.parse(u.home) : null, work: u.work ? JSON.parse(u.work) : null };
+    home: u.home ? JSON.parse(u.home) : null, work: u.work ? JSON.parse(u.work) : null, car: u.car ? JSON.parse(u.car) : null };
 }
 async function currentUser(request, env) {
   const auth = request.headers.get('Authorization') || '';
@@ -118,6 +118,15 @@ export default {
         const u = await currentUser(request, env);
         if (!u) return json({ error: 'Non connecté' }, 401);
         return json({ user: publicUser(u) });
+      }
+      if (url.pathname === '/me/car' && request.method === 'PUT') {
+        const u = await currentUser(request, env);
+        if (!u) return json({ error: 'Non connecté' }, 401);
+        const b = await request.json().catch(() => ({}));
+        const model = ['3', 'Y', 'S', 'X'].includes(b.model) ? b.model : '3';
+        const color = /^#[0-9a-fA-F]{6}$/.test(b.color || '') ? b.color : '#f2f2f2';
+        await env.DB.prepare('UPDATE users SET car = ?2 WHERE id = ?1').bind(u.id, JSON.stringify({ model, color })).run();
+        return json({ ok: true });
       }
       if (url.pathname === '/me/places' && request.method === 'PUT') {
         const u = await currentUser(request, env);

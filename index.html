@@ -89,6 +89,13 @@
   .field input.pin { letter-spacing:.5em; font-size:22px; text-align:center; }
   .err { color:var(--acc); font-size:14px; min-height:20px; margin-top:10px; }
   .small { color:var(--mut); font-size:12px; margin-top:14px; line-height:1.45; }
+  .carPick { display:flex; gap:6px; margin-top:8px; }
+  .carPick button { flex:1; font:inherit; font-size:15px; font-weight:600; padding:10px 0; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
+  .carPick button.sel { background:var(--txt); color:var(--inv); }
+  .swatches { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .swatches button { width:34px; height:34px; border-radius:50%; border:2px solid var(--line); cursor:pointer; }
+  .swatches button.sel { outline:3px solid var(--txt); outline-offset:2px; }
+  #carPreview { display:flex; justify-content:center; margin-top:12px; }
   .stat { display:flex; gap:10px; margin:14px 0 6px; }
   .stat div { flex:1; padding:12px; border-radius:12px; background:rgba(127,127,127,.08); }
   .stat b { display:block; font-size:22px; } .stat span { font-size:12px; color:var(--mut); }
@@ -400,8 +407,24 @@
 
   var carEl = document.createElement('div');
   carEl.className = 'car';
+  var CAR_COLORS = [['#f2f2f2', 'Blanc'], ['#111111', 'Noir'], ['#6b6e73', 'Gris'], ['#b8bcc2', 'Argent'], ['#1f4fa3', 'Bleu'], ['#b3121f', 'Rouge']];
+  var myCar = null;
+  try { myCar = JSON.parse(localStorage.getItem('vigie-car') || 'null'); } catch (e) {}
+  function carSvg(car, size) {
+    var c = car.color, suv = car.model === 'Y' || car.model === 'X';
+    var line = (c === '#111111' || c === '#1f4fa3' || c === '#b3121f' || c === '#6b6e73') ? '#ffffff' : '#111111';
+    var w = suv ? 22 : 20, x = 26 - w / 2;
+    return '<svg viewBox="0 0 52 52" width="' + size + '" height="' + size + '">' +
+      '<ellipse cx="26" cy="27" rx="14" ry="22" fill="rgba(0,0,0,.25)"/>' +
+      '<rect x="' + x + '" y="5" width="' + w + '" height="42" rx="' + (suv ? 7 : 9) + '" fill="' + c + '" stroke="' + line + '" stroke-width="1.6"/>' +
+      '<path d="M' + (x + 3) + ' ' + (suv ? 15 : 16) + 'q' + (w / 2 - 3) + ' -5 ' + (w - 6) + ' 0l-1.5 7h-' + (w - 9) + 'z" fill="' + line + '" opacity=".75"/>' +
+      '<rect x="' + (x + 3.5) + '" y="' + (suv ? 24 : 25) + '" width="' + (w - 7) + '" height="' + (suv ? 13 : 10) + '" rx="3" fill="' + line + '" opacity=".35"/>' +
+      '<path d="M' + (x + 4) + ' 41h' + (w - 8) + 'l-1 3h-' + (w - 10) + 'z" fill="' + line + '" opacity=".6"/>' +
+      '</svg>';
+  }
   function drawCar() {
     var l = theme === 'light';
+    if (myCar) { carEl.innerHTML = carSvg(myCar, 52); return; }
     carEl.innerHTML = '<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="' + (l ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.12)') + '"/><path d="M26 8l12 33-12-7-12 7z" fill="' + (l ? '#111' : '#fff') + '" stroke="' + (l ? '#fff' : '#111') + '" stroke-width="3" stroke-linejoin="round"/></svg>';
   }
   drawCar();
@@ -1040,7 +1063,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794422445';
+  var BUILD = '1794422729';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1064,7 +1087,11 @@
     token = t; me = user;
     try { if (t) localStorage.setItem('vigie-token', t); else localStorage.removeItem('vigie-token'); } catch (e) {}
     $('btnAccount').classList.toggle('on', !!me);
-    if (me) syncPlaces();
+    if (me) {
+      syncPlaces();
+      if (me.car) { myCar = me.car; try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {} drawCar(); }
+      else if (myCar) apiJSON('PUT', '/me/car', myCar).catch(function () {});
+    }
   }
   // Domicile / Travail : le compte fait foi, sinon on y envoie ce qui est enregistré ici
   function syncPlaces() {
@@ -1085,10 +1112,28 @@
       c.innerHTML = '<h2>Salut ' + esc(hello()) + '</h2><p class="lead">Connecté en tant que <b>' + esc(me.pseudo) + '</b></p>' +
         '<div class="stat"><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div><div><b>' + since.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) + '</b><span>membre depuis</span></div></div>' +
         '<p class="small">Domicile : ' + esc(homeAddr ? homeAddr.short : 'non défini') + '<br>Travail : ' + esc(workAddr ? workAddr.short : 'non défini') + '<br>Ces adresses suivent ton compte, sur la voiture comme sur ton téléphone.</p>' +
+        '<h3 style="margin:18px 0 0;font-size:16px">Ma voiture</h3>' +
+        '<div class="carPick" id="pickModel">' + ['3', 'Y', 'S', 'X'].map(function (m) { return '<button data-m="' + m + '">Model ' + m + '</button>'; }).join('') + '</div>' +
+        '<div class="swatches" id="pickColor">' + CAR_COLORS.map(function (c) { return '<button data-c="' + c[0] + '" title="' + c[1] + '" style="background:' + c[0] + '"></button>'; }).join('') + '</div>' +
+        '<div id="carPreview"></div>' +
         '<button class="btn sec" id="aHome">Domicile = ma position actuelle</button><button class="btn sec" id="aWork">Travail = ma position actuelle</button>' +
         '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>';
       $('aClose').onclick = closeAccount;
       $('aHome').onclick = function () { closeAccount(); saveHere('home'); };
+      var car = myCar || { model: '3', color: '#f2f2f2' };
+      function refreshPick() {
+        [].forEach.call($('pickModel').children, function (b) { b.classList.toggle('sel', b.getAttribute('data-m') === car.model); });
+        [].forEach.call($('pickColor').children, function (b) { b.classList.toggle('sel', b.getAttribute('data-c') === car.color); });
+        $('carPreview').innerHTML = carSvg(car, 90);
+      }
+      function saveCar() {
+        myCar = { model: car.model, color: car.color }; drawCar(); refreshPick();
+        try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {}
+        apiJSON('PUT', '/me/car', myCar).catch(function () {});
+      }
+      [].forEach.call($('pickModel').children, function (b) { b.onclick = function () { car.model = b.getAttribute('data-m'); saveCar(); }; });
+      [].forEach.call($('pickColor').children, function (b) { b.onclick = function () { car.color = b.getAttribute('data-c'); saveCar(); }; });
+      refreshPick();
       $('aWork').onclick = function () { closeAccount(); saveHere('work'); };
       $('aLogout').onclick = function () { apiJSON('POST', '/auth/logout').catch(function () {}); setSession(null, null); closeAccount(); toast('Déconnecté'); };
     } else {
