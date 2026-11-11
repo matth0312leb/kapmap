@@ -448,7 +448,7 @@
     var style = theme === 'light' ? 'relative0' : 'relative0-dark';
     map.addSource('traffic', { type: 'raster', tileSize: 256, attribution: '&copy; TomTom',
       tiles: [API + '/traffic/' + style + '/{z}/{x}/{y}.png'] });
-    map.addLayer({ id: 'traffic', type: 'raster', source: 'traffic', minzoom: 6, paint: { 'raster-opacity': 0.85 } }, firstSymbolId());
+    map.addLayer({ id: 'traffic', type: 'raster', source: 'traffic', minzoom: 6, paint: { 'raster-opacity': 0.9 } }, firstSymbolId());
     setVis(['traffic'], $('lyTraffic').checked);
   }
   setTimeout(function () { fetch(API + '/').then(function (r) { return r.json(); }).then(function (d) { $('trafficNote').textContent = d.traffic ? '' : '(bientôt)'; }).catch(function () {}); }, 0);
@@ -712,8 +712,9 @@
     if (!routeGeo || map.getSource('route')) return;
     map.addSource('route', { type: 'geojson', data: routeGeo });
     var before = firstSymbolId();
-    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': theme === 'light' ? '#ffffff' : '#000000', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 6, 16, 16] } }, before);
-    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': theme === 'light' ? '#111111' : '#f5f5f5', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3.5, 16, 10] } }, before);
+    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': theme === 'light' ? '#ffffff' : '#000000', 'line-opacity': 0.7, 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 4, 16, 11] } }, before);
+    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': theme === 'light' ? '#111111' : '#f5f5f5', 'line-opacity': 0.75, 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2, 16, 6] } }, before);
+    if (map.getLayer('traffic')) map.moveLayer('traffic', firstSymbolId());
   }
   function setRoute(coords) {
     routeGeo = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } };
@@ -908,7 +909,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794418531';
+  var BUILD = '1794418846';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
