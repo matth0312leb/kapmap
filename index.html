@@ -204,6 +204,7 @@
 </div>
 
 <div id="layers" class="panel">
+  <label><input type="checkbox" id="lyTraffic" checked><span class="sw" style="background:linear-gradient(90deg,#9a9a9a 50%,#e31937 50%)"></span>Trafic en direct <small id="trafficNote" style="color:var(--mut);font-size:12px"></small></label>
   <label><input type="checkbox" id="lyZones" checked><span class="sw" style="background:var(--err)"></span>Zones de danger</label>
   <label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--txt);border:2px solid var(--mut)"></span>Superchargeurs Tesla</label>
   <label><input type="checkbox" id="lyHz" checked><span class="sw" style="background:var(--txt)"></span>Dangers signalés</label>
@@ -295,6 +296,7 @@
     if (scItems) addScLayers();
     if (poiFC) addPoiLayers();
     if (routeGeo) addRouteLayers();
+    addTrafficLayer();
     pending.splice(0).forEach(function (f) { f(); });
   });
   // Nuit : fond anthracite et routes grises bien lisibles
@@ -438,6 +440,19 @@
     var L = zoneLength(p[2]), r = L * 0.6, off = L * 0.3 * (0.4 + 0.6 * hash(i, p, 7)), ang = hash(i, p, 3) * 2 * Math.PI;
     return { lat: p[0] + (off * Math.cos(ang)) / 110540, lon: p[1] + (off * Math.sin(ang)) / (111320 * Math.cos(p[0] * toR)), r: r };
   }
+
+  // ================= Trafic en direct (TomTom) =================
+  var TOMTOM_KEY = '';   // clé à ajouter
+  function addTrafficLayer() {
+    if (!TOMTOM_KEY || map.getSource('traffic')) return;
+    var style = theme === 'light' ? 'relative0' : 'relative0-dark';
+    map.addSource('traffic', { type: 'raster', tileSize: 256, attribution: '&copy; TomTom',
+      tiles: ['https://api.tomtom.com/traffic/map/4/tile/flow/' + style + '/{z}/{x}/{y}.png?key=' + TOMTOM_KEY + '&tileSize=256'] });
+    map.addLayer({ id: 'traffic', type: 'raster', source: 'traffic', minzoom: 6, paint: { 'raster-opacity': 0.85 } }, firstSymbolId());
+    setVis(['traffic'], $('lyTraffic').checked);
+  }
+  $('trafficNote').textContent = TOMTOM_KEY ? '' : '(bientôt)';
+  $('lyTraffic').onchange = function () { setVis(['traffic'], this.checked); };
 
   // ================= Calques =================
   var zonesBuilt = false, zonesAllowedNow = false;
@@ -893,7 +908,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794417773';
+  var BUILD = '1794417857';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
