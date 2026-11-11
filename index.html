@@ -1134,7 +1134,8 @@
     if (!rtGeo || map.getSource('route-traffic')) return;
     map.addSource('route-traffic', { type: 'geojson', data: rtGeo });
     map.addLayer({ id: 'route-traffic', type: 'line', source: 'route-traffic', layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ['case', ['==', ['get', 'cat'], 'ROAD_CLOSURE'], '#7a0b1c', '#e31937'],
+      paint: { 'line-dasharray': ['case', ['==', ['get', 'cat'], 'ROAD_WORK'], ['literal', [1.2, 1]], ['literal', [1, 0]]],
+        'line-color': ['case', ['==', ['get', 'cat'], 'ROAD_CLOSURE'], '#7a0b1c', '#e31937'],
         'line-opacity': ['case', ['>=', ['get', 'mag'], 3], 1, ['>=', ['get', 'mag'], 2], 0.9, 0.65],
         'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3, 16, 9] } }, firstSymbolId());
   }
@@ -1206,6 +1207,8 @@
   function applyRouteTT(n) {
     if (!n.tt) return;
     routeTraffic = { travel: n.tt.travel, delay: n.tt.delay, at: Date.now(), along: 0 };
+    n.works = n.tt.jams.filter(function (j) { return j.cat === 'ROAD_WORK' || j.cat === 'ROAD_CLOSURE'; })
+      .map(function (j) { return { s: j.s, e: j.e, cat: j.cat, said: false }; });
     var feats = n.tt.jams.map(function (j) { return { type: 'Feature', properties: { cat: j.cat, mag: j.mag }, geometry: { type: 'LineString', coordinates: n.tt.points.slice(j.s, j.e + 1) } }; })
       .filter(function (f) { return f.geometry.coordinates.length > 1; });
     rtGeo = { type: 'FeatureCollection', features: feats };
@@ -1419,6 +1422,18 @@
     $('tripEta').textContent = ('0' + eta.getHours()).slice(-2) + ':' + ('0' + eta.getMinutes()).slice(-2);
     var hz = countHazardsOnRoute(pos.idx);
     var late = routeTraffic && routeTraffic.delay >= 60 ? ' · <span style="color:var(--acc)">+' + Math.round(routeTraffic.delay / 60) + ' min de bouchons</span>' : '';
+    // Travaux connus sur le trajet
+    nav.workAhead = null;
+    var worksLeft = 0;
+    (nav.works || []).forEach(function (w) {
+      var startAlong = nav.cum[Math.min(w.s, nav.cum.length - 1)], endAlong = nav.cum[Math.min(w.e, nav.cum.length - 1)];
+      if (endAlong < pos.along) return;
+      worksLeft++;
+      var dW = startAlong - pos.along;
+      if (!nav.workAhead && dW < 1500) nav.workAhead = { d: Math.max(0, dW), inside: dW <= 0, cat: w.cat, len: endAlong - Math.max(startAlong, pos.along) };
+      if (dW < 1500 && dW > 0 && !w.said) { w.said = true; beep(1); speak((w.cat === 'ROAD_CLOSURE' ? 'Route fermée' : 'Travaux') + ' dans ' + formatDist(dW)); }
+    });
+    if (worksLeft) late += ' · ' + worksLeft + ' zone' + (worksLeft > 1 ? 's' : '') + ' de travaux';
     $('tripInfo').innerHTML = formatDist(remaining) + ' · ' + Math.max(1, Math.round(secs / 60)) + ' min' + late + (hz ? '<br>' + hz + ' danger' + (hz > 1 ? 's' : '') + ' signalé' + (hz > 1 ? 's' : '') + ' sur le trajet' : '');
     // Annonces vocales
     var isArr = next.type === 'arrive';
@@ -1499,7 +1514,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794426395';
+  var BUILD = '1794426473';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1901,6 +1916,12 @@
     $('zoneFill').style.width = '0';
     showLimit(curLimit, speed);
     if (hz) { showHazard(hz); return; }
+    if (nav && nav.workAhead) {
+      var wa = nav.workAhead;
+      setAlert('hazard', wa.cat === 'ROAD_CLOSURE' ? 'Route fermée sur le trajet' : 'Travaux sur le trajet',
+        wa.inside ? 'Tu es dans la zone de travaux · encore ' + formatDist(wa.len) : 'Dans ' + formatDist(wa.d) + ' · sur ' + formatDist(wa.len));
+      return;
+    }
     setAlert('', 'Route dégagée', heading === null ? 'Commence à rouler pour activer la détection.' : 'Aucune zone de danger devant toi.');
   }
 
