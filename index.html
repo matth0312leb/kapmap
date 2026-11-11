@@ -3,125 +3,300 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test GPS navigateur Tesla</title>
+<title>Vigie – zones de danger</title>
 <style>
-  :root { --bg:#0e0f11; --card:#1a1c20; --txt:#f2f2f2; --mut:#8a8f98; --ok:#3ecf8e; --warn:#f5a524; --err:#f04438; }
+  :root { --bg:#0b0c0e; --card:#17191d; --line:#2a2d33; --txt:#f4f4f5; --mut:#8a8f98; --ok:#3ecf8e; --warn:#f5a524; --err:#f04438; --acc:#e82127; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:24px; }
-  h1 { font-size:28px; margin:0 0 6px; }
-  .sub { color:var(--mut); margin:0 0 20px; font-size:18px; }
-  button { font-size:24px; padding:18px 32px; border-radius:12px; border:0; background:#e82127; color:#fff; font-weight:600; cursor:pointer; margin-right:12px; }
-  button.sec { background:#33363d; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:24px; }
-  .card { background:var(--card); border-radius:14px; padding:18px 20px; }
-  .lbl { color:var(--mut); font-size:16px; text-transform:uppercase; letter-spacing:.05em; }
-  .val { font-size:44px; font-weight:700; margin-top:6px; font-variant-numeric:tabular-nums; }
-  .val.small { font-size:26px; }
-  .unit { font-size:20px; color:var(--mut); font-weight:400; margin-left:6px; }
-  #status { margin-top:20px; font-size:22px; padding:14px 18px; border-radius:12px; background:var(--card); }
-  .ok { color:var(--ok); } .warn { color:var(--warn); } .err { color:var(--err); }
-  table { width:100%; border-collapse:collapse; margin-top:24px; font-size:17px; font-variant-numeric:tabular-nums; }
-  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #2a2d33; }
-  th { color:var(--mut); font-weight:500; }
-  #ua { color:var(--mut); font-size:14px; margin-top:24px; word-break:break-all; }
+  html, body { margin:0; height:100%; }
+  body { background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:22px 26px; display:flex; flex-direction:column; gap:18px; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .brand { font-size:26px; font-weight:800; letter-spacing:.02em; }
+  .brand small { font-size:15px; color:var(--mut); font-weight:500; margin-left:8px; }
+  .btns { display:flex; gap:10px; flex-wrap:wrap; }
+  button { font:inherit; font-size:20px; font-weight:600; padding:14px 22px; border-radius:12px; border:0; color:#fff; background:#33363d; cursor:pointer; }
+  button.main { background:var(--acc); }
+  button.on { outline:2px solid var(--ok); }
+
+  #zone { border-radius:20px; padding:26px 30px; background:var(--card); display:flex; align-items:center; justify-content:space-between; gap:24px; min-height:190px; transition:background .25s; }
+  #zone.active { background:#5a1013; box-shadow:0 0 0 3px var(--err) inset; }
+  #zone.off { opacity:.75; }
+  #zoneTitle { font-size:44px; font-weight:800; line-height:1.1; }
+  #zoneSub { font-size:22px; color:#d6d6d8; margin-top:10px; }
+  .limit { width:150px; height:150px; border-radius:50%; background:#fff; border:16px solid var(--acc); color:#111; display:none; align-items:center; justify-content:center; font-size:56px; font-weight:800; flex:none; }
+  #zone.active .limit.has { display:flex; }
+
+  .grid { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:16px; }
+  .card { background:var(--card); border-radius:16px; padding:18px 22px; }
+  .lbl { color:var(--mut); font-size:15px; text-transform:uppercase; letter-spacing:.06em; }
+  .val { font-size:58px; font-weight:800; margin-top:4px; font-variant-numeric:tabular-nums; line-height:1.05; }
+  .val.mid { font-size:30px; }
+  .unit { font-size:20px; color:var(--mut); font-weight:500; margin-left:6px; }
+  .over { color:var(--err); }
+  #status { font-size:18px; color:var(--mut); }
+  .dot { display:inline-block; width:12px; height:12px; border-radius:50%; background:var(--mut); margin-right:8px; vertical-align:middle; }
+  .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); } .dot.err { background:var(--err); }
+  footer { color:var(--mut); font-size:14px; margin-top:auto; line-height:1.5; }
 </style>
 </head>
 <body>
-  <h1>Test GPS navigateur Tesla <span style="font-size:16px;color:#8a8f98">v2</span></h1>
-  <p class="sub">Appuie sur Démarrer, accepte la demande de position, puis roule quelques minutes.</p>
+  <header>
+    <div class="brand">Vigie <small>version de test</small></div>
+    <div class="btns">
+      <button id="start" class="main">Démarrer</button>
+      <button id="sound" class="on">Son : oui</button>
+      <button id="demo">Démo</button>
+    </div>
+  </header>
 
-  <button id="start">Démarrer</button>
-  <button id="stop" class="sec">Arrêter</button>
+  <section id="zone" class="off">
+    <div>
+      <div id="zoneTitle">Appuie sur Démarrer</div>
+      <div id="zoneSub">L'appli a besoin de ta position pour fonctionner.</div>
+    </div>
+    <div class="limit" id="limit">–</div>
+  </section>
 
-  <div id="status">En attente…</div>
+  <section class="grid">
+    <div class="card"><div class="lbl">Vitesse</div><div class="val" id="speed">–<span class="unit">km/h</span></div></div>
+    <div class="card"><div class="lbl">Zones à moins de 10 km</div><div class="val" id="near">–</div></div>
+    <div class="card"><div class="lbl">Pays</div><div class="val mid" id="country">–</div></div>
+  </section>
 
-  <div class="grid">
-    <div class="card"><div class="lbl">Vitesse GPS</div><div class="val" id="spd">–<span class="unit">km/h</span></div></div>
-    <div class="card"><div class="lbl">Vitesse calculée</div><div class="val" id="spdCalc">–<span class="unit">km/h</span></div></div>
-    <div class="card"><div class="lbl">Précision</div><div class="val" id="acc">–<span class="unit">m</span></div></div>
-    <div class="card"><div class="lbl">Intervalle moyen</div><div class="val" id="int">–<span class="unit">s</span></div></div>
-    <div class="card"><div class="lbl">Cap</div><div class="val" id="hdg">–<span class="unit">°</span></div></div>
-    <div class="card"><div class="lbl">Positions reçues</div><div class="val" id="cnt">0</div></div>
-    <div class="card"><div class="lbl">Latitude / Longitude</div><div class="val small" id="pos">–</div></div>
-    <div class="card"><div class="lbl">Altitude</div><div class="val small" id="alt">–</div></div>
-  </div>
+  <div id="status"><span class="dot" id="dot"></span><span id="statusTxt">En attente</span></div>
 
-  <table>
-    <thead><tr><th>Heure</th><th>Vitesse GPS</th><th>Vitesse calc.</th><th>Précision</th><th>Écart</th></tr></thead>
-    <tbody id="log"></tbody>
-  </table>
-
-  <div id="ua"></div>
+  <footer>
+    Vigie signale des zones de danger, sans position précise, conformément à la réglementation française.
+    Les alertes sont coupées hors de France (Suisse, Allemagne…). Reste attentif à la route et respecte les limitations.
+    <br><span id="dataInfo">Données : chargement…</span>
+  </footer>
 
 <script>
 (function () {
+  'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var watchId = null, count = 0, last = null, intervals = [];
 
-  $('ua').textContent = 'Navigateur : ' + navigator.userAgent;
+  // ---------- Réglages ----------
+  var LOOKAHEAD_DEG = 35;      // angle max entre le cap et la direction de la zone
+  var SEARCH_KM = 10;          // rayon de recherche des zones
+  var MIN_MOVE_M = 8;          // déplacement minimal pour recalculer le cap
 
-  function setStatus(msg, cls) { var s = $('status'); s.textContent = msg; s.className = cls || ''; }
-  function unit(v, u) { return v + '<span class="unit">' + u + '</span>'; }
+  // ---------- Données ----------
+  var points = [];             // [lat, lon, vma, type]
+  var rings = null;            // contours de la France [lon,lat,lon,lat,...]
+  var dataReady = false;
 
-  function dist(a, b) { // mètres, formule de haversine
-    var R = 6371000, toR = Math.PI / 180;
-    var dLat = (b.latitude - a.latitude) * toR, dLon = (b.longitude - a.longitude) * toR;
-    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(a.latitude * toR) * Math.cos(b.latitude * toR) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    return 2 * R * Math.asin(Math.sqrt(h));
+  function loadJSON(url) {
+    return fetch(url + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    });
+  }
+  Promise.all([loadJSON('data/points.json'), loadJSON('data/france.json')]).then(function (res) {
+    points = res[0].items || [];
+    rings = res[1].rings || null;
+    dataReady = points.length > 0 && !!rings;
+    $('dataInfo').textContent = 'Données : ' + points.length + ' zones, source publique du ' + (res[0].source_date || '').slice(0, 10) + ', mise à jour ' + res[0].updated + '.';
+  }).catch(function () {
+    $('dataInfo').textContent = 'Données : pas encore disponibles (la mise à jour automatique est peut-être en cours).';
+  });
+
+  // ---------- Géométrie ----------
+  var R = 6371000, toR = Math.PI / 180;
+  function dist(aLat, aLon, bLat, bLon) {
+    var dLat = (bLat - aLat) * toR, dLon = (bLon - aLon) * toR;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(aLat * toR) * Math.cos(bLat * toR) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  function bearing(aLat, aLon, bLat, bLon) {
+    var y = Math.sin((bLon - aLon) * toR) * Math.cos(bLat * toR);
+    var x = Math.cos(aLat * toR) * Math.sin(bLat * toR) - Math.sin(aLat * toR) * Math.cos(bLat * toR) * Math.cos((bLon - aLon) * toR);
+    return (Math.atan2(y, x) / toR + 360) % 360;
+  }
+  function angleDiff(a, b) { var d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+  function inRing(lon, lat, ring) {
+    var inside = false, n = ring.length / 2;
+    for (var i = 0, j = n - 1; i < n; j = i++) {
+      var xi = ring[2 * i], yi = ring[2 * i + 1], xj = ring[2 * j], yj = ring[2 * j + 1];
+      if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+  function inFrance(lat, lon) {
+    if (!rings) return false;
+    for (var k = 0; k < rings.length; k++) if (inRing(lon, lat, rings[k])) return true;
+    return false;
   }
 
-  function onPos(p) {
-    var c = p.coords, t = Date.now(), tGps = p.timestamp;
-    count++;
-    var gap = null, calc = null;
+  // Longueur de zone selon le type de route (déduit de la vitesse limite) :
+  // 4 km autoroute, 2 km hors agglomération, 500 m en agglomération.
+  function zoneLength(vma) {
+    if (vma >= 110) return 4000;
+    if (vma > 0 && vma <= 50) return 500;
+    return 2000;
+  }
+  // Position de la zone autour du point : variable selon le point, pour ne jamais
+  // indiquer d'emplacement précis.
+  function zoneStartFraction(i, p) {
+    var h = Math.abs(Math.sin(i * 12.9898 + p[0] * 78.233 + p[1] * 37.719) * 43758.5453) % 1;
+    return 0.3 + 0.4 * h;
+  }
+
+  // ---------- Son ----------
+  var soundOn = true, ctx = null;
+  function unlockAudio() {
+    try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) { ctx = null; }
+  }
+  function beep(times) {
+    if (!soundOn || !ctx) return;
+    for (var k = 0; k < times; k++) {
+      var t0 = ctx.currentTime + k * 0.28;
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + 0.22);
+    }
+  }
+
+  // ---------- État de conduite ----------
+  var last = null, heading = null, active = null, lastOverBeep = 0;
+
+  function setStatus(txt, cls) { $('statusTxt').textContent = txt; $('dot').className = 'dot ' + (cls || ''); }
+
+  function showIdle(title, sub) {
+    $('zone').className = '';
+    $('zoneTitle').textContent = title;
+    $('zoneSub').textContent = sub;
+    $('limit').className = 'limit';
+  }
+
+  function update(lat, lon, gpsSpeed, gpsHeading, accuracy, forceFrance, demoPoints) {
+    var now = Date.now();
+    var moved = 0, calcSpeed = null;
     if (last) {
-      gap = (t - last.t) / 1000;
-      if (gap > 0) {
-        intervals.push(gap); if (intervals.length > 20) intervals.shift();
-        calc = dist(last.c, c) / gap * 3.6;
+      moved = dist(last.lat, last.lon, lat, lon);
+      var dt = (now - last.t) / 1000;
+      if (dt > 0.3) calcSpeed = moved / dt * 3.6;
+      if (moved >= MIN_MOVE_M) heading = bearing(last.lat, last.lon, lat, lon);
+    }
+    if (gpsHeading !== null && !isNaN(gpsHeading) && (gpsSpeed || 0) > 1.5) heading = gpsHeading;
+    var stepMoved = 0;
+    if (!last || moved >= MIN_MOVE_M) { stepMoved = last ? moved : 0; last = { lat: lat, lon: lon, t: now }; }
+    else if (now - last.t > 5000) { last.t = now; }
+
+    var speed = (gpsSpeed !== null && !isNaN(gpsSpeed)) ? gpsSpeed * 3.6 : calcSpeed;
+    $('speed').innerHTML = (speed === null ? '–' : Math.round(speed)) + '<span class="unit">km/h</span>';
+    setStatus('GPS actif — précision ' + Math.round(accuracy) + ' m', accuracy <= 25 ? 'ok' : 'warn');
+
+    var france = forceFrance || inFrance(lat, lon);
+    $('country').textContent = forceFrance ? 'Démo' : (rings ? (france ? 'France' : 'Hors France') : '…');
+
+    var list = demoPoints || points;
+    if (!demoPoints && !dataReady) { showIdle('Chargement des données…', 'Les alertes démarreront dès que les données seront prêtes.'); return; }
+    if (!france) {
+      active = null;
+      $('near').textContent = '–';
+      $('zone').className = 'off';
+      $('zoneTitle').textContent = 'Alertes désactivées';
+      $('zoneSub').textContent = 'Tu es hors de France : la réglementation locale interdit ce type d\'alerte.';
+      $('limit').className = 'limit';
+      return;
+    }
+
+    // Recherche des zones proches
+    var dLatMax = SEARCH_KM / 111, dLonMax = SEARCH_KM / (111 * Math.cos(lat * toR));
+    var nearCount = 0, candidate = null;
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (Math.abs(p[0] - lat) > dLatMax || Math.abs(p[1] - lon) > dLonMax) continue;
+      var d = dist(lat, lon, p[0], p[1]);
+      if (d > SEARCH_KM * 1000) continue;
+      nearCount++;
+      if (active || heading === null) continue;
+      var L = zoneLength(p[2]), f = zoneStartFraction(i, p);
+      if (d < L * f && angleDiff(heading, bearing(lat, lon, p[0], p[1])) < LOOKAHEAD_DEG) {
+        if (!candidate || d < candidate.d) candidate = { i: i, p: p, d: d, L: L };
       }
     }
-    last = { c: c, t: t };
+    $('near').textContent = nearCount;
 
-    var spd = (c.speed === null || isNaN(c.speed)) ? null : c.speed * 3.6;
-    $('spd').innerHTML = unit(spd === null ? 'n/d' : spd.toFixed(0), 'km/h');
-    $('spdCalc').innerHTML = unit(calc === null ? '–' : calc.toFixed(0), 'km/h');
-    $('acc').innerHTML = unit(c.accuracy.toFixed(0), 'm');
-    var avg = intervals.length ? intervals.reduce(function (a, b) { return a + b; }, 0) / intervals.length : null;
-    $('int').innerHTML = unit(avg === null ? '–' : avg.toFixed(1), 's');
-    $('hdg').innerHTML = unit((c.heading === null || isNaN(c.heading)) ? 'n/d' : c.heading.toFixed(0), '°');
-    $('cnt').textContent = count;
-    $('pos').textContent = c.latitude.toFixed(5) + ', ' + c.longitude.toFixed(5);
-    $('alt').textContent = c.altitude === null ? 'n/d' : c.altitude.toFixed(0) + ' m';
+    if (candidate && !active) {
+      active = { p: candidate.p, L: candidate.L, done: 0 };
+      beep(2);
+    }
 
-    var cls = c.accuracy <= 20 ? 'ok' : (c.accuracy <= 100 ? 'warn' : 'err');
-    setStatus('Position reçue — précision ' + c.accuracy.toFixed(0) + ' m', cls);
-
-    var tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + new Date(t).toLocaleTimeString('fr-FR') + ' <span style="color:#8a8f98">(GPS ' + new Date(tGps).toLocaleTimeString('fr-FR') + ')</span></td>' +
-      '<td>' + (spd === null ? 'n/d' : spd.toFixed(0) + ' km/h') + '</td>' +
-      '<td>' + (calc === null ? '–' : calc.toFixed(0) + ' km/h') + '</td>' +
-      '<td>' + c.accuracy.toFixed(0) + ' m</td>' +
-      '<td>' + (gap === null ? '–' : gap.toFixed(1) + ' s') + '</td>';
-    var log = $('log'); log.insertBefore(tr, log.firstChild);
-    while (log.children.length > 15) log.removeChild(log.lastChild);
+    if (active) {
+      active.done += stepMoved < 500 ? stepMoved : 0;
+      var remaining = active.L - active.done;
+      var dNow = dist(lat, lon, active.p[0], active.p[1]);
+      if (remaining <= 0 || dNow > active.L * 1.3) {
+        active = null;
+      } else {
+        var vma = active.p[2];
+        $('zone').className = 'active';
+        $('zoneTitle').textContent = 'Zone de danger';
+        $('zoneSub').textContent = 'Fin de zone dans ' + (remaining >= 1000 ? (remaining / 1000).toFixed(1) + ' km' : Math.round(remaining / 10) * 10 + ' m');
+        $('limit').className = 'limit' + (vma ? ' has' : '');
+        $('limit').textContent = vma || '–';
+        var over = vma && speed !== null && speed > vma + 2;
+        $('speed').className = 'val' + (over ? ' over' : '');
+        if (over && now - lastOverBeep > 6000) { beep(1); lastOverBeep = now; }
+        return;
+      }
+    }
+    $('speed').className = 'val';
+    $('zone').className = '';
+    $('zoneTitle').textContent = 'Route dégagée';
+    $('zoneSub').textContent = heading === null ? 'Commence à rouler pour activer la détection.' : 'Aucune zone de danger devant toi.';
+    $('limit').className = 'limit';
   }
 
-  function onErr(e) {
-    var msg = { 1: 'Accès à la position refusé', 2: 'Position indisponible', 3: 'Délai dépassé' }[e.code] || 'Erreur';
-    setStatus(msg + ' (code ' + e.code + ') : ' + e.message, 'err');
-  }
-
+  // ---------- GPS réel ----------
+  var watchId = null;
   $('start').onclick = function () {
-    if (!('geolocation' in navigator)) { setStatus('Ce navigateur ne propose pas la géolocalisation.', 'err'); return; }
-    if (!window.isSecureContext) { setStatus('La page doit être ouverte en HTTPS.', 'err'); return; }
+    unlockAudio();
+    stopDemo();
+    if (!('geolocation' in navigator)) { setStatus('Géolocalisation indisponible sur ce navigateur', 'err'); return; }
     if (watchId !== null) return;
-    setStatus('Demande de position envoyée…', 'warn');
-    watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+    setStatus('Demande de position…', 'warn');
+    $('zoneTitle').textContent = 'Recherche du GPS…';
+    $('zoneSub').textContent = 'Accepte la demande de position si elle s\'affiche.';
+    watchId = navigator.geolocation.watchPosition(function (pos) {
+      var c = pos.coords;
+      update(c.latitude, c.longitude, c.speed, c.heading, c.accuracy, false, null);
+    }, function (e) {
+      var msg = { 1: 'Accès à la position refusé', 2: 'Position indisponible', 3: 'Délai dépassé' }[e.code] || 'Erreur GPS';
+      setStatus(msg + ' (code ' + e.code + ')', 'err');
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+    $('start').textContent = 'En marche';
   };
-  $('stop').onclick = function () {
-    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; setStatus('Arrêté.', ''); }
+
+  $('sound').onclick = function () {
+    unlockAudio();
+    soundOn = !soundOn;
+    this.textContent = 'Son : ' + (soundOn ? 'oui' : 'non');
+    this.className = soundOn ? 'on' : '';
+    if (soundOn) beep(1);
+  };
+
+  // ---------- Démo (voiture simulée, utilisable à l'arrêt) ----------
+  var demoTimer = null;
+  function stopDemo() { if (demoTimer) { clearInterval(demoTimer); demoTimer = null; $('demo').textContent = 'Démo'; last = null; heading = null; active = null; } }
+  $('demo').onclick = function () {
+    unlockAudio();
+    if (demoTimer) { stopDemo(); return; }
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; $('start').textContent = 'Démarrer'; }
+    last = null; heading = null; active = null;
+    var lat0 = 46.30, lon0 = 6.30, kmh = 90, step = 0;
+    var target = [[lat0 + 1.6 / 111, lon0, 80, 'demo']];   // zone à 1,6 km au nord
+    demoTimer = setInterval(function () {
+      step++;
+      var lat = lat0 + (kmh / 3.6) * step / 111000;
+      update(lat, lon0, kmh / 3.6, 0, 3, true, target);
+      if (step > 200) stopDemo();
+    }, 1000);
+    this.textContent = 'Arrêter la démo';
   };
 })();
 </script>

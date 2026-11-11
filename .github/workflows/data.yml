@@ -1,0 +1,30 @@
+name: Mise à jour des données
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/build_data.py
+      - .github/workflows/data.yml
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 1 * *"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Télécharger et préparer les données
+        run: python3 scripts/build_data.py
+      - name: Enregistrer les données
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then echo "Rien de nouveau"; exit 0; fi
+          git commit -m "Mise à jour automatique des données"
+          git push
