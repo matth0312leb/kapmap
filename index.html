@@ -11,6 +11,7 @@
   html, body { margin:0; height:100%; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; overflow:hidden; }
   #map { position:absolute; inset:0; background:#111; }
   .leaflet-container { background:#111; font-family:inherit; }
+  .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.88) saturate(.6); }
   .leaflet-control-attribution { background:rgba(0,0,0,.55) !important; color:#888 !important; font-size:10px; }
   .leaflet-control-attribution a { color:#aaa !important; }
   .leaflet-popup-content-wrapper, .leaflet-popup-tip { background:#1b1d22; color:var(--txt); box-shadow:0 8px 30px rgba(0,0,0,.5); }
@@ -146,9 +147,9 @@
 
   // ================= Carte =================
   var map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([46.35, 6.45], 11);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19, subdomains: 'abcd',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
   var canvas = L.canvas({ padding: 0.3 });
   var zonesLayer = L.layerGroup(), scLayer = L.layerGroup().addTo(map), poiLayer = L.layerGroup().addTo(map);
