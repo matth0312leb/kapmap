@@ -633,7 +633,10 @@
         var p = e.features[0].properties, bits = [];
         if (+p.cap) bits.push(p.cap + ' point' + (+p.cap > 1 ? 's' : '') + ' de charge');
         if (+p.kw) bits.push('jusqu\'à ' + p.kw + ' kW');
-        popup(e.features[0].geometry.coordinates, el('<b>' + esc(p.net) + '</b>' + (p.name ? '<br>' + esc(p.name) : '') + '<br><span class="m">Recharge rapide' + (bits.length ? ' · ' + bits.join(' · ') : '') + '</span>'));
+        var cc = e.features[0].geometry.coordinates;
+        var node = el('<b>' + esc(p.net) + '</b>' + (p.name ? '<br>' + esc(p.name) : '') + '<br><span class="m">Recharge rapide' + (bits.length ? ' · ' + bits.join(' · ') : '') + '</span><div class="votes"><button class="yes">Y aller</button></div>');
+        var pop = popup(cc, node);
+        node.querySelector('button').onclick = function () { pop.remove(); startNav({ lat: cc[1], lon: cc[0], short: p.net, title: p.name || p.net, sub: '' }); };
       });
     }
     setVis(['ch-circle', 'ch-label'], true);
@@ -855,8 +858,14 @@
   function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove('show'); }, 3500); }
   function ago(ms) { var m = Math.round(ms / 60000); return m < 1 ? 'à l\'instant' : m < 60 ? 'il y a ' + m + ' min' : 'il y a ' + Math.round(m / 60) + ' h'; }
   function vote(id, gone, pop) {
-    fetch(API + '/reports/' + id + '/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gone: gone }) })
-      .then(function () { toast('Merci pour ta confirmation'); pop.remove(); var c = map.getCenter(); loadHazards(c.lat, c.lng, true); })
+    fetch(API + '/reports/' + id + '/vote', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ gone: gone }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) {
+        pop.remove(); var c = map.getCenter(); loadHazards(c.lat, c.lng, true);
+        if (!x.ok) { toast(x.d.error || 'Vote impossible'); return; }
+        toast(me ? 'Merci !' : 'Merci ! Crée un compte pour gagner des points');
+        if (x.d.points) setTimeout(function () { gainedPoints(x.d.points); }, 1200);
+      })
       .catch(function () { toast('Envoi impossible, réessaie'); });
   }
   function drawHazards(serverNow) {
@@ -899,7 +908,7 @@
     if (!last) { toast('Appuie d\'abord sur le bouton rouge pour activer le GPS'); return; }
     fetch(API + '/reports', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ lat: last.lat, lon: last.lon, type: type }) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-      .then(function (x) { if (x.ok && me && !x.d.merged) me.reports = (me.reports || 0) + 1; toast(x.ok ? (x.d.merged ? 'Déjà signalé : ta confirmation est ajoutée' : 'Danger signalé, merci') : (x.d.error || 'Envoi impossible')); loadHazards(last.lat, last.lon, true); })
+      .then(function (x) { if (x.ok && me && !x.d.merged) me.reports = (me.reports || 0) + 1; if (x.ok && x.d.points) setTimeout(function () { gainedPoints(x.d.points); }, 1600); toast(x.ok ? (x.d.merged ? 'Déjà signalé : ta confirmation est ajoutée' : 'Danger signalé, merci') : (x.d.error || 'Envoi impossible')); loadHazards(last.lat, last.lon, true); })
       .catch(function () { toast('Serveur indisponible pour le moment'); });
   }
   function hazardAhead(lat, lon) {
@@ -1265,7 +1274,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794423862';
+  var BUILD = '1794424131';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1311,6 +1320,13 @@
     if (push.home || push.work) apiJSON('PUT', '/me/places', push).catch(function () {});
   }
   function hello() { return me ? (me.name || me.pseudo) : ''; }
+  var LEVELS = [[0, 'Débutant'], [100, 'Éclaireur'], [400, 'Guetteur'], [1000, 'Sentinelle'], [2500, 'Gardien'], [6000, 'Légende']];
+  function levelOf(pts) {
+    var i = 0; while (i + 1 < LEVELS.length && pts >= LEVELS[i + 1][0]) i++;
+    var next = LEVELS[i + 1];
+    return { name: LEVELS[i][1], next: next ? next[1] : null, pct: next ? Math.round((pts - LEVELS[i][0]) / (next[0] - LEVELS[i][0]) * 100) : 100, toNext: next ? next[0] - pts : 0 };
+  }
+  function gainedPoints(n) { if (!n || !me) return; me.points = (me.points || 0) + n; toast('+' + n + ' points'); }
 
   function showWelcome(on) { $('welcome').classList.toggle('show', on); }
   function closeAccount() { $('account').classList.remove('show'); }
@@ -1319,7 +1335,11 @@
     if (view === 'me' && me) {
       var since = new Date(me.since || Date.now());
       c.innerHTML = '<h2>Salut ' + esc(hello()) + '</h2><p class="lead">Connecté en tant que <b>' + esc(me.pseudo) + '</b></p>' +
-        '<div class="stat"><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div><div><b>' + since.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) + '</b><span>membre depuis</span></div></div>' +
+        (function () { var lv = levelOf(me.points || 0);
+          return '<div class="stat"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div><div><b>' + since.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) + '</b><span>membre depuis</span></div></div>' +
+            '<div style="font-size:14px;margin-top:4px"><b>' + lv.name + '</b>' + (lv.next ? '<span class="m"> · encore ' + lv.toNext + ' points pour « ' + lv.next + ' »</span>' : '') + '</div>' +
+            '<div style="height:6px;border-radius:3px;background:rgba(127,127,127,.2);margin-top:6px;overflow:hidden"><i style="display:block;height:100%;width:' + lv.pct + '%;background:var(--acc)"></i></div>' +
+            '<button class="btn sec" id="aRank" style="margin-top:12px">Voir le classement</button>'; })() +
         '<p class="small">Domicile : ' + esc(homeAddr ? homeAddr.short : 'non défini') + '<br>Travail : ' + esc(workAddr ? workAddr.short : 'non défini') + '<br>Ces adresses suivent ton compte, sur la voiture comme sur ton téléphone.</p>' +
         '<h3 style="margin:18px 0 0;font-size:16px">Ma voiture</h3>' +
         '<div class="carPick" id="pickModel">' + ['3', 'Y', 'S', 'X'].map(function (m) { return '<button data-m="' + m + '">Model ' + m + '</button>'; }).join('') + '</div>' +
@@ -1328,6 +1348,7 @@
         '<button class="btn sec" id="aHome">Domicile = ma position actuelle</button><button class="btn sec" id="aWork">Travail = ma position actuelle</button>' +
         '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>';
       $('aClose').onclick = closeAccount;
+      $('aRank').onclick = function () { accountView('rank'); };
       $('aHome').onclick = function () { closeAccount(); saveHere('home'); };
       var car = myCar || { model: '3', color: '#f2f2f2' };
       function refreshPick() {
@@ -1345,6 +1366,28 @@
       refreshPick();
       $('aWork').onclick = function () { closeAccount(); saveHere('work'); };
       $('aLogout').onclick = function () { apiJSON('POST', '/auth/logout').catch(function () {}); setSession(null, null); closeAccount(); toast('Déconnecté'); };
+    } else if (view === 'rank') {
+      var period = c.getAttribute('data-period') || 'week';
+      c.innerHTML = '<h2>Classement</h2><p class="lead">Les pseudos qui font avancer la communauté.</p>' +
+        '<div id="themeRow" style="padding:0"><button data-p="week">Cette semaine</button><button data-p="all">Général</button></div>' +
+        '<div id="rankList" style="margin-top:12px">Chargement…</div>' +
+        '<p class="small">Signaler un danger : +10 · confirmer celui d\'un autre : +2 (et +2 pour son auteur) · dire « plus là » : +1. Seul ton pseudo apparaît.</p>' +
+        '<button class="btn sec" id="rBack">Retour</button>';
+      [].forEach.call(c.querySelectorAll('[data-p]'), function (b) {
+        b.classList.toggle('sel', b.getAttribute('data-p') === period);
+        b.onclick = function () { c.setAttribute('data-period', b.getAttribute('data-p')); accountView('rank'); };
+      });
+      $('rBack').onclick = function () { accountView(me ? 'me' : 'login'); };
+      apiJSON('GET', '/leaderboard?period=' + period).then(function (d) {
+        var html = (d.top || []).map(function (r) {
+          return '<div style="display:flex;gap:12px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line);' + (r.me ? 'font-weight:700' : '') + '">' +
+            '<span style="width:26px;text-align:right;color:' + (r.rank <= 3 ? 'var(--acc)' : 'var(--mut)') + ';font-weight:700">' + r.rank + '</span>' +
+            '<span style="flex:1">' + esc(r.pseudo) + (r.me ? ' (toi)' : '') + '</span><span>' + r.points + ' pts</span></div>';
+        }).join('');
+        if (!html) html = '<p class="m">Personne n\'a encore marqué de points sur cette période. À toi de jouer !</p>';
+        if (d.mine && !(d.top || []).some(function (r) { return r.me; })) html += '<p class="small">Toi : ' + d.mine.points + ' pts' + (d.mine.rank ? ' · ' + d.mine.rank + 'e' : '') + '</p>';
+        $('rankList').innerHTML = html;
+      }).catch(function () { $('rankList').textContent = 'Classement indisponible pour le moment.'; });
     } else {
       var reg = view === 'register';
       c.innerHTML = '<h2>' + (reg ? 'Créer mon compte' : 'Connexion') + '</h2>' +

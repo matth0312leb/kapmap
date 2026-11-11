@@ -43,7 +43,7 @@ function sameText(a, b) {
 }
 const WEAK_PINS = ['0000', '1111', '1234', '4321', '00000', '12345', '000000', '111111', '123456', '654321', '123123'];
 function publicUser(u) {
-  return { pseudo: u.pseudo, name: u.name || '', reports: u.reports_count || 0, since: u.created_at,
+  return { pseudo: u.pseudo, name: u.name || '', reports: u.reports_count || 0, points: u.points || 0, since: u.created_at,
     home: u.home ? JSON.parse(u.home) : null, work: u.work ? JSON.parse(u.work) : null, car: u.car ? JSON.parse(u.car) : null };
 }
 async function currentUser(request, env) {
@@ -54,6 +54,18 @@ async function currentUser(request, env) {
   if (row) await env.DB.prepare('UPDATE sessions SET last_seen = ?2 WHERE token = ?1').bind(token, Date.now()).run();
   return row ? Object.assign(row, { _token: token }) : null;
 }
+// ---------- Points (plafond quotidien contre les abus) ----------
+const DAILY_CAP = 300;
+async function addPoints(env, userId, pts, reason) {
+  const now = Date.now();
+  const day = await env.DB.prepare('SELECT COALESCE(SUM(pts), 0) AS n FROM points_log WHERE user_id = ?1 AND at > ?2').bind(userId, now - 86400000).first();
+  const give = Math.min(pts, Math.max(0, DAILY_CAP - (day ? day.n : 0)));
+  if (give <= 0) return 0;
+  await env.DB.prepare('INSERT INTO points_log (user_id, pts, reason, at) VALUES (?1, ?2, ?3, ?4)').bind(userId, give, reason, now).run();
+  await env.DB.prepare('UPDATE users SET points = points + ?2 WHERE id = ?1').bind(userId, give).run();
+  return give;
+}
+
 async function newSession(env, userId) {
   const token = randomHex(32);
   const now = Date.now();
@@ -139,6 +151,27 @@ export default {
         return json({ ok: true });
       }
 
+      // Classement (semaine ou général) : pseudo + points uniquement
+      if (request.method === 'GET' && url.pathname === '/leaderboard') {
+        const week = url.searchParams.get('period') !== 'all';
+        const since = now - 7 * 86400000;
+        const rows = week
+          ? (await env.DB.prepare('SELECT u.id, u.pseudo, SUM(p.pts) AS points FROM points_log p JOIN users u ON u.id = p.user_id WHERE p.at > ?1 GROUP BY u.id ORDER BY points DESC, u.pseudo LIMIT 20').bind(since).all()).results
+          : (await env.DB.prepare('SELECT id, pseudo, points FROM users WHERE points > 0 ORDER BY points DESC, pseudo LIMIT 20').all()).results;
+        const me1 = await currentUser(request, env);
+        let mine = null;
+        if (me1) {
+          const myPts = week
+            ? ((await env.DB.prepare('SELECT COALESCE(SUM(pts), 0) AS n FROM points_log WHERE user_id = ?1 AND at > ?2').bind(me1.id, since).first()) || {}).n || 0
+            : me1.points || 0;
+          const better = week
+            ? (await env.DB.prepare('SELECT COUNT(*) AS n FROM (SELECT user_id, SUM(pts) AS s FROM points_log WHERE at > ?1 GROUP BY user_id HAVING s > ?2)').bind(since, myPts).first()).n
+            : (await env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE points > ?1').bind(myPts).first()).n;
+          mine = { pseudo: me1.pseudo, points: myPts, rank: myPts > 0 ? better + 1 : null };
+        }
+        return json({ period: week ? 'week' : 'all', top: rows.map((r, i) => ({ rank: i + 1, pseudo: r.pseudo, points: r.points, me: !!(me1 && me1.id === r.id) })), mine });
+      }
+
       // Liste des signalements actifs autour d'un point
       if (request.method === 'GET' && url.pathname === '/reports') {
         const lat = parseFloat(url.searchParams.get('lat'));
@@ -173,15 +206,18 @@ export default {
         if (dup) {
           await env.DB.prepare('UPDATE reports SET ok_votes = ok_votes + 1, expires_at = MAX(expires_at, ?2) WHERE id = ?1')
             .bind(dup.id, now + TYPES[type] * 60000).run();
-          return json({ ok: true, id: dup.id, merged: true });
+          const me0 = await currentUser(request, env);
+          const pts0 = me0 ? await addPoints(env, me0.id, 3, 'confirmation') : 0;
+          return json({ ok: true, id: dup.id, merged: true, points: pts0 });
         }
         const me = await currentUser(request, env);
         const res = await env.DB.prepare(
           'INSERT INTO reports (lat, lon, type, created_at, expires_at, ip_hash, user_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)'
         ).bind(Math.round(lat * 1e5) / 1e5, Math.round(lon * 1e5) / 1e5, type, now, now + TYPES[type] * 60000, who, me ? me.id : null).run();
-        if (me) await env.DB.prepare('UPDATE users SET reports_count = reports_count + 1 WHERE id = ?1').bind(me.id).run();
+        let pts1 = 0;
+        if (me) { await env.DB.prepare('UPDATE users SET reports_count = reports_count + 1 WHERE id = ?1').bind(me.id).run(); pts1 = await addPoints(env, me.id, 10, 'signalement'); }
         await env.DB.prepare('DELETE FROM reports WHERE expires_at < ?1').bind(now - 86400000).run();
-        return json({ ok: true, id: res.meta.last_row_id });
+        return json({ ok: true, id: res.meta.last_row_id, points: pts1 });
       }
 
       // Vote « toujours là » / « plus là »
@@ -189,18 +225,28 @@ export default {
       if (request.method === 'POST' && m) {
         const body = await request.json().catch(() => ({}));
         const id = Number(m[1]);
-        const row = await env.DB.prepare('SELECT type, ok_votes, gone_votes FROM reports WHERE id = ?1').bind(id).first();
+        const row = await env.DB.prepare('SELECT type, ok_votes, gone_votes, user_id FROM reports WHERE id = ?1').bind(id).first();
         if (!row) return json({ error: 'Introuvable' }, 404);
+        const voter = await currentUser(request, env);
+        let pts = 0;
+        if (voter) {
+          if (row.user_id === voter.id) return json({ error: 'Tu ne peux pas confirmer ton propre signalement' }, 400);
+          const already = await env.DB.prepare('SELECT 1 FROM votes WHERE report_id = ?1 AND user_id = ?2').bind(id, voter.id).first();
+          if (already) return json({ error: 'Tu as déjà donné ton avis sur ce signalement' }, 409);
+          await env.DB.prepare('INSERT INTO votes (report_id, user_id, at) VALUES (?1, ?2, ?3)').bind(id, voter.id, now).run();
+          pts = await addPoints(env, voter.id, body.gone ? 1 : 2, 'vote');
+          if (!body.gone && row.user_id) await addPoints(env, row.user_id, 2, 'confirmé');
+        }
         if (body.gone) {
           const gone = row.gone_votes + 1;
           const expire = gone >= 2 && gone > row.ok_votes;
           await env.DB.prepare('UPDATE reports SET gone_votes = ?2' + (expire ? ', expires_at = ?3' : '') + ' WHERE id = ?1')
             .bind(...(expire ? [id, gone, now] : [id, gone])).run();
-          return json({ ok: true, removed: expire });
+          return json({ ok: true, removed: expire, points: pts });
         }
         await env.DB.prepare('UPDATE reports SET ok_votes = ok_votes + 1, expires_at = MAX(expires_at, ?2) WHERE id = ?1')
           .bind(id, now + Math.min(TYPES[row.type], 60) * 60000).run();
-        return json({ ok: true });
+        return json({ ok: true, points: pts });
       }
 
       // Tuiles de trafic en direct (TomTom), la clé reste sur le serveur
