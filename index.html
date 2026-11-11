@@ -61,7 +61,9 @@
   #navDist { font-size:34px; font-weight:800; line-height:1; }
   #navText { font-size:18px; margin-top:4px; opacity:.95; }
   body.navigating #alert { top:122px; }
-  #speedBox { bottom:auto; top:50%; transform:translateY(-50%); }
+  #speedBox { top:auto; bottom:16px; left:16px; transform:none; }
+  body.navigating #statusPill { display:none; }
+  @media (max-width: 1100px) { #statusPill { display:none; } }
 
   #themeRow { display:flex; gap:6px; padding:8px 12px 4px; }
   #themeRow button { flex:1; font:inherit; font-size:15px; padding:10px 6px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
@@ -175,6 +177,8 @@
     #alertSub { font-size:14px; }
     #layers { right:86px; }
     #statusPill { display:none; }
+    #speedBox { bottom:150px; }
+    body.navigating #speedBox { bottom:96px; }
     #nav { right:86px; padding:12px 14px; gap:12px; }
     #navIcon { width:48px; height:48px; } #navIcon svg { width:46px; height:46px; }
     #navDist { font-size:22px; } #navText { font-size:14px; }
@@ -204,7 +208,7 @@
 </div>
 
 <div id="layers" class="panel">
-  <label><input type="checkbox" id="lyTraffic" checked><span class="sw" style="background:#e31937"></span>Trafic en direct <small id="trafficNote" style="color:var(--mut);font-size:12px"></small></label>
+  <label><input type="checkbox" id="lyTraffic"><span class="sw" style="background:#e31937"></span>Trafic sur toutes les routes <small id="trafficNote" style="color:var(--mut);font-size:12px"></small></label>
   <label><input type="checkbox" id="lyZones" checked><span class="sw" style="background:var(--err)"></span>Zones de danger</label>
   <label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--txt);border:2px solid var(--mut)"></span>Superchargeurs Tesla</label>
   <label><input type="checkbox" id="lyHz" checked><span class="sw" style="background:var(--txt)"></span>Dangers signalés</label>
@@ -296,6 +300,7 @@
     if (scItems) addScLayers();
     if (poiFC) addPoiLayers();
     if (routeGeo) addRouteLayers();
+    if (rtGeo) addRouteTrafficLayer();
     addTrafficLayer();
     pending.splice(0).forEach(function (f) { f(); });
   });
@@ -480,8 +485,8 @@
         }
         map.addSource('zones', { type: 'geojson', data: { type: 'FeatureCollection', features: feats } });
         var before = firstSymbolId();
-        map.addLayer({ id: 'zones-fill', type: 'fill', source: 'zones', paint: { 'fill-color': '#f04438', 'fill-opacity': 0.13 } }, before);
-        map.addLayer({ id: 'zones-line', type: 'line', source: 'zones', paint: { 'line-color': '#f04438', 'line-width': 1.5, 'line-opacity': 0.6 } }, before);
+        map.addLayer({ id: 'zones-fill', type: 'fill', source: 'zones', paint: { 'fill-color': '#e31937', 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 9, 0.14, 12.5, 0.05, 13.5, 0] } }, before);
+        map.addLayer({ id: 'zones-line', type: 'line', source: 'zones', paint: { 'line-color': '#e31937', 'line-width': 1.2, 'line-opacity': ['interpolate', ['linear'], ['zoom'], 9, 0.6, 14, 0.35], 'line-dasharray': [3, 2] } }, before);
         zonesBuilt = true;
       }
       if (zonesBuilt) setVis(['zones-fill', 'zones-line'], want);
@@ -727,7 +732,36 @@
     routeGeo = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } };
     whenReady(function () { if (map.getSource('route')) map.getSource('route').setData(routeGeo); else addRouteLayers(); });
   }
+  // ---- Trafic sur le trajet (bouchons en rouge sur l'itinéraire, ETA réelle) ----
+  var routeTraffic = null, rtGeo = null;
+  function addRouteTrafficLayer() {
+    if (!rtGeo || map.getSource('route-traffic')) return;
+    map.addSource('route-traffic', { type: 'geojson', data: rtGeo });
+    map.addLayer({ id: 'route-traffic', type: 'line', source: 'route-traffic', layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': ['case', ['==', ['get', 'cat'], 'ROAD_CLOSURE'], '#7a0b1c', '#e31937'],
+        'line-opacity': ['case', ['>=', ['get', 'mag'], 3], 1, ['>=', ['get', 'mag'], 2], 0.9, 0.65],
+        'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3, 16, 9] } }, firstSymbolId());
+  }
+  function refreshRouteTraffic() {
+    if (!nav) return;
+    var from = myPos(), to = nav.dest;
+    fetch(API + '/route-traffic?from=' + from.lat.toFixed(5) + ',' + from.lon.toFixed(5) + '&to=' + to.lat.toFixed(5) + ',' + to.lon.toFixed(5))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!nav || !d.points) return;
+        routeTraffic = { travel: d.travel, delay: d.delay, at: Date.now(), along: nav.lastAlong || 0 };
+        var feats = (d.jams || []).map(function (j) {
+          return { type: 'Feature', properties: { cat: j.cat, mag: j.mag }, geometry: { type: 'LineString', coordinates: d.points.slice(j.s, j.e + 1) } };
+        }).filter(function (f) { return f.geometry.coordinates.length > 1; });
+        rtGeo = { type: 'FeatureCollection', features: feats };
+        whenReady(function () { if (map.getSource('route-traffic')) map.getSource('route-traffic').setData(rtGeo); else addRouteTrafficLayer(); });
+        if (d.delay > 120 && !nav.delaySaid) { nav.delaySaid = 1; speak('Ralentissements sur le trajet, ' + Math.round(d.delay / 60) + ' minutes de retard.'); }
+      }).catch(function () {});
+  }
+  setInterval(refreshRouteTraffic, 180000);
   function clearRoute() {
+    rtGeo = null; routeTraffic = null;
+    whenReady(function () { if (map.getLayer('route-traffic')) map.removeLayer('route-traffic'); if (map.getSource('route-traffic')) map.removeSource('route-traffic'); });
     routeGeo = null;
     whenReady(function () { ['route-line', 'route-casing'].forEach(function (id) { if (map.getLayer(id)) map.removeLayer(id); }); if (map.getSource('route')) map.removeSource('route'); });
   }
@@ -769,6 +803,7 @@
       if (!resumed) map.fitBounds(b, { padding: { top: 140, bottom: 160, left: 60, right: 120 }, pitch: 0, bearing: 0, duration: 800 });
       setTimeout(function () { follow = true; $('btnStart').classList.add('go'); if (last) navTo(last.lat, last.lon, false); }, 2500);
       renderNav(from.lat, from.lon);
+      refreshRouteTraffic();
       try { localStorage.setItem('vigie-nav', JSON.stringify(dest)); } catch (e) {}
       if (!resumed) speak('C\'est parti. ' + formatDist(nav.total) + ' jusqu\'à ' + dest.short + '.');
       if (watchId === null && !demoTimer) $('btnStart').onclick();
@@ -841,11 +876,17 @@
     $('navIcon').innerHTML = maneuverIcon(next);
     $('navDist').textContent = formatDist(dNext);
     $('navText').textContent = instruction(next);
+    nav.lastAlong = pos.along;
     var secs = nav.duration * (remaining / Math.max(1, nav.total));
+    if (routeTraffic) {
+      // durée TomTom (avec trafic) au moment du calcul, ramenée à la distance qui reste
+      secs = routeTraffic.travel * Math.min(1, remaining / Math.max(1, nav.total - routeTraffic.along));
+    }
     var eta = new Date(Date.now() + secs * 1000);
     $('tripEta').textContent = ('0' + eta.getHours()).slice(-2) + ':' + ('0' + eta.getMinutes()).slice(-2);
     var hz = countHazardsOnRoute(pos.idx);
-    $('tripInfo').innerHTML = formatDist(remaining) + ' · ' + Math.max(1, Math.round(secs / 60)) + ' min' + (hz ? '<br>' + hz + ' danger' + (hz > 1 ? 's' : '') + ' signalé' + (hz > 1 ? 's' : '') + ' sur le trajet' : '');
+    var late = routeTraffic && routeTraffic.delay >= 60 ? ' · <span style="color:var(--acc)">+' + Math.round(routeTraffic.delay / 60) + ' min de bouchons</span>' : '';
+    $('tripInfo').innerHTML = formatDist(remaining) + ' · ' + Math.max(1, Math.round(secs / 60)) + ' min' + late + (hz ? '<br>' + hz + ' danger' + (hz > 1 ? 's' : '') + ' signalé' + (hz > 1 ? 's' : '') + ' sur le trajet' : '');
     // Annonces vocales
     var isArr = next.type === 'arrive';
     if (dNext < 600 && dNext > 350 && !next.said.far) { next.said.far = 1; speak('Dans ' + formatDist(dNext) + ', ' + (isArr ? 'vous arriverez à destination' : lowerFirst(instruction(next)))); }
@@ -857,7 +898,7 @@
       nav.lastReroute = Date.now(); nav.offCount = 0; setStatus('Nouvel itinéraire…', 'warn');
       var dest = nav.dest;
       fetchRoute({ lat: lat, lon: lon }, dest).then(function (route) {
-        if (!nav) return; var n = prepareRoute(route); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
+        if (!nav) return; var n = prepareRoute(route); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
       }).catch(function () {});
     }
   }
@@ -916,7 +957,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794419736';
+  var BUILD = '1794419915';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {

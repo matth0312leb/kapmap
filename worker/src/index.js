@@ -122,6 +122,27 @@ export default {
         return new Response(r.body, { headers: { 'Content-Type': 'application/x-protobuf', 'Cache-Control': 'public, max-age=60', ...cors } });
       }
 
+      // Trafic sur un trajet : durée réelle + tronçons ralentis
+      if (request.method === 'GET' && url.pathname === '/route-traffic') {
+        if (!env.TOMTOM_KEY) return json({ error: 'Clé trafic absente' }, 503);
+        const f = (url.searchParams.get('from') || '').split(',').map(Number);
+        const t = (url.searchParams.get('to') || '').split(',').map(Number);
+        if (!validCoord(f[0], f[1]) || !validCoord(t[0], t[1])) return json({ error: 'Paramètres invalides' }, 400);
+        const tt = 'https://api.tomtom.com/routing/1/calculateRoute/' + f[0] + ',' + f[1] + ':' + t[0] + ',' + t[1] +
+          '/json?traffic=true&sectionType=traffic&routeType=fastest&travelMode=car&key=' + env.TOMTOM_KEY;
+        const r = await fetch(tt);
+        if (!r.ok) return json({ error: 'Trafic indisponible' }, 502);
+        const d = await r.json();
+        const route = d.routes && d.routes[0];
+        if (!route) return json({ error: 'Aucun trajet' }, 404);
+        const pts = [];
+        route.legs.forEach(l => l.points.forEach(p => pts.push([Math.round(p.longitude * 1e5) / 1e5, Math.round(p.latitude * 1e5) / 1e5])));
+        const jams = (route.sections || []).filter(s => s.sectionType === 'TRAFFIC').map(s => ({
+          s: s.startPointIndex, e: s.endPointIndex, cat: s.simpleCategory || 'JAM', delay: s.delayInSeconds || 0, mag: s.magnitudeOfDelay || 0
+        }));
+        return json({ travel: route.summary.travelTimeInSeconds, delay: route.summary.trafficDelayInSeconds || 0, length: route.summary.lengthInMeters, points: pts, jams });
+      }
+
       if (url.pathname === '/') return json({ service: 'vigie-api', ok: true, traffic: !!env.TOMTOM_KEY });
       return json({ error: 'Introuvable' }, 404);
     } catch (e) {
