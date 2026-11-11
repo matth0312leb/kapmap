@@ -417,7 +417,12 @@
       map.getStyle().layers.some(function (l) { if (l['source-layer'] === 'transportation' || l['source-layer'] === 'building' || l.type === 'symbol') { before = l.id; return true; } return false; });
       map.addLayer({ id: 'sat-ch', type: 'raster', source: 'sat-ch' }, before);
       map.addLayer({ id: 'sat-fr', type: 'raster', source: 'sat-fr' }, before);
-      map.getStyle().layers.forEach(function (l) { if (l['source-layer'] === 'building') map.setLayoutProperty(l.id, 'visibility', 'none'); });
+      map.getStyle().layers.forEach(function (l) {
+        if (l['source-layer'] === 'building') map.setLayoutProperty(l.id, 'visibility', 'none');
+        // Noms en français (ou en langue locale), pas en anglais
+        if (l.type === 'symbol' && l.layout && l.layout['text-field'] && l['source-layer'] !== 'transportation_name')
+          try { map.setLayoutProperty(l.id, 'text-field', ['coalesce', ['get', 'name:fr'], ['get', 'name']]); } catch (e) {}
+      });
     } catch (e) {}
   }
   var themePref = 'auto';
@@ -1684,7 +1689,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794432498';
+  var BUILD = '1794432599';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
