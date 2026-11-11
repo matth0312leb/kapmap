@@ -262,6 +262,7 @@
             'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0] } }, firstSymbolId());
       }
     } catch (e) {}
+    if (theme === 'dark') brightenNight();
     // Après un changement de style, on remet nos calques
     zonesBuilt = false; refreshZonesLayer();
     if (scItems) addScLayers();
@@ -269,6 +270,24 @@
     if (routeGeo) addRouteLayers();
     pending.splice(0).forEach(function (f) { f(); });
   });
+  // Nuit : fond anthracite et routes grises bien lisibles
+  function brightenNight() {
+    try {
+      map.getStyle().layers.forEach(function (l) {
+        var id = l.id.toLowerCase();
+        if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#1c1d1f');
+        else if (l.type === 'fill' && /water/.test(id)) map.setPaintProperty(l.id, 'fill-color', '#101418');
+        else if (l.type === 'fill' && /(landuse|landcover|park|wood|grass)/.test(id)) map.setPaintProperty(l.id, 'fill-opacity', 0.35);
+        else if (l.type === 'line' && /(road|highway|street|bridge|tunnel|motorway|trunk|primary|secondary|tertiary|minor|service|link)/.test(id) && !/(casing|outline|rail|path|track)/.test(id)) {
+          var c = /(motorway|trunk|primary)/.test(id) ? '#b5b5b5' : /(secondary|tertiary)/.test(id) ? '#8f8f8f' : '#6a6a6a';
+          map.setPaintProperty(l.id, 'line-color', c);
+        }
+        else if (l.type === 'symbol' && /(road|highway|street|place|label)/.test(id)) {
+          try { map.setPaintProperty(l.id, 'text-color', '#d6d6d6'); map.setPaintProperty(l.id, 'text-halo-color', '#1c1d1f'); } catch (e) {}
+        }
+      });
+    } catch (e) {}
+  }
   function applyTheme(lat, lon) {
     var t = wantedTheme(lat, lon);
     if (t === theme) return;
@@ -293,12 +312,14 @@
   refreshThemeButtons();
   setInterval(function () { var c = last ? { lat: last.lat, lng: last.lon } : map.getCenter(); applyTheme(c.lat, c.lng); }, 60000);
 
-  var follow = true;
+  var follow = true, lastSpeed = 0;
   map.on('dragstart', function () { follow = false; $('btnStart').classList.remove('go'); });
   function navTo(lat, lon, instant) {
     var h = map.getContainer().clientHeight;
-    map.easeTo({ center: [lon, lat], bearing: heading !== null ? heading : map.getBearing(), pitch: 55,
-      zoom: Math.max(map.getZoom(), 16), offset: [0, Math.round(h * 0.22)], duration: instant ? 0 : 900, essential: true });
+    var kmh = lastSpeed || 0;
+    var z = kmh > 100 ? 16 : kmh > 70 ? 16.6 : kmh > 40 ? 17.2 : 17.6;   // plus on roule vite, plus on voit loin
+    map.easeTo({ center: [lon, lat], bearing: heading !== null ? heading : map.getBearing(), pitch: 50,
+      zoom: z, offset: [0, Math.round(h * 0.16)], duration: instant ? 0 : 950, easing: function (t) { return t; }, essential: true });
   }
 
   var carEl = document.createElement('div');
@@ -883,6 +904,7 @@
 
     var speed = (gpsSpeed !== null && !isNaN(gpsSpeed)) ? gpsSpeed * 3.6 : calcSpeed;
     $('speed').textContent = speed === null ? '–' : Math.round(speed);
+    if (speed !== null) lastSpeed = speed;
 
     if (!carMarker) carMarker = new maplibregl.Marker({ element: carEl, rotationAlignment: 'map', pitchAlignment: 'map' }).setLngLat([lon, lat]).addTo(map);
     else carMarker.setLngLat([lon, lat]);
