@@ -252,17 +252,48 @@
   #limit.always { display:flex; }
   #limit.over { animation:pulse 1s infinite; }
   .lyHead2 { font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--mut); margin:18px 0 8px; }
-  .pGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-  .pGrid a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:84px; border-radius:14px; background:rgba(127,127,127,.12); color:var(--txt); text-decoration:none; font-weight:600; font-size:13px; }
-  .pGrid a .ico { width:40px; height:40px; border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff; }
-  .pGrid a .ico img { width:100%; height:100%; object-fit:cover; display:block; }
-  .pGrid a .ico.noimg { background:rgba(127,127,127,.25); font-size:18px; font-weight:700; }
-  #pause.locked .pGrid a, #pause.locked #pNews a, #pause.locked #pQuiz button { pointer-events:none; opacity:.35; }
-  #pNews a { display:block; color:var(--txt); text-decoration:none; padding:7px 0; border-bottom:1px solid var(--line); font-size:14px; }
-  #pQuiz .q { font-size:15px; font-weight:600; margin-bottom:8px; }
-  #pQuiz button { display:block; width:100%; text-align:left; font:inherit; font-size:14px; padding:10px 12px; margin-top:6px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
-  #pQuiz button.good { background:#166534; color:#fff; border-color:#166534; } #pQuiz button.bad { background:var(--acc); color:#fff; border-color:var(--acc); }
-  @media (max-width: 600px) { .pGrid { grid-template-columns:repeat(2,1fr); } }
+  /* ---------- Mode pause (toujours sombre, finition premium) ---------- */
+  #pause { background:rgba(0,0,0,.7); }
+  #pause .pcard { position:relative; width:min(820px,100%); max-height:calc(100vh - 32px); overflow:auto; padding:22px 24px 20px; border-radius:24px; color:#f2f2f2;
+    background:radial-gradient(120% 60% at 0% 0%, rgba(227,25,55,.16), transparent 55%), linear-gradient(180deg,#151517,#0a0a0b); border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 30px 90px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.06); animation:pIn .25s ease-out; }
+  @keyframes pIn { from { opacity:0; transform:translateY(10px) scale(.985); } to { opacity:1; transform:none; } }
+  .pTop { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  #pClock { font-size:44px; font-weight:800; letter-spacing:-.02em; line-height:1; }
+  #pDate { color:#9a9a9f; font-size:14px; margin-top:6px; text-transform:capitalize; }
+  .pRight { display:flex; align-items:center; gap:12px; }
+  .pWx { text-align:right; } .pWx span { display:block; font-size:22px; font-weight:700; } .pWx small { color:#9a9a9f; font-size:12px; }
+  #pX { width:42px; height:42px; border-radius:50%; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:#fff; font-size:24px; line-height:1; cursor:pointer; transition:all .15s; }
+  #pX:hover, #pX:active { border-color:rgba(227,25,55,.7); box-shadow:0 0 18px rgba(227,25,55,.45); background:rgba(227,25,55,.15); }
+  #pLock { display:none; align-items:center; gap:10px; margin-top:14px; padding:11px 14px; border-radius:12px; font-size:14px; color:#fff;
+    background:linear-gradient(90deg, rgba(227,25,55,.28), rgba(227,25,55,.08)); border:1px solid rgba(227,25,55,.45); box-shadow:0 0 24px rgba(227,25,55,.18); }
+  .pTitle { display:flex; align-items:center; gap:8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:#a8a8ad; margin:20px 0 10px; }
+  .pTitle i { width:6px; height:6px; border-radius:50%; background:#e31937; box-shadow:0 0 10px #e31937; }
+  .pBox .pTitle { margin-top:0; }
+  .pGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .pGrid a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; padding:16px 6px 13px; border-radius:16px; text-decoration:none; color:#ececef; font-weight:600; font-size:13px;
+    background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); transition:transform .15s, border-color .15s, box-shadow .15s; }
+  .pGrid a:hover, .pGrid a:active { transform:translateY(-2px); border-color:rgba(227,25,55,.65); box-shadow:0 0 0 1px rgba(227,25,55,.3), 0 10px 30px rgba(227,25,55,.22); }
+  .pGrid a .ico { width:52px; height:52px; border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,.55); }
+  .pGrid a .ico img { width:100%; height:100%; object-fit:contain; display:block; }
+  .pGrid a .ico.noimg { background:#26262a; color:#fff; font-size:20px; font-weight:800; }
+  .pCols { display:grid; grid-template-columns:1.25fr 1fr; gap:12px; margin-top:14px; }
+  .pBox { padding:16px; border-radius:18px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); min-width:0; }
+  #pNews a { display:flex; align-items:center; gap:10px; color:#e6e6ea; text-decoration:none; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.06); font-size:14px; line-height:1.35; transition:color .15s; }
+  #pNews a::after { content:'›'; margin-left:auto; color:#e31937; font-size:20px; }
+  #pNews a:hover, #pNews a:active { color:#fff; text-shadow:0 0 12px rgba(227,25,55,.5); }
+  #pNews .src { font-size:11px; color:#77777c; margin-top:8px; }
+  #pQuiz .q { font-size:15px; font-weight:600; line-height:1.4; margin-bottom:6px; }
+  #pQuiz button { display:block; width:100%; text-align:left; font:inherit; font-size:14px; padding:11px 13px; margin-top:7px; border-radius:12px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:#ececef; cursor:pointer; transition:all .15s; }
+  #pQuiz button:hover { border-color:rgba(227,25,55,.6); box-shadow:0 0 16px rgba(227,25,55,.2); }
+  #pQuiz button.good { background:rgba(22,101,52,.85); border-color:#22c55e; box-shadow:0 0 18px rgba(34,197,94,.35); color:#fff; }
+  #pQuiz button.bad { background:rgba(227,25,55,.85); border-color:#e31937; box-shadow:0 0 18px rgba(227,25,55,.45); color:#fff; }
+  #pQuiz .small { color:#8a8a8f; margin-top:8px; }
+  #pClose { display:block; width:100%; margin-top:18px; padding:15px; border:0; border-radius:14px; font:inherit; font-size:16px; font-weight:700; color:#fff; cursor:pointer;
+    background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 10px 30px rgba(227,25,55,.35), inset 0 1px 0 rgba(255,255,255,.25); transition:box-shadow .15s, transform .15s; }
+  #pClose:hover, #pClose:active { box-shadow:0 12px 40px rgba(227,25,55,.55), inset 0 1px 0 rgba(255,255,255,.25); transform:translateY(-1px); }
+  #pause.locked .pGrid a, #pause.locked #pNews a, #pause.locked #pQuiz button { pointer-events:none; opacity:.3; filter:grayscale(.6); }
+  @media (max-width: 640px) { .pGrid { grid-template-columns:repeat(4,1fr); gap:8px; } .pGrid a { font-size:11px; } .pGrid a .ico { width:44px; height:44px; } .pCols { grid-template-columns:1fr; } #pClock { font-size:36px; } }
   @media (max-width: 700px) { #layers { max-height:calc(100vh - 32px); left:16px; right:80px; min-width:0; } }
   @media (max-width: 700px) {
     #alert { right:86px; padding:12px 14px; gap:12px; }
@@ -369,10 +400,23 @@
   <div class="err" id="locErr"></div>
 </div></div>
 
-<div id="pause" class="overlay"><div class="card" style="width:min(760px,100%)">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-    <div><h2 id="pClock">--:--</h2><p class="lead" id="pDate" style="margin:2px 0 0"></p></div>
-    <div style="text-align:right"><div id="pWeather" style="font-size:22px;font-weight:700"></div><div class="m" id="pWeatherTxt" style="color:var(--mut);font-size:13px"></div></div>
+<div id="pause" class="overlay"><div class="pcard">
+  <div class="pTop">
+    <div><div id="pClock">--:--</div><div id="pDate"></div></div>
+    <div class="pRight">
+      <div class="pWx"><span id="pWeather"></span><small id="pWeatherTxt"></small></div>
+      <button id="pX" title="Fermer" aria-label="Fermer">&times;</button>
+    </div>
+  </div>
+  <div id="pLock"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>En mouvement : tout s'active à l'arrêt complet.</div>
+  <div class="pTitle"><i></i>Regarder &amp; écouter</div>
+  <div id="pLinks" class="pGrid"></div>
+  <div class="pCols">
+    <div class="pBox"><div class="pTitle"><i></i>Actualités</div><div id="pNews">Chargement…</div></div>
+    <div class="pBox"><div class="pTitle"><i></i>Quiz de la route</div><div id="pQuiz"></div></div>
+  </div>
+  <button id="pClose">Reprendre la route</button>
+</div></div>
   </div>
   <div id="pLock" class="small" style="margin:12px 0 0;padding:10px 12px;border-radius:10px;background:rgba(227,25,55,.12);color:var(--txt);display:none">En mouvement : les contenus s'activeront à l'arrêt complet.</div>
   <div class="lyHead2">Regarder / écouter</div>
@@ -1710,7 +1754,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794433020';
+  var BUILD = '1794433349';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1906,12 +1950,29 @@
   var LINKS = [['YouTube', 'https://www.youtube.com'], ['Twitch', 'https://www.twitch.tv'], ['Prime Video', 'https://www.primevideo.com'], ['Netflix', 'https://www.netflix.com'],
     ['Disney+', 'https://www.disneyplus.com'], ['myCANAL', 'https://www.canalplus.com'], ['Spotify', 'https://open.spotify.com'], ['Deezer', 'https://www.deezer.com']];
   // Icône officielle de chaque service, chargée depuis le service d'icônes de Google (lettre de secours si indisponible)
+  var ALT_HOST = { 'open.spotify.com': 'www.spotify.com', 'www.netflix.com': 'about.netflix.com' };
+  function iconCandidates(host) {
+    var g = function (h) { return 'https://www.google.com/s2/favicons?sz=256&domain_url=https://' + h; };
+    return ['https://' + host + '/apple-touch-icon.png', g(host)].concat(ALT_HOST[host] ? ['https://' + ALT_HOST[host] + '/apple-touch-icon.png', g(ALT_HOST[host])] : []);
+  }
   $('pLinks').innerHTML = LINKS.map(function (l) {
-    var host = l[1].replace(/^https:\/\//, '');
-    return '<a href="' + l[1] + '" target="_blank" rel="noopener"><span class="ico"><img alt="" loading="lazy" src="https://www.google.com/s2/favicons?sz=128&domain=' + host + '"></span>' + l[0] + '</a>';
+    return '<a href="' + l[1] + '" target="_blank" rel="noopener"><span class="ico"></span>' + l[0] + '</a>';
   }).join('');
-  Array.prototype.forEach.call($('pLinks').querySelectorAll('img'), function (im) {
-    im.onerror = function () { var sp = im.parentNode; sp.className = 'ico noimg'; sp.textContent = sp.parentNode.textContent.trim().charAt(0); };
+  // Pour chaque service : la première icône d'au moins 96 px, sinon la plus grande trouvée, sinon l'initiale
+  Array.prototype.forEach.call($('pLinks').querySelectorAll('a'), function (a, k) {
+    var host = LINKS[k][1].replace(/^https:\/\//, ''), list = iconCandidates(host), best = null, i = 0, sp = a.querySelector('.ico');
+    function done() {
+      if (best) { sp.innerHTML = ''; sp.appendChild(best); }
+      else { sp.className = 'ico noimg'; sp.textContent = LINKS[k][0].charAt(0); }
+    }
+    function next() {
+      if (i >= list.length) { done(); return; }
+      var im = new Image(); im.alt = '';
+      im.onload = function () { if (!best || im.naturalWidth > best.naturalWidth) best = im; if (im.naturalWidth >= 96) done(); else next(); };
+      im.onerror = next;
+      im.src = list[i++];
+    }
+    next();
   });
   var QUIZ = [
     ['Sur autoroute par temps de pluie en France, la vitesse maximale autorisée est de :', ['110 km/h', '130 km/h', '100 km/h'], 0],
@@ -1954,7 +2015,7 @@
       }).catch(function () {});
     fetch(API + '/news').then(function (r) { return r.json(); }).then(function (d) {
       $('pNews').innerHTML = (d.items || []).map(function (n) { return '<a href="' + esc(n.link) + '" target="_blank" rel="noopener">' + esc(n.title) + '</a>'; }).join('') +
-        '<div style="font-size:11px;margin-top:6px">Titres : franceinfo</div>';
+        '<div class="src">Titres : franceinfo</div>';
     }).catch(function () { $('pNews').textContent = 'Actualités indisponibles.'; });
     renderQuiz();
   }
@@ -1964,11 +2025,13 @@
     if (moving) stillSince = 0; else if (!stillSince) stillSince = Date.now();
     var locked = !SIM && (watchId === null || moving || Date.now() - stillSince < 3000);
     $('pause').classList.toggle('locked', locked);
-    $('pLock').style.display = locked ? 'block' : 'none';
+    $('pLock').style.display = locked ? 'flex' : 'none';
     if (locked && speed > 15 && $('pause').classList.contains('show')) $('pause').classList.remove('show');
   }
   $('btnPause').onclick = function () { fillPause(); pauseLockUpdate(lastSpeed || 0); $('pause').classList.add('show'); };
   $('pClose').onclick = function () { $('pause').classList.remove('show'); };
+  $('pX').onclick = function () { $('pause').classList.remove('show'); };
+  $('pause').onclick = function (e) { if (e.target === this) this.classList.remove('show'); };   // toucher à côté ferme aussi
 
   // ================= Partage de trajet =================
   var share = null;
