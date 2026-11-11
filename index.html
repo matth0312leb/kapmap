@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test GPS navigateur Tesla</title>
+<style>
+  :root { --bg:#0e0f11; --card:#1a1c20; --txt:#f2f2f2; --mut:#8a8f98; --ok:#3ecf8e; --warn:#f5a524; --err:#f04438; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:24px; }
+  h1 { font-size:28px; margin:0 0 6px; }
+  .sub { color:var(--mut); margin:0 0 20px; font-size:18px; }
+  button { font-size:24px; padding:18px 32px; border-radius:12px; border:0; background:#e82127; color:#fff; font-weight:600; cursor:pointer; margin-right:12px; }
+  button.sec { background:#33363d; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:24px; }
+  .card { background:var(--card); border-radius:14px; padding:18px 20px; }
+  .lbl { color:var(--mut); font-size:16px; text-transform:uppercase; letter-spacing:.05em; }
+  .val { font-size:44px; font-weight:700; margin-top:6px; font-variant-numeric:tabular-nums; }
+  .val.small { font-size:26px; }
+  .unit { font-size:20px; color:var(--mut); font-weight:400; margin-left:6px; }
+  #status { margin-top:20px; font-size:22px; padding:14px 18px; border-radius:12px; background:var(--card); }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .err { color:var(--err); }
+  table { width:100%; border-collapse:collapse; margin-top:24px; font-size:17px; font-variant-numeric:tabular-nums; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #2a2d33; }
+  th { color:var(--mut); font-weight:500; }
+  #ua { color:var(--mut); font-size:14px; margin-top:24px; word-break:break-all; }
+</style>
+</head>
+<body>
+  <h1>Test GPS navigateur Tesla</h1>
+  <p class="sub">Appuie sur Démarrer, accepte la demande de position, puis roule quelques minutes.</p>
+
+  <button id="start">Démarrer</button>
+  <button id="stop" class="sec">Arrêter</button>
+
+  <div id="status">En attente…</div>
+
+  <div class="grid">
+    <div class="card"><div class="lbl">Vitesse GPS</div><div class="val" id="spd">–<span class="unit">km/h</span></div></div>
+    <div class="card"><div class="lbl">Vitesse calculée</div><div class="val" id="spdCalc">–<span class="unit">km/h</span></div></div>
+    <div class="card"><div class="lbl">Précision</div><div class="val" id="acc">–<span class="unit">m</span></div></div>
+    <div class="card"><div class="lbl">Intervalle moyen</div><div class="val" id="int">–<span class="unit">s</span></div></div>
+    <div class="card"><div class="lbl">Cap</div><div class="val" id="hdg">–<span class="unit">°</span></div></div>
+    <div class="card"><div class="lbl">Positions reçues</div><div class="val" id="cnt">0</div></div>
+    <div class="card"><div class="lbl">Latitude / Longitude</div><div class="val small" id="pos">–</div></div>
+    <div class="card"><div class="lbl">Altitude</div><div class="val small" id="alt">–</div></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Heure</th><th>Vitesse GPS</th><th>Vitesse calc.</th><th>Précision</th><th>Écart</th></tr></thead>
+    <tbody id="log"></tbody>
+  </table>
+
+  <div id="ua"></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var watchId = null, count = 0, last = null, intervals = [];
+
+  $('ua').textContent = 'Navigateur : ' + navigator.userAgent;
+
+  function setStatus(msg, cls) { var s = $('status'); s.textContent = msg; s.className = cls || ''; }
+  function unit(v, u) { return v + '<span class="unit">' + u + '</span>'; }
+
+  function dist(a, b) { // mètres, formule de haversine
+    var R = 6371000, toR = Math.PI / 180;
+    var dLat = (b.latitude - a.latitude) * toR, dLon = (b.longitude - a.longitude) * toR;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(a.latitude * toR) * Math.cos(b.latitude * toR) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  function onPos(p) {
+    var c = p.coords, t = p.timestamp;
+    count++;
+    var gap = null, calc = null;
+    if (last) {
+      gap = (t - last.t) / 1000;
+      if (gap > 0) {
+        intervals.push(gap); if (intervals.length > 20) intervals.shift();
+        calc = dist(last.c, c) / gap * 3.6;
+      }
+    }
+    last = { c: c, t: t };
+
+    var spd = (c.speed === null || isNaN(c.speed)) ? null : c.speed * 3.6;
+    $('spd').innerHTML = unit(spd === null ? 'n/d' : spd.toFixed(0), 'km/h');
+    $('spdCalc').innerHTML = unit(calc === null ? '–' : calc.toFixed(0), 'km/h');
+    $('acc').innerHTML = unit(c.accuracy.toFixed(0), 'm');
+    var avg = intervals.length ? intervals.reduce(function (a, b) { return a + b; }, 0) / intervals.length : null;
+    $('int').innerHTML = unit(avg === null ? '–' : avg.toFixed(1), 's');
+    $('hdg').innerHTML = unit((c.heading === null || isNaN(c.heading)) ? 'n/d' : c.heading.toFixed(0), '°');
+    $('cnt').textContent = count;
+    $('pos').textContent = c.latitude.toFixed(5) + ', ' + c.longitude.toFixed(5);
+    $('alt').textContent = c.altitude === null ? 'n/d' : c.altitude.toFixed(0) + ' m';
+
+    var cls = c.accuracy <= 20 ? 'ok' : (c.accuracy <= 100 ? 'warn' : 'err');
+    setStatus('Position reçue — précision ' + c.accuracy.toFixed(0) + ' m', cls);
+
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + new Date(t).toLocaleTimeString('fr-FR') + '</td>' +
+      '<td>' + (spd === null ? 'n/d' : spd.toFixed(0) + ' km/h') + '</td>' +
+      '<td>' + (calc === null ? '–' : calc.toFixed(0) + ' km/h') + '</td>' +
+      '<td>' + c.accuracy.toFixed(0) + ' m</td>' +
+      '<td>' + (gap === null ? '–' : gap.toFixed(1) + ' s') + '</td>';
+    var log = $('log'); log.insertBefore(tr, log.firstChild);
+    while (log.children.length > 15) log.removeChild(log.lastChild);
+  }
+
+  function onErr(e) {
+    var msg = { 1: 'Accès à la position refusé', 2: 'Position indisponible', 3: 'Délai dépassé' }[e.code] || 'Erreur';
+    setStatus(msg + ' (code ' + e.code + ') : ' + e.message, 'err');
+  }
+
+  $('start').onclick = function () {
+    if (!('geolocation' in navigator)) { setStatus('Ce navigateur ne propose pas la géolocalisation.', 'err'); return; }
+    if (!window.isSecureContext) { setStatus('La page doit être ouverte en HTTPS.', 'err'); return; }
+    if (watchId !== null) return;
+    setStatus('Demande de position envoyée…', 'warn');
+    watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+  };
+  $('stop').onclick = function () {
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; setStatus('Arrêté.', ''); }
+  };
+})();
+</script>
+</body>
+</html>
