@@ -371,6 +371,7 @@
     zonesBuilt = false; refreshZonesLayer();
     if (scItems) addScLayers();
     if (chItems) addChLayers();
+    if (irveIndex) addIrveLayers();
     if (poiFC) addPoiLayers();
     if (routeGeo) addRouteLayers();
     if (rtGeo) addRouteTrafficLayer();
@@ -471,7 +472,14 @@
   }).catch(function () { setStatus('Données des zones indisponibles', 'err'); });
 
   loadJSON('data/superchargers.json').then(function (d) { drawSuperchargers(d.items || []); }).catch(function () {});
-  loadJSON('data/chargers.json').then(function (d) { chItems = d.items || []; buildNetList(); whenReady(addChLayers); }).catch(function () {});
+  var irveIndex = null;
+  Promise.all([
+    loadJSON('data/chargers.json').catch(function () { return { items: [] }; }),
+    loadJSON('data/irve/index.json').catch(function () { return null; })
+  ]).then(function (r) {
+    chItems = r[0].items || []; irveIndex = r[1];
+    buildNetList(); whenReady(addChLayers); whenReady(function () { addIrveLayers(); loadIrveTiles(); });
+  });
 
   // ================= Géométrie =================
   var R = 6371000, toR = Math.PI / 180;
@@ -635,7 +643,7 @@
   try { netOn = JSON.parse(localStorage.getItem('vigie-networks') || 'null'); } catch (e) {}
   function chFilter() { return ['in', ['get', 'net'], ['literal', netOn || []]]; }
   function applyNetworks() {
-    if (map.getLayer('ch-circle')) { map.setFilter('ch-circle', chFilter()); map.setFilter('ch-label', chFilter()); }
+    ['ch-circle', 'ch-label', 'irve-circle', 'irve-label'].forEach(function (id) { if (map.getLayer(id)) map.setFilter(id, chFilter()); });
   }
   function saveNetworks() {
     try { localStorage.setItem('vigie-networks', JSON.stringify(netOn)); } catch (e) {}
@@ -644,9 +652,10 @@
   function buildNetList() {
     var names = {};
     (chItems || []).forEach(function (c) { names[c[2]] = (names[c[2]] || 0) + 1; });
+    if (irveIndex && irveIndex.networks) Object.keys(irveIndex.networks).forEach(function (n) { names[n] = (names[n] || 0) + irveIndex.networks[n]; });
     if (!netOn) netOn = [];
     var box = $('netList');
-    Object.keys(names).sort(function (a, b) { return a.localeCompare(b, 'fr'); }).forEach(function (n) {
+    Object.keys(names).sort(function (a, b) { if (a === 'Autres bornes') return 1; if (b === 'Autres bornes') return -1; return a.localeCompare(b, 'fr'); }).forEach(function (n) {
       var lab = document.createElement('label'); lab.className = 'chip';
       lab.innerHTML = '<input type="checkbox"' + (netOn.indexOf(n) >= 0 ? ' checked' : '') + '>' + esc(n);
       lab.querySelector('input').onchange = function () {
@@ -696,6 +705,68 @@
         if (t2) t2.textContent = out.length ? 'À pied (300 m) : ' + out.join(' · ') : 'Rien de répertorié à pied autour : prévois de quoi grignoter.';
       })
       .catch(function () { var t2 = node.querySelector('#scAround'); if (t2) t2.textContent = ''; });
+  }
+  // ---- Base nationale des bornes (France) : chargée par zone affichée ----
+  var irveTiles = {}, irveFeats = [], irveClickBound = false;
+  function irveFeature(c) {
+    return { type: 'Feature', properties: { net: c[2], name: c[3], brand: c[4], addr: c[5], kw: c[6], pdc: c[7], plugs: c[8], price: c[9], free: c[10], hours: c[11], access: c[12], cb: c[13] },
+      geometry: { type: 'Point', coordinates: [c[1], c[0]] } };
+  }
+  function addIrveLayers() {
+    if (map.getSource('irve')) return;
+    var light = theme === 'light';
+    map.addSource('irve', { type: 'geojson', data: { type: 'FeatureCollection', features: irveFeats } });
+    map.addLayer({ id: 'irve-circle', type: 'circle', source: 'irve', minzoom: 8, filter: chFilter(), paint: {
+      'circle-color': light ? '#ffffff' : '#1c1d1f', 'circle-stroke-color': light ? '#111111' : '#f5f5f5', 'circle-stroke-width': 2,
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 2.5, 11, 5, 15, 8.5] } });
+    map.addLayer({ id: 'irve-label', type: 'symbol', source: 'irve', minzoom: 14, filter: chFilter(), layout: {
+      'text-field': ['get', 'net'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': [0, 1.3], 'text-anchor': 'top' },
+      paint: { 'text-color': light ? '#111111' : '#e5e5e5', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
+    if (!irveClickBound) { irveClickBound = true; map.on('click', 'irve-circle', function (e) { showStation(e.features[0]); }); }
+  }
+  function loadIrveTiles() {
+    if (!irveIndex || map.getZoom() < 8) return;
+    var b = map.getBounds(), avail = {};
+    irveIndex.tiles.forEach(function (t) { avail[t] = 1; });
+    for (var la = Math.floor(b.getSouth()); la <= Math.floor(b.getNorth()); la++) {
+      for (var lo = Math.floor(b.getWest()); lo <= Math.floor(b.getEast()); lo++) {
+        var k = la + '_' + lo;
+        if (!avail[k] || irveTiles[k]) continue;
+        irveTiles[k] = 'loading';
+        (function (k) {
+          loadJSON('data/irve/' + k + '.json').then(function (items) {
+            irveTiles[k] = 1;
+            items.forEach(function (c) { irveFeats.push(irveFeature(c)); });
+            if (map.getSource('irve')) map.getSource('irve').setData({ type: 'FeatureCollection', features: irveFeats });
+          }).catch(function () { delete irveTiles[k]; });
+        })(k);
+      }
+    }
+  }
+  map.on('moveend', loadIrveTiles);
+  // Fiche d'une borne de la base nationale
+  function showStation(f) {
+    var p = f.properties, c = f.geometry.coordinates, me0 = myPos();
+    var km = dist(me0.lat, me0.lon, c[1], c[0]) / 1000;
+    var lines = [];
+    lines.push('<b style="font-size:20px">' + (p.pdc || '?') + '</b> point' + (+p.pdc > 1 ? 's' : '') + ' de charge' + (+p.kw ? ' · jusqu\'à <b>' + p.kw + ' kW</b>' : ''));
+    if (p.plugs) lines.push('<span class="m">Prises : ' + esc(String(p.plugs).replace(/,/g, ', ')) + '</span>');
+    if (+p.free === 1) lines.push('<b>Gratuit</b>');
+    else if (p.price) lines.push('Tarif déclaré : ' + esc(p.price));
+    else lines.push('<span class="m">Tarif non communiqué par l\'opérateur</span>');
+    var extra = [];
+    if (p.hours) extra.push(p.hours === '24/7' ? 'ouvert 24 h/24' : 'horaires : ' + p.hours);
+    if (p.access) extra.push(String(p.access).toLowerCase());
+    if (+p.cb === 1) extra.push('carte bancaire acceptée');
+    if (extra.length) lines.push('<span class="m">' + esc(extra.join(' · ')) + '</span>');
+    lines.push('<span class="m">À ' + (km < 10 ? km.toFixed(1).replace('.', ',') : Math.round(km)) + ' km à vol d\'oiseau</span>');
+    var node = el('<b>' + esc(p.net === 'Autres bornes' ? (p.brand || 'Borne de recharge') : p.net) + '</b>' + (p.name ? '<br>' + esc(p.name) : '') +
+      (p.addr ? '<br><span class="m">' + esc(p.addr) + '</span>' : '') +
+      '<div style="margin-top:8px;font-size:14px;line-height:1.55">' + lines.join('<br>') + '</div>' +
+      '<div class="m" style="margin-top:6px;font-size:11px">Source : base nationale des bornes (données publiques)</div>' +
+      '<div class="votes"><button class="yes" id="stGo">Y aller</button></div>');
+    var pop = popup(c, node);
+    node.querySelector('#stGo').onclick = function () { pop.remove(); startNav({ lat: c[1], lon: c[0], short: p.net === 'Autres bornes' ? (p.brand || 'Borne') : p.net, title: p.name || p.net, sub: p.addr || '' }); };
   }
   $('lyZones').onchange = refreshZonesLayer;
   $('lySc').onchange = function () { setVis(['sc-circle', 'sc-label'], this.checked); try { localStorage.setItem('vigie-sc', this.checked ? '1' : '0'); } catch (e) {} if (netOn) saveNetworks(); };
@@ -1434,7 +1505,7 @@
     });
     // Clic sur la carte = la voiture est garée ici (sauf clic sur un Superchargeur, un lieu…)
     map.on('click', function (e) {
-      var ids = ['sc-circle', 'ch-circle', 'poi-circle'].filter(function (id) { return map.getLayer(id); });
+      var ids = ['sc-circle', 'ch-circle', 'irve-circle', 'poi-circle'].filter(function (id) { return map.getLayer(id); });
       if (ids.length && map.queryRenderedFeatures(e.point, { layers: ids }).length) return;
       if (e.originalEvent && e.originalEvent.target && e.originalEvent.target.closest && e.originalEvent.target.closest('.hz')) return;
       last = null; heading = null; active = null;

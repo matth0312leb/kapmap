@@ -210,7 +210,7 @@ def build_chargers():
     import re as _re
     rx = "|".join(r for _, r in NETWORKS).replace("^", "")
     q = f"""[out:json][timeout:300];
-(area["ISO3166-1"="FR"][admin_level=2];area["ISO3166-1"="BE"][admin_level=2];area["ISO3166-1"="LU"][admin_level=2];area["ISO3166-1"="CH"][admin_level=2];)->.a;
+(area["ISO3166-1"="BE"][admin_level=2];area["ISO3166-1"="LU"][admin_level=2];area["ISO3166-1"="CH"][admin_level=2];)->.a;
 (
   nwr["amenity"="charging_station"]["network"~"{rx}",i](area.a);
   nwr["amenity"="charging_station"]["operator"~"{rx}",i](area.a);
@@ -257,6 +257,99 @@ out center tags;"""
     return {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "count": len(out), "items": out}
 
 
+# ---------- Base nationale française des bornes (IRVE, données publiques) ----------
+IRVE_DATASETS = ["fichier-consolide-des-bornes-de-recharge-pour-vehicules-electriques",
+                 "base-nationale-des-irve-data-gouv-infrastructures-de-recharge-pour-vehicules-electriques-donnees-statiques"]
+
+
+def network_of(*names):
+    import re as _re
+    hay = " ".join(n or "" for n in names).lower()
+    if "tesla" in hay:
+        return None
+    for n, r in NETWORKS:
+        if _re.search(r, hay):
+            return n
+    return "Autres bornes"
+
+
+def irve_csv_url():
+    for slug in IRVE_DATASETS:
+        try:
+            meta = json.loads(get(f"https://www.data.gouv.fr/api/1/datasets/{slug}/"))
+        except Exception as e:  # noqa: BLE001
+            print(f"IRVE : jeu {slug} indisponible ({e})")
+            continue
+        res = [r for r in meta.get("resources", []) if (r.get("format") or "").lower() == "csv"]
+        res.sort(key=lambda r: (("consolid" in (r.get("title") or "").lower()), r.get("last_modified") or ""), reverse=True)
+        if res:
+            print(f"IRVE : {res[0].get('title')} ({res[0].get('last_modified')})")
+            return res[0]["url"]
+    raise RuntimeError("Fichier IRVE introuvable")
+
+
+def build_irve():
+    import re as _re
+    raw = get(irve_csv_url())
+    text = raw.decode("utf-8-sig", errors="replace")
+    rows = csv.DictReader(io.StringIO(text), delimiter=";" if text[:3000].count(";") > text[:3000].count(",") else ",")
+    st = {}
+    for r in rows:
+        sid = (r.get("id_station_itinerance") or r.get("id_station_local") or "").strip()
+        lat, lon = to_float(r.get("consolidated_latitude")), to_float(r.get("consolidated_longitude"))
+        if lat is None or lon is None:
+            m = _re.findall(r"-?[0-9]+(?:\.[0-9]+)?", r.get("coordonneesXY") or "")
+            if len(m) >= 2:
+                lon, lat = float(m[0]), float(m[1])
+        if lat is None or lon is None or not (41 <= lat <= 52 and -6 <= lon <= 10):
+            continue  # France métropolitaine
+        key = sid or f"{round(lat, 4)},{round(lon, 4)}"
+        p = to_float(r.get("puissance_nominale")) or 0
+        if p > 1000:
+            p = p / 1000.0  # certaines bornes sont déclarées en W
+        plugs = set()
+        for col, lab in (("prise_type_combo_ccs", "CCS"), ("prise_type_2", "Type 2"), ("prise_type_chademo", "CHAdeMO"), ("prise_type_ef", "Domestique")):
+            if (r.get(col) or "").strip().lower() in ("true", "1", "oui", "vrai"):
+                plugs.add(lab)
+        s0 = st.get(key)
+        if not s0:
+            net = network_of(r.get("nom_enseigne"), r.get("nom_operateur"), r.get("nom_amenageur"))
+            if not net:
+                continue
+            s0 = st[key] = {
+                "lat": round(lat, 5), "lon": round(lon, 5), "net": net,
+                "name": (r.get("nom_station") or "")[:60], "brand": (r.get("nom_enseigne") or r.get("nom_operateur") or "")[:40],
+                "addr": (r.get("adresse_station") or "")[:90], "kw": 0, "pdc": 0, "plugs": set(),
+                "price": (r.get("tarification") or "").strip()[:140],
+                "free": (r.get("gratuit") or "").strip().lower() in ("true", "1", "oui", "vrai"),
+                "hours": (r.get("horaires") or "").strip()[:40], "access": (r.get("condition_acces") or "").strip()[:40],
+                "cb": (r.get("paiement_cb") or "").strip().lower() in ("true", "1", "oui", "vrai"),
+            }
+        s0["kw"] = max(s0["kw"], p)
+        s0["pdc"] += 1
+        s0["plugs"] |= plugs
+        if not s0["price"] and r.get("tarification"):
+            s0["price"] = r.get("tarification").strip()[:140]
+    # Tuiles de 1° × 1° pour ne charger que la zone affichée
+    tiles = {}
+    for s0 in st.values():
+        k = f"{int(s0['lat'] // 1)}_{int(s0['lon'] // 1)}"
+        tiles.setdefault(k, []).append([s0["lat"], s0["lon"], s0["net"], s0["name"], s0["brand"], s0["addr"], int(round(s0["kw"])), s0["pdc"],
+                                        ",".join(sorted(s0["plugs"])), s0["price"], 1 if s0["free"] else 0, s0["hours"], s0["access"], 1 if s0["cb"] else 0])
+    os.makedirs("data/irve", exist_ok=True)
+    for f in os.listdir("data/irve"):
+        os.remove(os.path.join("data/irve", f))
+    for k, items in tiles.items():
+        with open(f"data/irve/{k}.json", "w") as fh:
+            json.dump(items, fh, separators=(",", ":"), ensure_ascii=False)
+    nets = {}
+    for s0 in st.values():
+        nets[s0["net"]] = nets.get(s0["net"], 0) + 1
+    with open("data/irve/index.json", "w") as fh:
+        json.dump({"updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "stations": len(st), "tiles": sorted(tiles), "networks": nets}, fh, ensure_ascii=False)
+    print(f"IRVE : {len(st)} stations, {len(tiles)} tuiles, réseaux : {sorted(nets.items(), key=lambda x: -x[1])[:12]}")
+
+
 def main():
     os.makedirs("data", exist_ok=True)
     pts = build_points()
@@ -280,6 +373,10 @@ def main():
                 json.dump(ch, fh, separators=(",", ":"), ensure_ascii=False)
     except Exception as e:  # noqa: BLE001
         print(f"Bornes : échec ({e}), fichier précédent conservé")
+    try:
+        build_irve()
+    except Exception as e:  # noqa: BLE001
+        print(f"IRVE : échec ({e}), fichiers précédents conservés")
     print(f"OK : {pts['count']} points")
 
 
