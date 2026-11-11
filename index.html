@@ -1589,6 +1589,10 @@
         // barrière isolée en système ouvert : tarif fixe « Système Ouvert → barrière »
         var so = d.so && d.so[d.gates[seq[i + 1].g][0]], ps = so !== undefined ? price(so, seq[i + 1].g) : null;
         if (ps !== null) { total += ps; i++; continue; }
+        // gare sans aucun tarif vers la suite (échangeur voisin détecté par erreur) : on l'ignore si la suite se calcule
+        var laterHasPair = false;
+        for (var a1 = i + 1; a1 < seq.length - 1 && !laterHasPair; a1++) for (var b1 = a1 + 1; b1 < seq.length; b1++) if (price(seq[a1].g, seq[b1].g) !== null) { laterHasPair = true; break; }
+        if (laterHasPair) { i++; continue; }
         total += (seq[i + 1].at - seq[i].at) / 1000 * TOLL_EUR_KM; exact = false; i++;
       }
     });
@@ -1890,7 +1894,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794441046';
+  var BUILD = '1794441270';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {

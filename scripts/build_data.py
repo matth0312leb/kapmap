@@ -375,9 +375,11 @@ def lambert93_to_wgs84(x, y):
 def gare_key(name):
     """Nom de gare normalisé pour rapprocher les tarifs et les positions."""
     import re
-    s = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode().upper()
+    s = (name or "").replace("\ufffd", "e")   # lettre accentuée perdue dans certains fichiers (« Chamb?ry »)
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().upper()
     s = re.sub(r"[\-'’/().]", " ", s)
     s = re.sub(r"\bCH\b", "CHATEAU", s)
+    s = re.sub(r"\bFAL\b", "FALLAVIER", s)
     s = re.sub(r"\bS\b", "SUR", s)
     s = re.sub(r"\bSTE\b", "SAINTE", s)
     s = re.sub(r"\bST\b", "SAINT", s)
