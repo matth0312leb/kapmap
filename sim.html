@@ -58,6 +58,10 @@
   <div class="row" id="customRow" style="display:none"><input id="cw" type="number" value="1280"><input id="ch" type="number" value="760"><button id="applySize">OK</button></div>
   <div class="row"><button id="reload">Recharger Vigie</button><button id="resetApp">Effacer les données</button></div>
 
+  <h2>Voiture à l'arrêt</h2>
+  <div class="row"><button id="parkHome">Garé à Margencel</button><button id="parkWork">Garé à Vésenaz</button></div>
+  <p class="note" style="margin-top:8px">Ou clique n'importe où sur la carte pour y poser la voiture.</p>
+
   <h2>Trajet</h2>
   <div class="quick">
     <button data-from="46.2418,6.2063" data-to="46.3405,6.4180">Vésenaz → Margencel</button>
@@ -203,6 +207,9 @@
   }
   function stop(silent) { clearInterval(timer); timer = null; seg = 0; if (!silent) log('Simulation arrêtée.'); }
   $('stop').onclick = function () { stop(false); path = []; };
+  function park(lat, lon, name) { stop(true); path = []; send({ reset: true }); send({ lat: lat, lon: lon, speed: 0, heading: null }); log('Voiture garée à ' + name + '.'); }
+  $('parkHome').onclick = function () { park(46.3405, 6.4180, 'Margencel'); };
+  $('parkWork').onclick = function () { park(46.2418, 6.2063, 'Vésenaz'); };
   $('pause').onclick = function () { paused = !paused; this.textContent = paused ? 'Reprendre' : 'Pause'; };
   [].forEach.call(document.querySelectorAll('#speeds button'), function (b) {
     b.onclick = function () { mult = +b.getAttribute('data-x'); [].forEach.call(document.querySelectorAll('#speeds button'), function (x) { x.classList.toggle('sel', x === b); }); };

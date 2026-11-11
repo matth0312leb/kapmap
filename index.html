@@ -1030,7 +1030,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794421934';
+  var BUILD = '1794422355';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1239,6 +1239,17 @@
       if (watchId === null) { watchId = 'sim'; follow = true; }
       update(d.lat, d.lon, d.speed, d.heading, 4, false, null);
     });
+    // Clic sur la carte = la voiture est garée ici (sauf clic sur un Superchargeur, un lieu…)
+    map.on('click', function (e) {
+      var ids = ['sc-circle', 'poi-circle'].filter(function (id) { return map.getLayer(id); });
+      if (ids.length && map.queryRenderedFeatures(e.point, { layers: ids }).length) return;
+      if (e.originalEvent && e.originalEvent.target && e.originalEvent.target.closest && e.originalEvent.target.closest('.hz')) return;
+      last = null; heading = null; active = null;
+      if (watchId === null) watchId = 'sim';
+      follow = false;
+      update(e.lngLat.lat, e.lngLat.lng, 0, null, 4, false, null);
+      toast('Voiture placée ici');
+    });
   }
   $('btnStart').onclick = function () {
     unlockAudio();
@@ -1246,7 +1257,7 @@
     if (last) navTo(last.lat, last.lon, false);
     if (demoTimer) stopDemo();
     if (watchId !== null) return;
-    if (SIM) { setAlert('off', 'Simulation', 'Lance un trajet depuis le simulateur.'); return; }
+    if (SIM) { setAlert('off', 'Simulation', 'Touche la carte pour y placer la voiture, ou lance un trajet.'); toast('Simulation : touche la carte pour placer la voiture'); return; }
     if (!('geolocation' in navigator)) { setStatus('Géolocalisation indisponible', 'err'); return; }
     try { localStorage.setItem('vigie-autostart', '1'); } catch (e) {}
     keepAwake();
