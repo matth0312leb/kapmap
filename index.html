@@ -62,6 +62,23 @@
   .sc svg { width:16px; height:16px; }
   .poi { width:26px; height:26px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.5); font-weight:800; color:#fff; }
 
+  #alert.hazard { background:rgba(120,72,6,.95); box-shadow:0 0 0 3px var(--warn), 0 10px 40px rgba(245,165,36,.3); }
+  .tbtn.rep { background:var(--warn); color:#1a1205; }
+  #sheet { left:50%; bottom:24px; transform:translateX(-50%); padding:18px; width:min(640px, calc(100% - 32px)); display:none; z-index:600; }
+  #sheet.show { display:block; }
+  #sheet h3 { margin:0 0 4px; font-size:22px; }
+  #sheet p { margin:0 0 14px; color:var(--mut); font-size:14px; }
+  #sheet .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:10px; }
+  #sheet .grid button { font:inherit; font-size:16px; font-weight:600; color:var(--txt); background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:14px; padding:16px 10px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; }
+  #sheet .grid button:active { background:rgba(255,255,255,.12); }
+  #sheet .grid b { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff; }
+  #sheet .cancel { margin-top:12px; width:100%; font:inherit; font-size:16px; padding:14px; border-radius:12px; border:0; background:rgba(255,255,255,.08); color:var(--txt); cursor:pointer; }
+  .hz { width:34px; height:34px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.5); }
+  .votes { display:flex; gap:8px; margin-top:10px; }
+  .votes button { flex:1; font:inherit; font-size:14px; font-weight:600; padding:9px 10px; border-radius:10px; border:0; cursor:pointer; color:#fff; background:#2f3239; }
+  .votes button.yes { background:#166534; }
+  #toast { left:50%; top:110px; transform:translateX(-50%); padding:12px 18px; font-size:16px; display:none; z-index:700; }
+  #toast.show { display:block; }
   @media (max-width: 700px) {
     #alert { right:86px; padding:12px 14px; gap:12px; }
     #alertIcon { width:38px; height:38px; }
@@ -92,15 +109,25 @@
   <button class="tbtn" id="btnLayers" title="Calques"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
   <button class="tbtn" id="btnPoi" title="Autour de moi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button>
   <button class="tbtn on" id="btnSound" title="Son"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/></svg></button>
+  <button class="tbtn rep" id="btnReport" title="Signaler un danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg></button>
   <button class="tbtn" id="btnDemo" title="Démo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
 </div>
 
 <div id="layers" class="panel">
   <label><input type="checkbox" id="lyZones" checked><span class="sw" style="background:var(--err)"></span>Zones de danger</label>
   <label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--acc);border:2px solid #fff"></span>Superchargeurs Tesla</label>
+  <label><input type="checkbox" id="lyHz" checked><span class="sw" style="background:var(--warn)"></span>Dangers signalés</label>
   <label><input type="checkbox" id="lyPoi" checked><span class="sw" style="background:var(--blue)"></span>Lieux autour de moi</label>
   <div class="note">Zones visibles en France uniquement, sans position précise.<br>Lieux : touche la loupe pour charger ceux de la zone affichée.</div>
 </div>
+
+<div id="sheet" class="panel">
+  <h3>Signaler un danger</h3>
+  <p>Le signalement est placé à ta position actuelle. Pour la sécurité, laisse un passager le faire.</p>
+  <div class="grid" id="sheetGrid"></div>
+  <button class="cancel" id="sheetCancel">Annuler</button>
+</div>
+<div id="toast" class="panel"></div>
 
 <div id="speedBox" class="panel">
   <div><div id="speed">–</div><div id="speedUnit">km/h</div></div>
@@ -267,6 +294,76 @@
       .then(function () { btn.classList.remove('on'); });
   };
 
+  // ================= Signalements de dangers (tous pays) =================
+  var API = 'https://vigie-api.matth0312.workers.dev';
+  var HZ = {
+    accident: ['#dc2626', '!', 'Accident'], vehicule_arrete: ['#ea580c', 'V', 'Véhicule arrêté'], objet: ['#d97706', 'O', 'Objet sur la route'],
+    bouchon: ['#b91c1c', 'B', 'Bouchon'], travaux: ['#ca8a04', 'T', 'Travaux'], nid_de_poule: ['#78716c', 'N', 'Nid de poule'], meteo: ['#0284c7', 'M', 'Météo dangereuse']
+  };
+  var hzLayer = L.layerGroup().addTo(map), hazards = [], lastHzFetch = null;
+  function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove('show'); }, 3500); }
+  function ago(ms) { var m = Math.round(ms / 60000); return m < 1 ? 'à l\'instant' : m < 60 ? 'il y a ' + m + ' min' : 'il y a ' + Math.round(m / 60) + ' h'; }
+  function drawHazards(serverNow) {
+    hzLayer.clearLayers();
+    hazards.forEach(function (h) {
+      var def = HZ[h.type]; if (!def) return;
+      var icon = L.divIcon({ className: '', iconSize: [34, 34], iconAnchor: [17, 17], html: '<div class="hz" style="background:' + def[0] + '">' + def[1] + '</div>' });
+      L.marker([h.lat, h.lon], { icon: icon, zIndexOffset: 500 }).bindPopup(
+        '<b>' + def[2] + '</b><br><span class="m">Signalé ' + ago(serverNow - h.created_at) + (h.ok_votes ? ' · confirmé ' + h.ok_votes + ' fois' : '') + '</span>' +
+        '<div class="votes"><button class="yes" data-vote="' + h.id + '" data-gone="0">Toujours là</button><button data-vote="' + h.id + '" data-gone="1">Plus là</button></div>'
+      ).addTo(hzLayer);
+    });
+  }
+  function loadHazards(lat, lon, force) {
+    if (!force && lastHzFetch && Date.now() - lastHzFetch.t < 60000 && dist(lat, lon, lastHzFetch.lat, lastHzFetch.lon) < 3000) return;
+    lastHzFetch = { t: Date.now(), lat: lat, lon: lon };
+    fetch(API + '/reports?lat=' + lat.toFixed(4) + '&lon=' + lon.toFixed(4) + '&r=25').then(function (r) { return r.json(); })
+      .then(function (d) { hazards = d.reports || []; drawHazards(d.now || Date.now()); }).catch(function () {});
+  }
+  map.on('moveend', function () { var c = map.getCenter(); loadHazards(c.lat, c.lng, false); });
+  map.on('popupopen', function (e) {
+    var el = e.popup.getElement(); if (!el) return;
+    el.querySelectorAll('[data-vote]').forEach(function (b) {
+      b.onclick = function () {
+        fetch(API + '/reports/' + b.getAttribute('data-vote') + '/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gone: b.getAttribute('data-gone') === '1' }) })
+          .then(function () { toast('Merci pour ta confirmation'); map.closePopup(); var c = map.getCenter(); loadHazards(c.lat, c.lng, true); })
+          .catch(function () { toast('Envoi impossible, réessaie'); });
+      };
+    });
+  });
+  $('lyHz').onchange = function () { this.checked ? hzLayer.addTo(map) : map.removeLayer(hzLayer); };
+  Object.keys(HZ).forEach(function (k) {
+    var b = document.createElement('button');
+    b.innerHTML = '<b style="background:' + HZ[k][0] + '">' + HZ[k][1] + '</b>' + HZ[k][2];
+    b.onclick = function () { sendReport(k); };
+    $('sheetGrid').appendChild(b);
+  });
+  $('btnReport').onclick = function () { $('sheet').classList.toggle('show'); };
+  $('sheetCancel').onclick = function () { $('sheet').classList.remove('show'); };
+  function sendReport(type) {
+    $('sheet').classList.remove('show');
+    if (!last) { toast('Appuie d\'abord sur le bouton rouge pour activer le GPS'); return; }
+    fetch(API + '/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: last.lat, lon: last.lon, type: type }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) { toast(x.ok ? (x.d.merged ? 'Déjà signalé : ta confirmation est ajoutée' : 'Danger signalé, merci') : (x.d.error || 'Envoi impossible')); loadHazards(last.lat, last.lon, true); })
+      .catch(function () { toast('Serveur indisponible pour le moment'); });
+  }
+  function hazardAhead(lat, lon) {
+    if (heading === null || !$('lyHz').checked) return null;
+    var best = null;
+    hazards.forEach(function (h) {
+      if (!HZ[h.type]) return;
+      var d = dist(lat, lon, h.lat, h.lon);
+      if (d < 1500 && d > 15 && angleDiff(heading, bearing(lat, lon, h.lat, h.lon)) < 30 && (!best || d < best.d)) best = { h: h, d: d };
+    });
+    return best;
+  }
+  var lastHzAlertId = null;
+  function showHazard(hz) {
+    if (lastHzAlertId !== hz.h.id) { lastHzAlertId = hz.h.id; beep(1); }
+    setAlert('hazard', HZ[hz.h.type][2] + ' signalé', 'À ' + (hz.d >= 1000 ? (hz.d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(hz.d / 10) * 10 + ' m') + ' devant toi');
+  }
+
   // ================= Son =================
   var soundOn = true, actx = null;
   function unlockAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { actx = null; } }
@@ -317,11 +414,14 @@
     else if (dataReady && now - lastBorderCheck > 3000) { allowedCache = alertsAllowed(lat, lon); lastBorderCheck = now; }
     if (zonesAllowedNow !== allowedCache) { zonesAllowedNow = allowedCache; refreshZonesLayer(); }
 
+    if (!demo) loadHazards(lat, lon, false);
+    var hz = hazardAhead(lat, lon);
     var list = demoPoints || points;
     if (!demo && !dataReady) { setAlert('off', 'Chargement…', 'Préparation des zones de danger.'); return; }
     if (!allowedCache) {
       active = null; $('limit').className = ''; $('speed').className = '';
-      setAlert('off', 'Alertes désactivées', 'Hors de France ou trop près de la frontière : ce type d\'alerte y est interdit.');
+      if (hz) { showHazard(hz); return; }
+      setAlert('off', 'Dangers signalés uniquement', 'Hors de France ou près de la frontière : pas de zones de danger ici.');
       return;
     }
 
@@ -354,6 +454,7 @@
       }
     }
     $('limit').className = ''; $('speed').className = ''; $('zoneFill').style.width = '0';
+    if (hz) { showHazard(hz); return; }
     setAlert('', 'Route dégagée', heading === null ? 'Commence à rouler pour activer la détection.' : 'Aucune zone de danger devant toi.');
   }
 
