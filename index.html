@@ -305,7 +305,7 @@
   <div class="lyHead">Son</div>
   <label class="sw2">Annonces vocales<input type="checkbox" id="optVoice"></label>
   <div class="lyHead">Apparence</div>
-  <label class="sw2">Carte en couleurs (champs, forêts, eau)<input type="checkbox" id="optColors"></label>
+  <label class="sw2">Vue satellite<input type="checkbox" id="optSat"></label>
   <label class="sw2">Relief des montagnes<input type="checkbox" id="optRelief"></label>
   <div id="themeRow"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
 </div>
@@ -400,10 +400,26 @@
   // ================= Carte (vectorielle, 3D) =================
   // ---- Thème jour / nuit (selon le soleil à ta position) ----
   var STYLES = { light: 'https://tiles.openfreemap.org/styles/positron', dark: 'https://tiles.openfreemap.org/styles/dark', color: 'https://tiles.openfreemap.org/styles/liberty' };
-  // Carte en couleurs (champs, forêts, eau…) : style « liberty » le jour, nuit sombre teintée
+  // Vue satellite : photos aériennes IGN (France) et swisstopo (Suisse et alentours), données ouvertes, avec routes et noms par-dessus
+  var satOn = false;
+  try { satOn = localStorage.getItem('vigie-sat') === '1'; } catch (e) {}
   var colorsOn = false;
-  try { colorsOn = localStorage.getItem('vigie-colors') === '1'; } catch (e) {}
-  function styleUrl() { return theme === 'light' && colorsOn ? STYLES.color : STYLES[theme]; }
+  function styleUrl() { return satOn ? STYLES.color : STYLES[theme]; }
+  function addSatellite() {
+    if (!satOn || map.getLayer('sat-fr')) return;
+    try {
+      map.addSource('sat-ch', { type: 'raster', tileSize: 256, maxzoom: 19, attribution: '© swisstopo',
+        tiles: ['https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg'] });
+      map.addSource('sat-fr', { type: 'raster', tileSize: 256, maxzoom: 19, attribution: '© IGN',
+        tiles: ['https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/jpeg&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}'] });
+      // Les photos se placent sous les routes et les noms ; hors des zones couvertes, la carte normale reste visible dessous
+      var before;
+      map.getStyle().layers.some(function (l) { if (l['source-layer'] === 'transportation' || l['source-layer'] === 'building' || l.type === 'symbol') { before = l.id; return true; } return false; });
+      map.addLayer({ id: 'sat-ch', type: 'raster', source: 'sat-ch' }, before);
+      map.addLayer({ id: 'sat-fr', type: 'raster', source: 'sat-fr' }, before);
+      map.getStyle().layers.forEach(function (l) { if (l['source-layer'] === 'building') map.setLayoutProperty(l.id, 'visibility', 'none'); });
+    } catch (e) {}
+  }
   var themePref = 'auto';
   try { themePref = localStorage.getItem('vigie-theme') || 'auto'; } catch (e) {}
   function sunAltitude(lat, lon, date) {
@@ -433,13 +449,14 @@
   map.on('style.load', function () {
     mapReady = true;
     try {
-      if (map.getSource('openmaptiles') && !map.getLayer('vigie-3d')) {
+      if (map.getSource('openmaptiles') && !map.getLayer('vigie-3d') && !satOn) {
         map.addLayer({ id: 'vigie-3d', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building', minzoom: 14,
           paint: { 'fill-extrusion-color': theme === 'light' ? '#d9dce1' : '#2b303b', 'fill-extrusion-opacity': 0.85,
             'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0] } }, firstSymbolId());
       }
     } catch (e) {}
-    if (theme === 'dark') brightenNight();
+    if (theme === 'dark' && !satOn) brightenNight();
+    addSatellite();
     applyRelief();
     // Après un changement de style, on remet nos calques
     zonesBuilt = false; refreshZonesLayer();
@@ -501,6 +518,7 @@
     theme = t;
     document.body.classList.toggle('light', theme === 'light');
     drawCar();
+    if (satOn) return;   // en satellite, la carte ne change pas entre jour et nuit
     mapReady = false;
     map.setStyle(styleUrl());
   }
@@ -517,10 +535,10 @@
     };
   });
   refreshThemeButtons();
-  $('optColors').checked = colorsOn;
-  $('optColors').onchange = function () {
-    colorsOn = this.checked;
-    try { localStorage.setItem('vigie-colors', colorsOn ? '1' : '0'); } catch (e) {}
+  $('optSat').checked = satOn;
+  $('optSat').onchange = function () {
+    satOn = this.checked;
+    try { localStorage.setItem('vigie-sat', satOn ? '1' : '0'); } catch (e) {}
     mapReady = false; map.setStyle(styleUrl(), { diff: false });   // rechargement complet, même si l'adresse du style ne change pas (nuit)
   };
   $('optRelief').checked = reliefOn;
@@ -1666,7 +1684,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794432339';
+  var BUILD = '1794432498';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
