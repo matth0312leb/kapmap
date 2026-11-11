@@ -150,7 +150,7 @@
   .dot { width:10px; height:10px; border-radius:50%; background:var(--mut); flex:none; }
   .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); } .dot.err { background:var(--err); }
 
-  .car { width:52px; height:52px; }
+  .car { width:64px; height:64px; display:flex; align-items:center; justify-content:center; }
   .car svg { width:52px; height:52px; filter:drop-shadow(0 3px 8px rgba(0,0,0,.6)); }
   .sc { width:30px; height:30px; border-radius:50%; background:var(--acc); border:2px solid #fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.5); }
   .sc svg { width:16px; height:16px; }
@@ -237,10 +237,8 @@
   <button class="tbtn go" id="btnStart" title="Démarrer / recentrer"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg></button>
   <button class="tbtn" id="btnAccount" title="Mon compte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
   <button class="tbtn" id="btnLayers" title="Calques"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
-  <button class="tbtn" id="btnPoi" title="Autour de moi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button>
   <button class="tbtn on" id="btnSound" title="Son"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/></svg></button>
   <button class="tbtn rep" id="btnReport" title="Signaler un danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg></button>
-  <button class="tbtn" id="btnDemo" title="Démo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
 </div>
 
 <div id="layers" class="panel">
@@ -248,11 +246,11 @@
   <label><input type="checkbox" id="lyZones" checked><span class="sw" style="background:var(--err)"></span>Zones de danger</label>
   <label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--txt);border:2px solid var(--mut)"></span>Superchargeurs Tesla</label>
   <label><input type="checkbox" id="lyHz" checked><span class="sw" style="background:var(--txt)"></span>Dangers signalés</label>
-  <label><input type="checkbox" id="lyPoi" checked><span class="sw" style="background:var(--mut)"></span>Lieux autour de moi</label>
+  <label><input type="checkbox" id="lyPoi"><span class="sw" style="background:var(--mut)"></span>Lieux autour de moi</label>
   <label><input type="checkbox" id="optVoice"><span class="sw" style="background:var(--mut)"></span>Voix (annonces parlées)</label>
   <div class="note" style="padding-top:10px">Apparence de la carte</div>
   <div id="themeRow"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
-  <div class="note">Zones visibles en France uniquement, sans position précise.<br>Lieux : touche la loupe pour charger ceux de la zone affichée.</div>
+  <div class="note">Zones visibles en France uniquement, sans position précise.<br>Lieux : visibles en zoomant sur la carte.</div>
 </div>
 
 <div id="nav" class="panel"><div id="navIcon"></div><div style="min-width:0"><div id="navDist"></div><div id="navText"></div></div></div>
@@ -424,7 +422,7 @@
   }
   function drawCar() {
     var l = theme === 'light';
-    if (myCar) { carEl.innerHTML = carSvg(myCar, 52); return; }
+    if (myCar) { carEl.innerHTML = carSvg(myCar, 64); return; }
     carEl.innerHTML = '<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="' + (l ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.12)') + '"/><path d="M26 8l12 33-12-7-12 7z" fill="' + (l ? '#111' : '#fff') + '" stroke="' + (l ? '#fff' : '#111') + '" stroke-width="3" stroke-linejoin="round"/></svg>';
   }
   drawCar();
@@ -585,7 +583,7 @@
   }
   $('lyZones').onchange = refreshZonesLayer;
   $('lySc').onchange = function () { setVis(['sc-circle', 'sc-label'], this.checked); };
-  $('lyPoi').onchange = function () { setVis(['poi-circle', 'poi-label'], this.checked); };
+  $('lyPoi').onchange = function () { setVis(['poi-circle', 'poi-label'], this.checked); if (this.checked) { poiLastKey = ''; if (map.getZoom() < 14) toast('Zoome sur la carte pour voir les lieux'); autoPoi(); } };
   $('btnLayers').onclick = function () { $('layers').classList.toggle('show'); this.classList.toggle('on'); };
 
   var POI = {
@@ -609,9 +607,20 @@
     }
     setVis(['poi-circle', 'poi-label'], $('lyPoi').checked);
   }
-  $('btnPoi').onclick = function () {
-    var btn = this;
-    if (map.getZoom() < 13) map.jumpTo({ zoom: 14 });
+  // Chargement automatique des lieux de la zone affichée (case « Lieux autour de moi »)
+  var poiTimer = null, poiLastKey = '';
+  function autoPoi() {
+    clearTimeout(poiTimer);
+    if (!$('lyPoi').checked || map.getZoom() < 14) return;
+    poiTimer = setTimeout(function () {
+      var c = map.getCenter(), key = c.lat.toFixed(2) + ',' + c.lng.toFixed(2);
+      if (key === poiLastKey) return;
+      poiLastKey = key; loadPoi();
+    }, 1200);
+  }
+  map.on('moveend', autoPoi);
+  function loadPoi() {
+    var btn = { classList: { add: function () {}, remove: function () {} } };
     var b = map.getBounds(), bbox = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].map(function (v) { return v.toFixed(4); }).join(',');
     var q = '[out:json][timeout:20];(node["amenity"~"^(restaurant|fast_food|cafe|toilets|fuel|charging_station)$"](' + bbox + ');node["shop"="supermarket"](' + bbox + '););out body 300;';
     btn.classList.add('on'); setStatus('Recherche des lieux…', 'warn');
@@ -1063,7 +1072,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794422729';
+  var BUILD = '1794422822';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1340,27 +1349,8 @@
     if (dest && dest.lat) setTimeout(function () { startNav(dest, true); }, 2500);
   }, 800);
 
-  // ================= Démo =================
-  var demoTimer = null;
-  function resetDrive() { last = null; heading = null; active = null; }
-  function stopDemo() {
-    if (!demoTimer) return; clearInterval(demoTimer); demoTimer = null; $('btnDemo').classList.remove('on'); resetDrive();
-    zonesAllowedNow = false; allowedCache = false; refreshZonesLayer();
-    setAlert('off', 'Démo terminée', 'Appuie sur le bouton rouge pour utiliser ton GPS.');
-  }
-  $('btnDemo').onclick = function () {
-    unlockAudio();
-    if (demoTimer) { stopDemo(); return; }
-    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-    resetDrive(); follow = true; $('btnStart').classList.add('go'); this.classList.add('on');
-    var lat0 = 46.3205, lon0 = 6.4050, kmh = 90, step = 0;
-    var target = [[lat0 + 1.6 / 111, lon0, 80, 'demo']];
-    demoTimer = setInterval(function () {
-      step++;
-      update(lat0 + (kmh / 3.6) * step / 111000, lon0, kmh / 3.6, 0, 3, true, target);
-      if (step > 110) stopDemo();
-    }, 1000);
-  };
+  var demoTimer = null;   // (mode démo retiré : utiliser le simulateur sim.html)
+  function stopDemo() {}
 })();
 </script>
 </body>
