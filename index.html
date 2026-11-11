@@ -153,6 +153,7 @@
 
   .car { width:64px; height:64px; display:flex; align-items:center; justify-content:center; }
   .car svg { width:52px; height:52px; filter:drop-shadow(0 3px 8px rgba(0,0,0,.6)); }
+  .car svg.carimg { width:29px; height:58px; filter:none; }
   .sc { width:30px; height:30px; border-radius:50%; background:var(--acc); border:2px solid #fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.5); }
   .sc svg { width:16px; height:16px; }
   .poi { width:26px; height:26px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.5); font-weight:800; color:#fff; }
@@ -235,7 +236,10 @@
   #limit.over { animation:pulse 1s infinite; }
   .lyHead2 { font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--mut); margin:18px 0 8px; }
   .pGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-  .pGrid a { display:flex; align-items:center; justify-content:center; height:56px; border-radius:12px; background:rgba(127,127,127,.12); color:var(--txt); text-decoration:none; font-weight:600; font-size:15px; }
+  .pGrid a { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:84px; border-radius:14px; background:rgba(127,127,127,.12); color:var(--txt); text-decoration:none; font-weight:600; font-size:13px; }
+  .pGrid a .ico { width:40px; height:40px; border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff; }
+  .pGrid a .ico img { width:100%; height:100%; object-fit:cover; display:block; }
+  .pGrid a .ico.noimg { background:rgba(127,127,127,.25); font-size:18px; font-weight:700; }
   #pause.locked .pGrid a, #pause.locked #pNews a, #pause.locked #pQuiz button { pointer-events:none; opacity:.35; }
   #pNews a { display:block; color:var(--txt); text-decoration:none; padding:7px 0; border-bottom:1px solid var(--line); font-size:14px; }
   #pQuiz .q { font-size:15px; font-weight:600; margin-bottom:8px; }
@@ -499,21 +503,56 @@
   var CAR_COLORS = [['#f2f2f2', 'Blanc'], ['#111111', 'Noir'], ['#6b6e73', 'Gris'], ['#b8bcc2', 'Argent'], ['#1f4fa3', 'Bleu'], ['#b3121f', 'Rouge']];
   var myCar = null;
   try { myCar = JSON.parse(localStorage.getItem('vigie-car') || 'null'); } catch (e) {}
+  var carUid = 0;
+  function shade(hex, amt) { // amt > 0 éclaircit, < 0 assombrit
+    var n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, bl = n & 255, t = amt < 0 ? 0 : 255, k = Math.abs(amt);
+    function m(v) { return Math.round(v + (t - v) * k); }
+    return 'rgb(' + m(r) + ',' + m(g) + ',' + m(bl) + ')';
+  }
+  // Voiture vue de dessus, ombrée pour donner du volume ; posée à plat sur la carte, elle suit l'inclinaison 3D
   function carSvg(car, size) {
-    var c = car.color, suv = car.model === 'Y' || car.model === 'X';
-    var line = (c === '#111111' || c === '#1f4fa3' || c === '#b3121f' || c === '#6b6e73') ? '#ffffff' : '#111111';
-    var w = suv ? 22 : 20, x = 26 - w / 2;
-    return '<svg viewBox="0 0 52 52" width="' + size + '" height="' + size + '">' +
-      '<ellipse cx="26" cy="27" rx="14" ry="22" fill="rgba(0,0,0,.25)"/>' +
-      '<rect x="' + x + '" y="5" width="' + w + '" height="42" rx="' + (suv ? 7 : 9) + '" fill="' + c + '" stroke="' + line + '" stroke-width="1.6"/>' +
-      '<path d="M' + (x + 3) + ' ' + (suv ? 15 : 16) + 'q' + (w / 2 - 3) + ' -5 ' + (w - 6) + ' 0l-1.5 7h-' + (w - 9) + 'z" fill="' + line + '" opacity=".75"/>' +
-      '<rect x="' + (x + 3.5) + '" y="' + (suv ? 24 : 25) + '" width="' + (w - 7) + '" height="' + (suv ? 13 : 10) + '" rx="3" fill="' + line + '" opacity=".35"/>' +
-      '<path d="M' + (x + 4) + ' 41h' + (w - 8) + 'l-1 3h-' + (w - 10) + 'z" fill="' + line + '" opacity=".6"/>' +
+    var c = car.color, id = 'cv' + (++carUid), dark = ['#111111', '#1f4fa3', '#b3121f', '#6b6e73'].indexOf(c) >= 0;
+    var D = { '3': [14.5, 70, 22, 54, 0], 'S': [15, 76, 23, 57, 0], 'Y': [16, 71, 19, 60, 1], 'X': [17, 75, 19, 63, 1] }[car.model] || [14.5, 70, 22, 54, 0];
+    var hw = D[0], L = D[1], y0 = (80 - L) / 2, gs = y0 + D[2] - 8, ge = y0 + D[3] - 8, hatch = D[4], cx = 20, gw = hw * 0.8;
+    function f(v) { return Math.round(v * 100) / 100; }
+    function P(pts) { return pts.map(function (q) { return typeof q === 'string' ? q : f(q); }).join(' '); }
+    var body = P(['M', cx - hw * .78, y0 + 5, 'C', cx - hw * .45, y0 - .6, cx + hw * .45, y0 - .6, cx + hw * .78, y0 + 5,
+      'C', cx + hw, y0 + 9, cx + hw, y0 + 14, cx + hw, y0 + 18, 'L', cx + hw * .94, y0 + L * .52, 'L', cx + hw, y0 + L - 18,
+      'C', cx + hw, y0 + L - 8, cx + hw * .9, y0 + L - 2, cx + hw * .7, y0 + L - .8,
+      'C', cx + hw * .4, y0 + L + .3, cx - hw * .4, y0 + L + .3, cx - hw * .7, y0 + L - .8,
+      'C', cx - hw * .9, y0 + L - 2, cx - hw, y0 + L - 8, cx - hw, y0 + L - 18, 'L', cx - hw * .94, y0 + L * .52, 'L', cx - hw, y0 + 18,
+      'C', cx - hw, y0 + 14, cx - hw, y0 + 9, cx - hw * .78, y0 + 5, 'Z']);
+    var rr = hatch ? 3 : 6;
+    var glass = P(['M', cx - gw * .82, gs, 'C', cx - gw * .35, gs - 3, cx + gw * .35, gs - 3, cx + gw * .82, gs,
+      'L', cx + gw, gs + 9, 'L', cx + gw * .97, ge - rr, 'C', cx + gw * .9, ge, cx + gw * .5, ge + .8, cx, ge + .8,
+      'C', cx - gw * .5, ge + .8, cx - gw * .9, ge, cx - gw * .97, ge - rr, 'L', cx - gw, gs + 9, 'Z']);
+    var wheel = function (y) { return '<rect x="' + f(cx - hw - .9) + '" y="' + f(y) + '" width="' + f(2 * hw + 1.8) + '" height="10" rx="2.5" fill="#0a0a0a"/>'; };
+    var lights = '<path d="' + P(['M', cx - hw * .82, y0 + 6.2, 'Q', cx - hw * .6, y0 + 2.6, cx - hw * .28, y0 + 2.4]) + ' M' + P([cx + hw * .82, y0 + 6.2, 'Q', cx + hw * .6, y0 + 2.6, cx + hw * .28, y0 + 2.4]) + '" stroke="#fff" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".9"/>' +
+      '<path d="' + (hatch ? P(['M', cx - hw * .8, y0 + L - 2.3, 'Q', cx, y0 + L + .2, cx + hw * .8, y0 + L - 2.3])
+        : P(['M', cx - hw * .85, y0 + L - 3, 'L', cx - hw * .45, y0 + L - 1.2]) + ' M' + P([cx + hw * .85, y0 + L - 3, 'L', cx + hw * .45, y0 + L - 1.2])) +
+      '" stroke="#e31937" stroke-width="1.2" stroke-linecap="round" fill="none"/>';
+    var h = Math.round(size), w = Math.round(size / 2);
+    return '<svg class="carimg" viewBox="0 0 40 80" width="' + w + '" height="' + h + '">' +
+      '<defs>' +
+      '<linearGradient id="' + id + 'b" x1="0" x2="1"><stop offset="0" stop-color="' + shade(c, -.45) + '"/><stop offset=".17" stop-color="' + c + '"/><stop offset=".5" stop-color="' + shade(c, dark ? .22 : .5) + '"/><stop offset=".83" stop-color="' + c + '"/><stop offset="1" stop-color="' + shade(c, -.45) + '"/></linearGradient>' +
+      '<radialGradient id="' + id + 'h" cx=".5" cy=".12" r=".55"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+      '<linearGradient id="' + id + 'g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b424b"/><stop offset=".35" stop-color="#14171b"/><stop offset=".8" stop-color="#0b0d10"/><stop offset="1" stop-color="#262b31"/></linearGradient>' +
+      '<filter id="' + id + 's" x="-50%" y="-20%" width="200%" height="140%"><feGaussianBlur stdDeviation="2.2"/></filter>' +
+      '</defs>' +
+      '<ellipse cx="20" cy="42" rx="' + f(hw + 2.5) + '" ry="' + f(L / 2 + 1) + '" fill="#000" opacity=".45" filter="url(#' + id + 's)"/>' +
+      wheel(y0 + 11) + wheel(y0 + L - 22) +
+      '<path d="' + body + '" fill="url(#' + id + 'b)" stroke="' + (dark ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.35)') + '" stroke-width=".6"/>' +
+      '<path d="' + body + '" fill="url(#' + id + 'h)"/>' +
+      '<ellipse cx="' + f(cx - hw - 1.3) + '" cy="' + f(gs + 2.5) + '" rx="2" ry="1.1" fill="' + shade(c, -.25) + '"/>' +
+      '<ellipse cx="' + f(cx + hw + 1.3) + '" cy="' + f(gs + 2.5) + '" rx="2" ry="1.1" fill="' + shade(c, -.25) + '"/>' +
+      '<path d="' + glass + '" fill="url(#' + id + 'g)"/>' +
+      '<path d="' + P(['M', cx - gw * .55, gs + 3, 'L', cx - gw * .2, gs + 1.4, 'L', cx - gw * .55, ge - 4, 'L', cx - gw * .75, ge - 5, 'Z']) + '" fill="#fff" opacity=".1"/>' +
+      lights +
       '</svg>';
   }
   function drawCar() {
     var l = theme === 'light';
-    if (myCar) { carEl.innerHTML = carSvg(myCar, 64); return; }
+    if (myCar) { carEl.innerHTML = carSvg(myCar, 58); return; }
     carEl.innerHTML = '<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="' + (l ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.12)') + '"/><path d="M26 8l12 33-12-7-12 7z" fill="' + (l ? '#111' : '#fff') + '" stroke="' + (l ? '#fff' : '#111') + '" stroke-width="3" stroke-linejoin="round"/></svg>';
   }
   drawCar();
@@ -1514,7 +1553,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794426822';
+  var BUILD = '1794427190';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1594,7 +1633,7 @@
       function refreshPick() {
         [].forEach.call($('pickModel').children, function (b) { b.classList.toggle('sel', b.getAttribute('data-m') === car.model); });
         [].forEach.call($('pickColor').children, function (b) { b.classList.toggle('sel', b.getAttribute('data-c') === car.color); });
-        $('carPreview').innerHTML = carSvg(car, 90);
+        $('carPreview').innerHTML = carSvg(car, 110);
       }
       function saveCar() {
         myCar = { model: car.model, color: car.color }; drawCar(); refreshPick();
@@ -1709,7 +1748,14 @@
   // ================= Mode pause (contenus utilisables seulement à l'arrêt complet) =================
   var LINKS = [['YouTube', 'https://www.youtube.com'], ['Twitch', 'https://www.twitch.tv'], ['Prime Video', 'https://www.primevideo.com'], ['Netflix', 'https://www.netflix.com'],
     ['Disney+', 'https://www.disneyplus.com'], ['myCANAL', 'https://www.canalplus.com'], ['Spotify', 'https://open.spotify.com'], ['Deezer', 'https://www.deezer.com']];
-  $('pLinks').innerHTML = LINKS.map(function (l) { return '<a href="' + l[1] + '" target="_blank" rel="noopener">' + l[0] + '</a>'; }).join('');
+  // Icône officielle de chaque service, chargée depuis le service d'icônes de Google (lettre de secours si indisponible)
+  $('pLinks').innerHTML = LINKS.map(function (l) {
+    var host = l[1].replace(/^https:\/\//, '');
+    return '<a href="' + l[1] + '" target="_blank" rel="noopener"><span class="ico"><img alt="" loading="lazy" src="https://www.google.com/s2/favicons?sz=128&domain=' + host + '"></span>' + l[0] + '</a>';
+  }).join('');
+  Array.prototype.forEach.call($('pLinks').querySelectorAll('img'), function (im) {
+    im.onerror = function () { var sp = im.parentNode; sp.className = 'ico noimg'; sp.textContent = sp.parentNode.textContent.trim().charAt(0); };
+  });
   var QUIZ = [
     ['Sur autoroute par temps de pluie en France, la vitesse maximale autorisée est de :', ['110 km/h', '130 km/h', '100 km/h'], 0],
     ['Pour une jeune conductrice ou un jeune conducteur en permis probatoire, la limite sur autoroute est de :', ['110 km/h', '120 km/h', '130 km/h'], 0],
