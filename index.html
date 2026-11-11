@@ -306,7 +306,6 @@
   <label class="sw2">Annonces vocales<input type="checkbox" id="optVoice"></label>
   <div class="lyHead">Apparence</div>
   <label class="sw2">Vue satellite<input type="checkbox" id="optSat"></label>
-  <label class="sw2">Relief des montagnes<input type="checkbox" id="optRelief"></label>
   <div id="themeRow"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
 </div>
 </div>
@@ -476,8 +475,7 @@
     pending.splice(0).forEach(function (f) { f(); });
   });
   // Relief : ombrage des montagnes + terrain 3D (données d'altitude ouvertes Mapzen / AWS Terrain Tiles)
-  var reliefOn = false;
-  try { reliefOn = localStorage.getItem('vigie-relief') === '1'; } catch (e) {}
+  var reliefOn = true;   // relief des montagnes toujours affiché
   var DEM = { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256, maxzoom: 14,
     attribution: 'Relief : Mapzen, AWS Terrain Tiles' };
   function applyRelief() {
@@ -545,12 +543,6 @@
     satOn = this.checked;
     try { localStorage.setItem('vigie-sat', satOn ? '1' : '0'); } catch (e) {}
     mapReady = false; map.setStyle(styleUrl(), { diff: false });   // rechargement complet, même si l'adresse du style ne change pas (nuit)
-  };
-  $('optRelief').checked = reliefOn;
-  $('optRelief').onchange = function () {
-    reliefOn = this.checked;
-    try { localStorage.setItem('vigie-relief', reliefOn ? '1' : '0'); } catch (e) {}
-    whenReady(applyRelief);
   };
   setInterval(function () { var c = last ? { lat: last.lat, lng: last.lon } : map.getCenter(); applyTheme(c.lat, c.lng); }, 60000);
 
@@ -1689,7 +1681,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794432599';
+  var BUILD = '1794432647';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
