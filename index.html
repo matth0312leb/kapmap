@@ -422,7 +422,17 @@
   setInterval(function () { var c = last ? { lat: last.lat, lng: last.lon } : map.getCenter(); applyTheme(c.lat, c.lng); }, 60000);
 
   var follow = true, lastSpeed = 0;
-  map.on('dragstart', function () { follow = false; $('btnStart').classList.remove('go'); });
+  // Quand on déplace la carte à la main, on arrête de suivre la voiture…
+  var lastUserMove = 0;
+  function userMoved(e) { if (e && e.originalEvent) { follow = false; lastUserMove = Date.now(); $('btnStart').classList.remove('go'); } }
+  map.on('dragstart', userMoved); map.on('zoomstart', userMoved); map.on('rotatestart', userMoved); map.on('pitchstart', userMoved);
+  // … et on y revient tout seul après 12 s sans toucher la carte, si la voiture roule
+  function autoRecenter(speedKmh) {
+    if (follow || !lastUserMove || (speedKmh || 0) < 8) return;
+    if (Date.now() - lastUserMove < 12000 || document.querySelector('.maplibregl-popup')) return;
+    if ($('layers').classList.contains('show') || $('account').classList.contains('show')) return;
+    follow = true; $('btnStart').classList.add('go');
+  }
   function navTo(lat, lon, instant) {
     var h = map.getContainer().clientHeight;
     var kmh = lastSpeed || 0;
@@ -1276,7 +1286,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794424503';
+  var BUILD = '1794425004';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1484,6 +1494,7 @@
     if (!carMarker) carMarker = new maplibregl.Marker({ element: carEl, rotationAlignment: 'map', pitchAlignment: 'map' }).setLngLat([lon, lat]).addTo(map);
     else carMarker.setLngLat([lon, lat]);
     if (heading !== null) carMarker.setRotation(heading);
+    autoRecenter(speed);
     if (follow) navTo(lat, lon, false);
     setStatus(demo ? 'Mode démo' : 'GPS actif · précision ' + Math.round(accuracy) + ' m', demo ? 'warn' : (accuracy <= 25 ? 'ok' : 'warn'));
 
