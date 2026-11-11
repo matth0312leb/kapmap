@@ -359,6 +359,16 @@ export default {
         return json(Object.assign(JSON.parse(row.data), { updated: row.updated }));
       }
 
+      // ----- Titres de l'actualité (flux RSS public, titres + liens uniquement) -----
+      if (request.method === 'GET' && url.pathname === '/news') {
+        const r = await fetch('https://www.francetvinfo.fr/titres.rss', { cf: { cacheTtl: 900, cacheEverything: true } });
+        if (!r.ok) return json({ items: [] });
+        const xml = await r.text();
+        const items = [...xml.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>[\s\S]*?<link>([\s\S]*?)<\/link>/g)]
+          .slice(0, 8).map(m => ({ title: m[1].replace(/&amp;/g, '&').replace(/&#039;|&apos;/g, "'").replace(/&quot;/g, '"').trim().slice(0, 140), link: m[2].trim() }));
+        return new Response(JSON.stringify({ source: 'franceinfo', items }), { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=900', ...cors } });
+      }
+
       // Trafic sur un trajet : durée réelle + tronçons ralentis
       if (request.method === 'GET' && url.pathname === '/route-traffic') {
         if (!env.TOMTOM_KEY) return json({ error: 'Clé trafic absente' }, 503);

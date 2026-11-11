@@ -227,6 +227,21 @@
   #layers label.chip input { display:none; }
   #layers label.chip:has(input:checked) { background:var(--txt); color:var(--inv); border-color:var(--txt); }
   #themeRow { padding:0 !important; }
+  #navLanes { display:none; gap:6px; margin-top:8px; padding:5px 8px; background:rgba(127,127,127,.18); border-radius:8px; width:max-content; }
+  label.chip2 { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:7px 10px; border-radius:999px; border:1px solid var(--line); cursor:pointer; }
+  label.chip2 input { accent-color:var(--acc); }
+  #rtCancel { font:inherit; font-size:13px; border:0; background:transparent; color:var(--mut); cursor:pointer; }
+  #limit.always { display:flex; }
+  #limit.over { animation:pulse 1s infinite; }
+  .lyHead2 { font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--mut); margin:18px 0 8px; }
+  .pGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .pGrid a { display:flex; align-items:center; justify-content:center; height:56px; border-radius:12px; background:rgba(127,127,127,.12); color:var(--txt); text-decoration:none; font-weight:600; font-size:15px; }
+  #pause.locked .pGrid a, #pause.locked #pNews a, #pause.locked #pQuiz button { pointer-events:none; opacity:.35; }
+  #pNews a { display:block; color:var(--txt); text-decoration:none; padding:7px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  #pQuiz .q { font-size:15px; font-weight:600; margin-bottom:8px; }
+  #pQuiz button { display:block; width:100%; text-align:left; font:inherit; font-size:14px; padding:10px 12px; margin-top:6px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
+  #pQuiz button.good { background:#166534; color:#fff; border-color:#166534; } #pQuiz button.bad { background:var(--acc); color:#fff; border-color:var(--acc); }
+  @media (max-width: 600px) { .pGrid { grid-template-columns:repeat(2,1fr); } }
   @media (max-width: 700px) { #layers { max-height:calc(100vh - 32px); left:16px; right:80px; min-width:0; } }
   @media (max-width: 700px) {
     #alert { right:86px; padding:12px 14px; gap:12px; }
@@ -261,6 +276,7 @@
   <button class="tbtn" id="btnAccount" title="Mon compte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
   <button class="tbtn" id="btnLayers" title="Calques"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
   <button class="tbtn on" id="btnSound" title="Son"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/></svg></button>
+  <button class="tbtn" id="btnPause" title="Pause"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h11v5a5 5 0 01-5 5h-1a5 5 0 01-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 010 5H16M8 3v3M11 3v3"/></svg></button>
   <button class="tbtn rep" id="btnReport" title="Signaler un danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg></button>
 </div>
 
@@ -279,7 +295,7 @@
 </div>
 </div>
 
-<div id="nav" class="panel"><div id="navIcon"></div><div style="min-width:0"><div id="navDist"></div><div id="navText"></div></div></div>
+<div id="nav" class="panel"><div id="navIcon"></div><div style="min-width:0"><div id="navDist"></div><div id="navText"></div><div id="navLanes"></div></div></div>
 
 <div id="bottom" class="panel">
   <div id="searchRow">
@@ -291,7 +307,7 @@
     <button id="goWork"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>Travail <small id="workLbl"></small></button>
   </div>
   <div id="results"></div>
-  <div id="trip"><div id="tripEta"></div><div id="tripInfo"></div><button id="stopNav">Arrêter</button></div>
+  <div id="trip"><div id="tripEta"></div><div id="tripInfo"></div><button id="shareTrip" style="background:rgba(127,127,127,.18);color:var(--txt)">Partager</button><button id="stopNav">Arrêter</button></div>
 </div>
 
 <div id="welcome" class="overlay"><div class="card">
@@ -305,6 +321,42 @@
 </div></div>
 
 <div id="account" class="overlay"><div class="card" id="accountCard"></div></div>
+
+<div id="locGate" class="overlay"><div class="card">
+  <h2>Avant de prendre la route</h2>
+  <p class="lead">KapMap a besoin de ta position pour te guider, connaître ta vitesse et t'alerter des dangers.</p>
+  <div class="feat" style="grid-template-columns:1fr">
+    <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Garde les yeux sur la route</b><span>Prépare ton trajet avant de partir. En roulant, ne manipule pas l'écran : laisse un passager le faire.</span></p></div>
+    <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Les alertes sont des aides</b><span>Respecte toujours la signalisation et les limitations, même sans alerte.</span></p></div>
+    <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M8 20h8"/></svg><p style="margin:0"><b>Divertissement à l'arrêt uniquement</b><span>Vidéos et jeux ne s'ouvrent que lorsque la voiture est immobile.</span></p></div>
+  </div>
+  <button class="btn pri" id="locAllow">Autoriser ma position et continuer</button>
+  <div class="err" id="locErr"></div>
+</div></div>
+
+<div id="pause" class="overlay"><div class="card" style="width:min(760px,100%)">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div><h2 id="pClock">--:--</h2><p class="lead" id="pDate" style="margin:2px 0 0"></p></div>
+    <div style="text-align:right"><div id="pWeather" style="font-size:22px;font-weight:700"></div><div class="m" id="pWeatherTxt" style="color:var(--mut);font-size:13px"></div></div>
+  </div>
+  <div id="pLock" class="small" style="margin:12px 0 0;padding:10px 12px;border-radius:10px;background:rgba(227,25,55,.12);color:var(--txt);display:none">En mouvement : les contenus s'activeront à l'arrêt complet.</div>
+  <div class="lyHead2">Regarder / écouter</div>
+  <div id="pLinks" class="pGrid"></div>
+  <div class="lyHead2">Actualités</div>
+  <div id="pNews" class="small" style="margin-top:0">Chargement…</div>
+  <div class="lyHead2">Quiz de la route</div>
+  <div id="pQuiz"></div>
+  <button class="btn sec" id="pClose" style="margin-top:16px">Reprendre la route</button>
+</div></div>
+
+<div id="shareBox" class="overlay"><div class="card">
+  <h2>Partager mon trajet</h2>
+  <p class="lead">Tes proches suivent ton arrivée en direct. Le lien expire à ton arrivée.</p>
+  <div class="field"><input id="shareLink" readonly></div>
+  <button class="btn pri" id="shareCopy">Copier le lien</button>
+  <button class="btn link" id="shareStop">Arrêter le partage</button>
+  <button class="btn sec" id="shareClose">Fermer</button>
+</div></div>
 
 <div id="sheet" class="panel">
   <h3>Signaler un danger</h3>
@@ -375,6 +427,7 @@
     if (irveIndex) addIrveLayers();
     if (poiFC) addPoiLayers();
     if (routeGeo) addRouteLayers();
+    if (altGeo) addAltLayers();
     if (rtGeo) addRouteTrafficLayer();
     addTrafficLayer();
     pending.splice(0).forEach(function (f) { f(); });
@@ -853,7 +906,7 @@
   var API = 'https://test-gps-tesla1.matth0312.workers.dev';
   var HZ = {
     accident: ['#111111', '!', 'Accident'], vehicule_arrete: ['#111111', 'V', 'Véhicule arrêté'], objet: ['#111111', 'O', 'Objet sur la route'],
-    bouchon: ['#111111', 'B', 'Bouchon'], travaux: ['#111111', 'T', 'Travaux'], nid_de_poule: ['#111111', 'N', 'Nid de poule'], meteo: ['#111111', 'M', 'Météo dangereuse']
+    zone_danger: ['#e31937', '!', 'Zone de danger'], bouchon: ['#111111', 'B', 'Bouchon'], travaux: ['#111111', 'T', 'Travaux'], nid_de_poule: ['#111111', 'N', 'Nid de poule'], meteo: ['#111111', 'M', 'Météo dangereuse']
   };
   // Pictogrammes KapMap (dessins originaux, blancs sur pastille colorée)
   var HZ_SVG = {
@@ -884,6 +937,7 @@
     hzMarkers.forEach(function (m) { m.remove(); }); hzMarkers = [];
     hazards.forEach(function (h) {
       var def = HZ[h.type]; if (!def) return;
+      if (h.type === 'zone_danger') return;   // dessinée en cercle flou, voir drawCommunityZones
       var d = document.createElement('div');
       d.className = 'hz'; d.style.background = def[0]; d.innerHTML = hzIcon(h.type, def[0]);
       d.style.display = $('lyHz').checked ? '' : 'none';
@@ -899,21 +953,41 @@
       hzMarkers.push(new maplibregl.Marker({ element: d }).setLngLat([h.lon, h.lat]).addTo(map));
     });
   }
+  // Zones de danger signalées par la communauté : seulement en France, cercle flou sans point précis
+  var czGeo = null;
+  function drawCommunityZones() {
+    var show = zonesAllowedNow && $('lyZones').checked;
+    var feats = !show ? [] : hazards.filter(function (h) { return h.type === 'zone_danger'; }).map(function (h, i) {
+      var z = zoneShape(h.id, [h.lat, h.lon, 0]);
+      return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circlePoly(z.lat, z.lon, 500)] } };
+    });
+    czGeo = { type: 'FeatureCollection', features: feats };
+    whenReady(function () {
+      if (map.getSource('cz')) { map.getSource('cz').setData(czGeo); return; }
+      map.addSource('cz', { type: 'geojson', data: czGeo });
+      map.addLayer({ id: 'cz-fill', type: 'fill', source: 'cz', paint: { 'fill-color': '#e31937', 'fill-opacity': 0.12 } }, firstSymbolId());
+      map.addLayer({ id: 'cz-line', type: 'line', source: 'cz', paint: { 'line-color': '#e31937', 'line-width': 2, 'line-dasharray': [2, 2] } }, firstSymbolId());
+    });
+  }
   function loadHazards(lat, lon, force) {
     if (!force && lastHzFetch && Date.now() - lastHzFetch.t < 60000 && dist(lat, lon, lastHzFetch.lat, lastHzFetch.lon) < 3000) return;
     lastHzFetch = { t: Date.now(), lat: lat, lon: lon };
     fetch(API + '/reports?lat=' + lat.toFixed(4) + '&lon=' + lon.toFixed(4) + '&r=25').then(function (r) { return r.json(); })
-      .then(function (d) { hazards = d.reports || []; drawHazards(d.now || Date.now()); }).catch(function () {});
+      .then(function (d) { hazards = d.reports || []; drawHazards(d.now || Date.now()); drawCommunityZones(); }).catch(function () {});
   }
   map.on('moveend', function () { var c = map.getCenter(); loadHazards(c.lat, c.lng, false); });
   $('lyHz').onchange = function () { var on = this.checked; hzMarkers.forEach(function (m) { m.getElement().style.display = on ? '' : 'none'; }); };
   Object.keys(HZ).forEach(function (k) {
     var b = document.createElement('button');
     b.innerHTML = '<b style="background:' + HZ[k][0] + '">' + hzIcon(k, HZ[k][0]) + '</b>' + HZ[k][2];
+    b.setAttribute('data-t', k);
     b.onclick = function () { sendReport(k); };
     $('sheetGrid').appendChild(b);
   });
-  $('btnReport').onclick = function () { $('sheet').classList.toggle('show'); };
+  function updateSheet() {
+    [].forEach.call($('sheetGrid').children, function (b) { if (b.getAttribute('data-t') === 'zone_danger') b.style.display = allowedCache ? '' : 'none'; });
+  }
+  $('btnReport').onclick = function () { updateSheet(); $('sheet').classList.toggle('show'); };
   $('sheetCancel').onclick = function () { $('sheet').classList.remove('show'); };
   function sendReport(type) {
     $('sheet').classList.remove('show');
@@ -928,6 +1002,7 @@
     var best = null;
     hazards.forEach(function (h) {
       if (!HZ[h.type]) return;
+      if (h.type === 'zone_danger' && !allowedCache) return;
       var d = dist(lat, lon, h.lat, h.lon);
       if (d < 1500 && d > 15 && angleDiff(heading, bearing(lat, lon, h.lat, h.lon)) < 30 && (!best || d < best.d)) best = { h: h, d: d };
     });
@@ -936,6 +1011,7 @@
   var lastHzAlertId = null;
   function showHazard(hz) {
     if (lastHzAlertId !== hz.h.id) { lastHzAlertId = hz.h.id; beep(1); setTimeout(function () { speak(HZ[hz.h.type][2] + ' signalé à ' + formatDist(hz.d)); }, 500); }
+    if (hz.h.type === 'zone_danger') { setAlert('danger', 'Zone de danger signalée', 'Signalée par la communauté · ralentis et reste vigilant'); return; }
     setAlert('hazard', HZ[hz.h.type][2] + ' signalé', 'À ' + (hz.d >= 1000 ? (hz.d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(hz.d / 10) * 10 + ' m') + ' devant toi');
   }
 
@@ -1086,48 +1162,134 @@
     whenReady(function () { ['route-line', 'route-casing'].forEach(function (id) { if (map.getLayer(id)) map.removeLayer(id); }); if (map.getSource('route')) map.removeSource('route'); });
   }
 
-  function fetchRoute(from, to) {
-    var url = 'https://router.project-osrm.org/route/v1/driving/' + from.lon.toFixed(6) + ',' + from.lat.toFixed(6) + ';' + to.lon.toFixed(6) + ',' + to.lat.toFixed(6) +
-      '?overview=full&geometries=geojson&steps=true';
+  // Préférences d'itinéraire (mémorisées)
+  var routePrefs = { tolls: false, motorways: false };
+  try { routePrefs = Object.assign(routePrefs, JSON.parse(localStorage.getItem('vigie-route') || '{}')); } catch (e) {}
+  function avoidParam() { var a = []; if (routePrefs.tolls) a.push('tollRoads'); if (routePrefs.motorways) a.push('motorways'); return a.join(','); }
+  // Itinéraires TomTom : guidage en français, trafic, limitations, voies ; repli sur OSRM
+  function fetchRoutes(from, to, alts) {
+    var url = API + '/route?from=' + from.lat.toFixed(5) + ',' + from.lon.toFixed(5) + '&to=' + to.lat.toFixed(5) + ',' + to.lon.toFixed(5) +
+      '&alt=' + (alts || 0) + '&avoid=' + avoidParam() + (heading !== null ? '&heading=' + Math.round(heading) : '');
     return fetch(url).then(function (r) { return r.json(); }).then(function (d) {
-      if (!d.routes || !d.routes.length) throw new Error('Aucun itinéraire');
-      return d.routes[0];
+      if (!d.routes || !d.routes.length) throw new Error('vide');
+      return d.routes.map(function (rt) { rt.kind = 'tomtom'; return rt; });
+    }).catch(function () {
+      return fetch('https://router.project-osrm.org/route/v1/driving/' + from.lon.toFixed(6) + ',' + from.lat.toFixed(6) + ';' + to.lon.toFixed(6) + ',' + to.lat.toFixed(6) +
+        '?overview=full&geometries=geojson&steps=true').then(function (r) { return r.json(); }).then(function (d) {
+        if (!d.routes || !d.routes.length) throw new Error('Aucun itinéraire');
+        var r0 = d.routes[0]; r0.kind = 'osrm'; return [r0];
+      });
     });
   }
+  function fetchRoute(from, to) { return fetchRoutes(from, to, 0).then(function (l) { return l[0]; }); }
   function prepareRoute(route) {
-    var coords = route.geometry.coordinates, cum = [0];
-    for (var i = 1; i < coords.length; i++) cum.push(cum[i - 1] + dist(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]));
-    var steps = [];
+    if (route.kind === 'tomtom') {
+      var coords = route.points, cum = [0];
+      for (var i = 1; i < coords.length; i++) cum.push(cum[i - 1] + dist(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]));
+      var steps = route.instr.map(function (it) {
+        return { idx: Math.min(it.i, coords.length - 1), tt: it.m, msg: it.msg, exit: it.ex, type: /ARRIVE/.test(it.m) ? 'arrive' : it.m === 'DEPART' ? 'depart' : 'tt', said: {} };
+      });
+      return { coords: coords, cum: cum, steps: steps, total: route.length, duration: route.travel, speed: route.speed || [], lanes: route.lanes || [],
+        tt: { travel: route.travel, delay: route.delay, jams: route.jams || [], points: coords } };
+    }
+    var coords2 = route.geometry.coordinates, cum2 = [0];
+    for (var j = 1; j < coords2.length; j++) cum2.push(cum2[j - 1] + dist(coords2[j - 1][1], coords2[j - 1][0], coords2[j][1], coords2[j][0]));
+    var steps2 = [];
     route.legs[0].steps.forEach(function (st) {
       var loc = st.maneuver.location, best = 0, bd = Infinity;
-      for (var k = 0; k < coords.length; k++) { var dd = dist(loc[1], loc[0], coords[k][1], coords[k][0]); if (dd < bd) { bd = dd; best = k; } }
-      steps.push({ idx: best, type: st.maneuver.type, mod: st.maneuver.modifier || '', exit: st.maneuver.exit, name: st.name || '', ref: st.ref || '', said: {} });
+      for (var k = 0; k < coords2.length; k++) { var dd = dist(loc[1], loc[0], coords2[k][1], coords2[k][0]); if (dd < bd) { bd = dd; best = k; } }
+      steps2.push({ idx: best, type: st.maneuver.type, mod: st.maneuver.modifier || '', exit: st.maneuver.exit, name: st.name || '', ref: st.ref || '', said: {} });
     });
-    return { coords: coords, cum: cum, steps: steps, total: route.distance, duration: route.duration };
+    return { coords: coords2, cum: cum2, steps: steps2, total: route.distance, duration: route.duration, speed: [], lanes: [] };
+  }
+  // Applique le trafic fourni avec l'itinéraire TomTom
+  function applyRouteTT(n) {
+    if (!n.tt) return;
+    routeTraffic = { travel: n.tt.travel, delay: n.tt.delay, at: Date.now(), along: 0 };
+    var feats = n.tt.jams.map(function (j) { return { type: 'Feature', properties: { cat: j.cat, mag: j.mag }, geometry: { type: 'LineString', coordinates: n.tt.points.slice(j.s, j.e + 1) } }; })
+      .filter(function (f) { return f.geometry.coordinates.length > 1; });
+    rtGeo = { type: 'FeatureCollection', features: feats };
+    whenReady(function () { if (map.getSource('route-traffic')) map.getSource('route-traffic').setData(rtGeo); else addRouteTrafficLayer(); });
+  }
+
+  // ---------- Choix de l'itinéraire (2-3 options, éviter péages / autoroutes) ----------
+  var altGeo = null, pendingDest = null, pendingRoutes = null, pendingSel = 0;
+  function addAltLayers() {
+    if (!altGeo || map.getSource('alts')) return;
+    map.addSource('alts', { type: 'geojson', data: altGeo });
+    map.addLayer({ id: 'alts-line', type: 'line', source: 'alts', layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': ['case', ['get', 'sel'], theme === 'light' ? '#111111' : '#f5f5f5', '#8a8a8a'], 'line-opacity': ['case', ['get', 'sel'], 0.95, 0.55],
+        'line-width': ['case', ['get', 'sel'], 7, 5] } }, firstSymbolId());
+  }
+  function drawAlts() {
+    altGeo = { type: 'FeatureCollection', features: (pendingRoutes || []).map(function (rt, i) {
+      return { type: 'Feature', properties: { sel: i === pendingSel }, geometry: { type: 'LineString', coordinates: rt.kind === 'tomtom' ? rt.points : rt.geometry.coordinates } };
+    }).sort(function (a, b) { return a.properties.sel - b.properties.sel; }) };
+    whenReady(function () { if (map.getSource('alts')) map.getSource('alts').setData(altGeo); else addAltLayers(); });
+  }
+  function clearAlts() { altGeo = null; whenReady(function () { if (map.getLayer('alts-line')) map.removeLayer('alts-line'); if (map.getSource('alts')) map.removeSource('alts'); }); }
+  function fmtDur(sec) { var m = Math.round(sec / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + ('0' + (m % 60)).slice(-2); }
+  function showRouteChoice() {
+    var box = $('results');
+    var opts = (pendingRoutes || []).map(function (rt, i) {
+      var len = rt.kind === 'tomtom' ? rt.length : rt.distance, t = rt.kind === 'tomtom' ? rt.travel : rt.duration, dl = rt.kind === 'tomtom' ? rt.delay : 0;
+      var best = i === 0 ? ' <span style="color:var(--acc);font-size:12px;font-weight:700">LE PLUS RAPIDE</span>' : '';
+      return '<div class="res" data-i="' + i + '" style="cursor:pointer;' + (i === pendingSel ? 'background:rgba(127,127,127,.12);border-radius:10px' : '') + '"><div class="t"><b>' + fmtDur(t) + best + '</b><span>' + formatDist(len) +
+        (dl >= 60 ? ' · dont ' + fmtDur(dl) + ' de bouchons' : '') + '</span></div>' + (i === pendingSel ? '<button class="go">Démarrer</button>' : '') + '</div>';
+    }).join('');
+    box.innerHTML = '<div style="display:flex;gap:6px;padding:6px 2px 8px">' +
+      '<label class="chip2"><input type="checkbox" id="avToll"' + (routePrefs.tolls ? ' checked' : '') + '> Éviter les péages</label>' +
+      '<label class="chip2"><input type="checkbox" id="avMoto"' + (routePrefs.motorways ? ' checked' : '') + '> Éviter les autoroutes</label>' +
+      '<button id="rtCancel" style="margin-left:auto">Annuler</button></div>' + opts;
+    [].forEach.call(box.querySelectorAll('.res[data-i]'), function (row) {
+      row.onclick = function (e) {
+        var i = +row.getAttribute('data-i');
+        if (e.target.classList.contains('go')) { launchRoute(i); return; }
+        pendingSel = i; drawAlts(); showRouteChoice();
+      };
+    });
+    $('rtCancel').onclick = function () { pendingRoutes = null; clearAlts(); clearResults(); if (destMarker) { destMarker.remove(); destMarker = null; } };
+    $('avToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); startNav(pendingDest); };
+    $('avMoto').onchange = function () { routePrefs.motorways = this.checked; saveRoutePrefs(); startNav(pendingDest); };
+  }
+  window.KapMapDebug = { launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
+  function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} }
+  function launchRoute(i) {
+    var dest = pendingDest, rt = pendingRoutes[i], from = myPos();
+    pendingRoutes = null; clearAlts(); clearResults();
+    beginNav(dest, prepareRoute(rt), false, from);
   }
   function startNav(dest, resumed) {
     clearResults(); $('q').value = ''; $('q').blur();
     unlockAudio();
     var from = myPos();
-    if (!last) toast('GPS pas encore actif : itinéraire calculé depuis le centre de la carte');
+    if (!last && !resumed) toast('GPS pas encore actif : itinéraire calculé depuis le centre de la carte');
     setStatus('Calcul de l\'itinéraire…', 'warn');
-    fetchRoute(from, dest).then(function (route) {
-      nav = prepareRoute(route); nav.dest = dest; nav.idx = 0; nav.offCount = 0; nav.lastReroute = Date.now();
-      setRoute(nav.coords);
+    fetchRoutes(from, dest, resumed ? 0 : 2).then(function (list) {
+      if (resumed) { beginNav(dest, prepareRoute(list[0]), resumed, from); return; }
+      pendingDest = dest; pendingRoutes = list; pendingSel = 0;
       if (destMarker) destMarker.remove();
-      destMarker = new maplibregl.Marker({ color: '#e82127' }).setLngLat([dest.lon, dest.lat]).addTo(map);
-      document.body.classList.add('navigating'); $('nav').classList.add('show'); $('trip').classList.add('show');
-      setStatus('Itinéraire prêt', 'ok');
-      // Vue d'ensemble puis suivi
-      var b = new maplibregl.LngLatBounds(nav.coords[0], nav.coords[0]); nav.coords.forEach(function (c) { b.extend(c); });
-      if (!resumed) map.fitBounds(b, { padding: { top: 140, bottom: 160, left: 60, right: 120 }, pitch: 0, bearing: 0, duration: 800 });
-      setTimeout(function () { follow = true; $('btnStart').classList.add('go'); if (last) navTo(last.lat, last.lon, false); }, 2500);
-      renderNav(from.lat, from.lon);
-      refreshRouteTraffic();
-      try { localStorage.setItem('vigie-nav', JSON.stringify(dest)); } catch (e) {}
-      if (!resumed) speak('C\'est parti. ' + formatDist(nav.total) + ' jusqu\'à ' + dest.short + '.');
-      if (watchId === null && !demoTimer) $('btnStart').onclick();
+      destMarker = new maplibregl.Marker({ color: '#e31937' }).setLngLat([dest.lon, dest.lat]).addTo(map);
+      drawAlts(); showRouteChoice(); setStatus('Choisis ton itinéraire', 'ok');
+      follow = false; $('btnStart').classList.remove('go');
+      var b = new maplibregl.LngLatBounds([from.lon, from.lat], [from.lon, from.lat]);
+      list.forEach(function (rt) { (rt.kind === 'tomtom' ? rt.points : rt.geometry.coordinates).forEach(function (c) { b.extend(c); }); });
+      map.fitBounds(b, { padding: { top: 90, bottom: 260, left: 60, right: 120 }, pitch: 0, bearing: 0, duration: 700 });
     }).catch(function () { setStatus('Itinéraire indisponible', 'err'); toast('Impossible de calculer l\'itinéraire pour le moment'); });
+  }
+  function beginNav(dest, n, resumed, from) {
+    nav = n; nav.dest = dest; nav.idx = 0; nav.offCount = 0; nav.lastReroute = Date.now();
+    setRoute(nav.coords);
+    if (destMarker) destMarker.remove();
+    destMarker = new maplibregl.Marker({ color: '#e31937' }).setLngLat([dest.lon, dest.lat]).addTo(map);
+    document.body.classList.add('navigating'); $('nav').classList.add('show'); $('trip').classList.add('show');
+    setStatus('C\'est parti', 'ok');
+    follow = true; $('btnStart').classList.add('go'); if (last) navTo(last.lat, last.lon, false);
+    if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic();
+    renderNav(from.lat, from.lon);
+    try { localStorage.setItem('vigie-nav', JSON.stringify(dest)); } catch (e) {}
+    if (!resumed) speak('C\'est parti. ' + formatDist(nav.total) + ' jusqu\'à ' + dest.short + '.');
+    if (watchId === null && !demoTimer) $('btnStart').onclick();
   }
   function stopNav(silent) {
     nav = null; clearRoute(); if (destMarker) { destMarker.remove(); destMarker = null; }
@@ -1147,6 +1309,7 @@
   // Instructions en français à partir du type de manœuvre
   var MOD = { 'left': 'à gauche', 'right': 'à droite', 'slight left': 'légèrement à gauche', 'slight right': 'légèrement à droite', 'sharp left': 'franchement à gauche', 'sharp right': 'franchement à droite', 'straight': 'tout droit', 'uturn': 'demi-tour' };
   function instruction(st) {
+    if (st.msg) return st.msg.replace(/la premier sortie/i, 'la première sortie');
     var road = st.name ? (/^(rue|route|avenue|chemin|boulevard|place|quai|allée|impasse|autoroute|voie|esplanade|cours)\b/i.test(st.name) ? ' sur ' + st.name : ' sur ' + st.name) : (st.ref ? ' sur ' + st.ref : '');
     var dir = MOD[st.mod] || '';
     switch (st.type) {
@@ -1165,7 +1328,16 @@
     }
   }
   var ARROW_ANGLE = { 'straight': 0, 'slight right': 45, 'right': 90, 'sharp right': 135, 'uturn': 180, 'sharp left': -135, 'left': -90, 'slight left': -45 };
+  var TT_ANGLE = { TURN_LEFT: -90, TURN_RIGHT: 90, BEAR_LEFT: -45, BEAR_RIGHT: 45, KEEP_LEFT: -30, KEEP_RIGHT: 30, SHARP_LEFT: -135, SHARP_RIGHT: 135,
+    STRAIGHT: 0, KEEP_STRAIGHT: 0, FOLLOW: 0, MAKE_UTURN: 180, TRY_MAKE_UTURN: 180, ENTER_MOTORWAY: 0, ENTER_FREEWAY: 0, ENTER_HIGHWAY: 0,
+    TAKE_EXIT: 45, MOTORWAY_EXIT_LEFT: -45, MOTORWAY_EXIT_RIGHT: 45, SWITCH_PARALLEL_ROAD: 30, SWITCH_MAIN_ROAD: -30, WAYPOINT_LEFT: -90, WAYPOINT_RIGHT: 90 };
   function maneuverIcon(st) {
+    if (st.tt) {
+      if (/ARRIVE/.test(st.tt)) return maneuverIcon({ type: 'arrive' });
+      if (/ROUNDABOUT/.test(st.tt)) return maneuverIcon({ type: 'roundabout', exit: st.exit });
+      var ang = TT_ANGLE[st.tt] !== undefined ? TT_ANGLE[st.tt] : 0;
+      return '<svg viewBox="0 0 24 24" style="transform:rotate(' + ang + 'deg)"><path d="M12 3l7 8h-4.5v10h-5V11H5z" fill="#fff"/></svg>';
+    }
     if (st.type === 'arrive') return '<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>';
     if (/roundabout|rotary/.test(st.type)) return '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><circle cx="12" cy="13" r="5"/><path d="M12 8V2M9 5l3-3 3 3" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="16.5" text-anchor="middle" font-size="8" font-weight="800" fill="#fff" stroke="none">' + (st.exit || '') + '</text></svg>';
     var a = ARROW_ANGLE[st.mod] !== undefined ? ARROW_ANGLE[st.mod] : 0;
@@ -1196,6 +1368,21 @@
     $('navIcon').innerHTML = maneuverIcon(next);
     $('navDist').textContent = formatDist(dNext);
     $('navText').textContent = instruction(next);
+    // Indications de voies à l'approche de la manœuvre
+    var lanesHtml = '';
+    if (nav.lanes && dNext < 800) {
+      var ls = null;
+      nav.lanes.forEach(function (x) { if (!ls && x.s <= next.idx + 3 && x.e >= nav.idx && nav.cum[Math.min(x.s, nav.cum.length - 1)] >= pos.along - 30) ls = x; });
+      if (ls) lanesHtml = ls.l.map(function (ln) {
+        var d = ln.f || ln.d[0] || 'STRAIGHT', ok = !!ln.f;
+        var ang = { LEFT: -90, SLIGHT_LEFT: -45, SHARP_LEFT: -135, RIGHT: 90, SLIGHT_RIGHT: 45, SHARP_RIGHT: 135, STRAIGHT: 0, U_TURN: 180 }[d] || 0;
+        return '<svg viewBox="0 0 24 24" width="26" height="26" style="opacity:' + (ok ? 1 : .3) + ';transform:rotate(' + ang + 'deg)"><path d="M12 3l6 7h-4v11h-4V10H6z" fill="currentColor"/></svg>';
+      }).join('');
+    }
+    $('navLanes').innerHTML = lanesHtml; $('navLanes').style.display = lanesHtml ? 'flex' : 'none';
+    // Limitation du tronçon en cours
+    nav.curLimit = null;
+    (nav.speed || []).forEach(function (x) { if (x.s <= pos.idx && pos.idx <= x.e) nav.curLimit = x.v; });
     nav.lastAlong = pos.along;
     var secs = nav.duration * (remaining / Math.max(1, nav.total));
     if (routeTraffic) {
@@ -1211,14 +1398,14 @@
     var isArr = next.type === 'arrive';
     if (dNext < 600 && dNext > 350 && !next.said.far) { next.said.far = 1; speak('Dans ' + formatDist(dNext) + ', ' + (isArr ? 'vous arriverez à destination' : lowerFirst(instruction(next)))); }
     if (dNext <= 120 && !next.said.near && !isArr) { next.said.near = 1; speak(instruction(next)); }
-    if (remaining < 30) { speak('Vous êtes arrivé.'); stopNav(true); toast('Vous êtes arrivé'); return; }
+    if (remaining < 30) { shareTick(lat, lon, 0, true); speak('Vous êtes arrivé.'); stopNav(true); toast('Vous êtes arrivé'); return; }
     // Hors trajet : recalcul
     if (pos.off > 70) nav.offCount++; else nav.offCount = 0;
     if (nav.offCount >= 3 && Date.now() - nav.lastReroute > 15000) {
       nav.lastReroute = Date.now(); nav.offCount = 0; setStatus('Nouvel itinéraire…', 'warn');
       var dest = nav.dest;
       fetchRoute({ lat: lat, lon: lon }, dest).then(function (route) {
-        if (!nav) return; var n = prepareRoute(route); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
+        if (!nav) return; var n = prepareRoute(route); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
       }).catch(function () {});
     }
   }
@@ -1286,7 +1473,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794425004';
+  var BUILD = '1794425641';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1447,6 +1634,123 @@
     if (!token && !welcomed) showWelcome(true);
   }, 0);
 
+
+  // ================= Position obligatoire + message de prévention =================
+  function hasLocPermission(cb) {
+    if (SIM) { cb(true); return; }
+    try {
+      navigator.permissions.query({ name: 'geolocation' }).then(function (p) { cb(p.state === 'granted'); }).catch(function () { cb(watchId !== null); });
+    } catch (e) { cb(watchId !== null); }
+  }
+  function showLocGate() { $('locGate').classList.add('show'); }
+  $('locAllow').onclick = function () {
+    unlockAudio(); $('locErr').textContent = '';
+    if (!('geolocation' in navigator)) { $('locErr').textContent = 'Ce navigateur ne donne pas accès à la position.'; return; }
+    navigator.geolocation.getCurrentPosition(function () {
+      $('locGate').classList.remove('show');
+      if (watchId === null) $('btnStart').onclick.call($('btnStart'));
+    }, function () {
+      $('locErr').textContent = 'Position refusée. Autorise la position pour ce site dans les réglages du navigateur (icône à gauche de l\'adresse), puis réessaie.';
+    }, { enableHighAccuracy: true, timeout: 20000 });
+  };
+  setTimeout(function () {
+    hasLocPermission(function (ok) {
+      var welcomed = null; try { welcomed = localStorage.getItem('vigie-welcomed'); } catch (e) {}
+      if (!ok && (welcomed || token)) showLocGate();
+    });
+  }, 300);
+  // après l'écran de bienvenue / connexion : demander la position
+  var _showWelcome = showWelcome;
+  showWelcome = function (on) { _showWelcome(on); if (!on) hasLocPermission(function (ok) { if (!ok) showLocGate(); }); };
+  var _closeAccount = closeAccount;
+  closeAccount = function () { _closeAccount(); hasLocPermission(function (ok) { if (!ok && (localStorage.getItem('vigie-welcomed') || token)) showLocGate(); }); };
+
+  // ================= Mode pause (contenus utilisables seulement à l'arrêt complet) =================
+  var LINKS = [['YouTube', 'https://www.youtube.com'], ['Twitch', 'https://www.twitch.tv'], ['Prime Video', 'https://www.primevideo.com'], ['Netflix', 'https://www.netflix.com'],
+    ['Disney+', 'https://www.disneyplus.com'], ['myCANAL', 'https://www.canalplus.com'], ['Spotify', 'https://open.spotify.com'], ['Deezer', 'https://www.deezer.com']];
+  $('pLinks').innerHTML = LINKS.map(function (l) { return '<a href="' + l[1] + '" target="_blank" rel="noopener">' + l[0] + '</a>'; }).join('');
+  var QUIZ = [
+    ['Sur autoroute par temps de pluie en France, la vitesse maximale autorisée est de :', ['110 km/h', '130 km/h', '100 km/h'], 0],
+    ['Pour une jeune conductrice ou un jeune conducteur en permis probatoire, la limite sur autoroute est de :', ['110 km/h', '120 km/h', '130 km/h'], 0],
+    ['Une recharge rapide est généralement la plus efficace entre :', ['10 et 80 %', '80 et 100 %', '0 et 10 %'], 0],
+    ['Par temps froid, l\'autonomie d\'une voiture électrique :', ['baisse', 'augmente', 'ne change pas'], 0],
+    ['Le freinage régénératif sert à :', ['récupérer de l\'énergie en ralentissant', 'refroidir la batterie', 'gonfler les pneus'], 0],
+    ['Le taux d\'alcool maximal autorisé pour un conducteur confirmé est de :', ['0,5 g/l de sang', '0,8 g/l de sang', '0,2 g/l de sang'], 0],
+    ['En agglomération, sauf indication contraire, la vitesse est limitée à :', ['50 km/h', '30 km/h', '70 km/h'], 0],
+    ['La distance de sécurité sur autoroute correspond au minimum à :', ['2 secondes', '1 seconde', '5 mètres'], 0],
+    ['Pour préserver la batterie au quotidien, on recommande souvent de charger jusqu\'à :', ['80 % environ', '100 % chaque jour', '20 % maximum'], 0],
+    ['Une pastille « kWh » sur une borne indique :', ['l\'énergie facturée', 'la vitesse maximale', 'le temps de stationnement'], 0]
+  ];
+  var quizIdx = Math.floor(Math.random() * QUIZ.length), quizScore = 0, quizCount = 0;
+  function renderQuiz() {
+    var q = QUIZ[quizIdx % QUIZ.length], order = [0, 1, 2].sort(function () { return Math.random() - 0.5; });
+    $('pQuiz').innerHTML = '<div class="q">' + esc(q[0]) + '</div>' + order.map(function (k) { return '<button data-k="' + k + '">' + esc(q[1][k]) + '</button>'; }).join('') +
+      '<div class="small" id="qScore">' + (quizCount ? 'Score : ' + quizScore + '/' + quizCount : '') + '</div>';
+    [].forEach.call($('pQuiz').querySelectorAll('button'), function (b) {
+      b.onclick = function () {
+        var ok = +b.getAttribute('data-k') === q[2]; quizCount++; if (ok) quizScore++;
+        [].forEach.call($('pQuiz').querySelectorAll('button'), function (x) { x.disabled = true; if (+x.getAttribute('data-k') === q[2]) x.classList.add('good'); });
+        if (!ok) b.classList.add('bad');
+        $('qScore').textContent = 'Score : ' + quizScore + '/' + quizCount;
+        setTimeout(function () { quizIdx++; renderQuiz(); }, 1800);
+      };
+    });
+  }
+  var WMO = { 0: 'Ciel dégagé', 1: 'Peu nuageux', 2: 'Partiellement nuageux', 3: 'Couvert', 45: 'Brouillard', 48: 'Brouillard givrant', 51: 'Bruine', 53: 'Bruine', 55: 'Bruine',
+    61: 'Pluie faible', 63: 'Pluie', 65: 'Forte pluie', 71: 'Neige faible', 73: 'Neige', 75: 'Forte neige', 80: 'Averses', 81: 'Averses', 82: 'Fortes averses', 95: 'Orage' };
+  function fillPause() {
+    var now = new Date();
+    $('pClock').textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
+    $('pDate').textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    var me0 = myPos();
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=' + me0.lat.toFixed(2) + '&longitude=' + me0.lon.toFixed(2) + '&current=temperature_2m,weather_code')
+      .then(function (r) { return r.json(); }).then(function (d) {
+        $('pWeather').textContent = Math.round(d.current.temperature_2m) + ' °C';
+        $('pWeatherTxt').textContent = WMO[d.current.weather_code] || '';
+      }).catch(function () {});
+    fetch(API + '/news').then(function (r) { return r.json(); }).then(function (d) {
+      $('pNews').innerHTML = (d.items || []).map(function (n) { return '<a href="' + esc(n.link) + '" target="_blank" rel="noopener">' + esc(n.title) + '</a>'; }).join('') +
+        '<div style="font-size:11px;margin-top:6px">Titres : franceinfo</div>';
+    }).catch(function () { $('pNews').textContent = 'Actualités indisponibles.'; });
+    renderQuiz();
+  }
+  var stillSince = 0;
+  function pauseLockUpdate(speed) {
+    var moving = speed === null ? false : speed > 0.5;
+    if (moving) stillSince = 0; else if (!stillSince) stillSince = Date.now();
+    var locked = !SIM && (watchId === null || moving || Date.now() - stillSince < 3000);
+    $('pause').classList.toggle('locked', locked);
+    $('pLock').style.display = locked ? 'block' : 'none';
+    if (locked && speed > 15 && $('pause').classList.contains('show')) $('pause').classList.remove('show');
+  }
+  $('btnPause').onclick = function () { fillPause(); pauseLockUpdate(lastSpeed || 0); $('pause').classList.add('show'); };
+  $('pClose').onclick = function () { $('pause').classList.remove('show'); };
+
+  // ================= Partage de trajet =================
+  var share = null;
+  function shareUrl(id) { return location.origin + location.pathname.replace(/[^/]*$/, '') + 'suivi.html?id=' + id; }
+  function etaMs() { var t = $('tripEta').textContent.split(':'); if (t.length !== 2) return null; var d = new Date(); d.setHours(+t[0], +t[1], 0, 0); if (d < Date.now() - 3600000) d.setDate(d.getDate() + 1); return d.getTime(); }
+  $('shareTrip').onclick = function () {
+    if (!nav) return;
+    if (share) { $('shareLink').value = shareUrl(share.id); $('shareBox').classList.add('show'); return; }
+    var p0 = myPos();
+    apiJSON('POST', '/share', { lat: p0.lat, lon: p0.lon, dest: nav.dest.short || nav.dest.title || 'Destination', dlat: nav.dest.lat, dlon: nav.dest.lon, eta: etaMs(), name: me ? hello() : '' })
+      .then(function (d) { share = { id: d.id, secret: d.secret, last: 0 }; $('shareLink').value = shareUrl(d.id); $('shareBox').classList.add('show'); })
+      .catch(function () { toast('Partage indisponible pour le moment'); });
+  };
+  $('shareCopy').onclick = function () {
+    var v = $('shareLink').value;
+    try { navigator.clipboard.writeText(v).then(function () { toast('Lien copié'); }, function () { $('shareLink').select(); toast('Sélectionne le lien pour le copier'); }); } catch (e) { $('shareLink').select(); }
+  };
+  $('shareClose').onclick = function () { $('shareBox').classList.remove('show'); };
+  $('shareStop').onclick = function () { if (share) apiJSON('PUT', '/share/' + share.id, { secret: share.secret, arrived: true }).catch(function () {}); share = null; $('shareBox').classList.remove('show'); toast('Partage arrêté'); };
+  function shareTick(lat, lon, speed, arrived) {
+    if (!share || (!arrived && Date.now() - share.last < 15000)) return;
+    share.last = Date.now();
+    apiJSON('PUT', '/share/' + share.id, { secret: share.secret, lat: lat, lon: lon, eta: etaMs(), speed: speed || 0, arrived: !!arrived }).catch(function () {});
+    if (arrived) share = null;
+  }
+
   // ================= Son =================
   var soundOn = true, actx = null;
   function unlockAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { actx = null; } }
@@ -1469,6 +1773,27 @@
   function setAlert(mode, title, sub) {
     $('alert').className = 'panel ' + mode; $('alertTitle').textContent = title; $('alertSub').textContent = sub;
     $('alert').style.display = (nav && (mode === '' || mode === 'off')) ? 'none' : '';
+  }
+
+  // ================= Limitation de vitesse permanente =================
+  var roadLimit = null, slLast = null, overSince = 0, lastOverBeep2 = 0;
+  function fetchSpeedLimit(lat, lon) {
+    if (slLast && Date.now() - slLast.t < 20000 && dist(lat, lon, slLast.lat, slLast.lon) < 250) return;
+    slLast = { t: Date.now(), lat: lat, lon: lon };
+    fetch(API + '/speedlimit?lat=' + lat.toFixed(5) + '&lon=' + lon.toFixed(5) + (heading !== null ? '&heading=' + Math.round(heading) : ''))
+      .then(function (r) { return r.json(); }).then(function (d) { roadLimit = d.limit || null; }).catch(function () {});
+  }
+  function showLimit(limit, speed) {
+    var el2 = $('limit');
+    if (!limit) { el2.className = ''; $('speed').className = ''; overSince = 0; return; }
+    el2.textContent = limit;
+    var over = speed !== null && speed > limit + 3;
+    el2.className = 'show always' + (over ? ' over' : '');
+    $('speed').className = over ? 'over' : '';
+    if (over) {
+      if (!overSince) overSince = Date.now();
+      if (Date.now() - overSince > 3000 && Date.now() - lastOverBeep2 > 20000) { beep(1); lastOverBeep2 = Date.now(); }
+    } else overSince = 0;
   }
 
   // ================= Logique de conduite =================
@@ -1500,16 +1825,20 @@
 
     if (demo) allowedCache = true;
     else if (dataReady && now - lastBorderCheck > 3000) { allowedCache = alertsAllowed(lat, lon); lastBorderCheck = now; }
-    if (zonesAllowedNow !== allowedCache) { zonesAllowedNow = allowedCache; refreshZonesLayer(); }
+    if (zonesAllowedNow !== allowedCache) { zonesAllowedNow = allowedCache; refreshZonesLayer(); drawCommunityZones(); updateSheet(); }
 
     if (!demo) loadHazards(lat, lon, false);
     if (nav) renderNav(lat, lon);
+    if (!demo && !(nav && nav.curLimit) && (speed || 0) > 5) fetchSpeedLimit(lat, lon);
+    var curLimit = (nav && nav.curLimit) || roadLimit;
+    pauseLockUpdate(speed);
+    if (!demo) shareTick(lat, lon, speed, false);
     if (!demo && (!update._t || now - update._t > 60000)) { update._t = now; applyTheme(lat, lon); }
     var hz = hazardAhead(lat, lon);
     var list = demoPoints || points;
     if (!demo && !dataReady) { setAlert('off', 'Chargement…', 'Préparation des zones de danger.'); return; }
     if (!allowedCache) {
-      active = null; $('limit').className = ''; $('speed').className = '';
+      active = null; showLimit(curLimit, speed);
       if (hz) { showHazard(hz); return; }
       setAlert('off', 'Dangers signalés uniquement', 'Hors de France ou près de la frontière : pas de zones de danger ici.');
       return;
@@ -1543,7 +1872,8 @@
         return;
       }
     }
-    $('limit').className = ''; $('speed').className = ''; $('zoneFill').style.width = '0';
+    $('zoneFill').style.width = '0';
+    showLimit(curLimit, speed);
     if (hz) { showHazard(hz); return; }
     setAlert('', 'Route dégagée', heading === null ? 'Commence à rouler pour activer la détection.' : 'Aucune zone de danger devant toi.');
   }

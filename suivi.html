@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi de trajet – KapMap</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23e31937'/%3E%3Cpath d='M32 12 L46 50 L32 42 L18 50 Z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+  html, body { margin:0; height:100%; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:#f4f4f5; color:#111; }
+  #map { position:absolute; inset:0; }
+  .card { position:absolute; left:16px; right:16px; bottom:16px; max-width:520px; margin:0 auto; background:#fff; border-radius:18px; padding:18px 20px; box-shadow:0 10px 30px rgba(0,0,0,.18); z-index:5; }
+  .top { display:flex; align-items:center; gap:12px; }
+  h1 { font-size:20px; margin:0; } .eta { font-size:34px; font-weight:800; margin-top:8px; }
+  .m { color:#666; font-size:14px; margin-top:4px; }
+  .foot { margin-top:12px; font-size:13px; color:#666; } .foot a { color:#e31937; font-weight:600; text-decoration:none; }
+  .car { width:22px; height:22px; border-radius:50%; background:#e31937; border:4px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="card">
+  <div class="top"><svg viewBox="0 0 64 64" width="36" height="36"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg>
+    <h1 id="who">Suivi de trajet</h1></div>
+  <div class="eta" id="eta">…</div>
+  <div class="m" id="dest"></div>
+  <div class="m" id="upd"></div>
+  <div class="foot">Suivi partagé avec <a href="./">KapMap</a>, la carte de conduite pour Tesla.</div>
+</div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+(function () {
+  var API = 'https://test-gps-tesla1.matth0312.workers.dev';
+  var id = (location.search.match(/[?&]id=([a-f0-9]{12})/) || [])[1];
+  var $ = function (i) { return document.getElementById(i); };
+  var map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/positron', center: [2.35, 46.6], zoom: 5, attributionControl: { compact: true } });
+  var carEl = document.createElement('div'); carEl.className = 'car';
+  var car = null, destM = null, first = true;
+  function hhmm(t) { var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function tick() {
+    if (!id) { $('eta').textContent = 'Lien invalide'; return; }
+    fetch(API + '/share/' + id, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.error) { $('eta').textContent = 'Trajet terminé'; $('dest').textContent = 'Ce partage a expiré.'; return; }
+      $('who').textContent = (d.name ? d.name + ' est en route' : 'Trajet en cours');
+      $('eta').textContent = d.arrived ? 'Arrivé' : (d.eta ? 'Arrivée vers ' + hhmm(d.eta) : 'En route');
+      $('dest').textContent = d.dest ? 'Vers ' + d.dest : '';
+      var ago = Math.max(0, Math.round((Date.now() - d.updated) / 60000));
+      $('upd').textContent = 'Position mise à jour ' + (ago < 1 ? 'à l\'instant' : 'il y a ' + ago + ' min');
+      if (!car) car = new maplibregl.Marker({ element: carEl }).setLngLat([d.lon, d.lat]).addTo(map); else car.setLngLat([d.lon, d.lat]);
+      if (d.dlat && !destM) destM = new maplibregl.Marker({ color: '#111' }).setLngLat([d.dlon, d.dlat]).addTo(map);
+      if (first) {
+        first = false;
+        var b = new maplibregl.LngLatBounds([d.lon, d.lat], [d.lon, d.lat]); if (d.dlat) b.extend([d.dlon, d.dlat]);
+        map.fitBounds(b, { padding: { top: 60, bottom: 220, left: 50, right: 50 }, maxZoom: 14, duration: 0 });
+      }
+    }).catch(function () {});
+  }
+  tick(); setInterval(tick, 15000);
+})();
+</script>
+</body>
+</html>
