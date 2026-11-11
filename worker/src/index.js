@@ -366,6 +366,31 @@ export default {
         return json({ price: Math.round(price * 100) / 100, count, vignette });
       }
 
+      // ----- Incidents en temps réel autour d'une position (TomTom : accidents, véhicules en panne, météo, dangers) -----
+      if (request.method === 'GET' && url.pathname === '/incidents') {
+        if (!env.TOMTOM_KEY) return json({ error: 'Clé absente' }, 503);
+        const lat = parseFloat(url.searchParams.get('lat')), lon = parseFloat(url.searchParams.get('lon'));
+        if (!validCoord(lat, lon)) return json({ error: 'Paramètres invalides' }, 400);
+        const dLat = 0.3, dLon = 0.42;   // environ 65 km × 65 km
+        const bbox = [lon - dLon, lat - dLat, lon + dLon, lat + dLat].map(v => v.toFixed(4)).join(',');
+        const fields = '{incidents{geometry{type,coordinates},properties{id,iconCategory,magnitudeOfDelay,events{description},from,to,roadNumbers,startTime}}}';
+        const r = await fetch('https://api.tomtom.com/traffic/services/5/incidentDetails?bbox=' + bbox + '&fields=' + encodeURIComponent(fields) +
+          '&language=fr-FR&categoryFilter=1,2,3,4,5,10,11,14&timeValidityFilter=present&key=' + env.TOMTOM_KEY);
+        if (!r.ok) return json({ error: 'Incidents indisponibles' }, 502);
+        const d = await r.json();
+        const CAT = { 1: 'accident', 2: 'meteo', 3: 'objet', 4: 'meteo', 5: 'meteo', 10: 'meteo', 11: 'meteo', 14: 'vehicule_arrete' };
+        const items = (d.incidents || []).map(inc => {
+          const g = inc.geometry || {}, pr = inc.properties || {};
+          const c = g.type === 'Point' ? g.coordinates : (g.coordinates || [])[0];
+          if (!c || !CAT[pr.iconCategory]) return null;
+          return { id: 'tt-' + String(pr.id || '').slice(0, 40), type: CAT[pr.iconCategory], cat: pr.iconCategory,
+            lon: Math.round(c[0] * 1e5) / 1e5, lat: Math.round(c[1] * 1e5) / 1e5,
+            desc: ((pr.events || [])[0] || {}).description || '', road: (pr.roadNumbers || []).join(', '),
+            from: pr.from || '', to: pr.to || '', start: pr.startTime || null };
+        }).filter(Boolean).slice(0, 300);
+        return new Response(JSON.stringify({ items }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60', ...cors } });
+      }
+
       // ----- Limitation de vitesse à une position (hors guidage) -----
       if (request.method === 'GET' && url.pathname === '/speedlimit') {
         if (!env.TOMTOM_KEY) return json({ error: 'Clé absente' }, 503);
