@@ -305,6 +305,7 @@
   <div class="lyHead">Son</div>
   <label class="sw2">Annonces vocales<input type="checkbox" id="optVoice"></label>
   <div class="lyHead">Apparence</div>
+  <label class="sw2">Carte en couleurs (champs, forêts, eau)<input type="checkbox" id="optColors"></label>
   <label class="sw2">Relief des montagnes<input type="checkbox" id="optRelief"></label>
   <div id="themeRow"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
 </div>
@@ -398,7 +399,11 @@
 
   // ================= Carte (vectorielle, 3D) =================
   // ---- Thème jour / nuit (selon le soleil à ta position) ----
-  var STYLES = { light: 'https://tiles.openfreemap.org/styles/positron', dark: 'https://tiles.openfreemap.org/styles/dark' };
+  var STYLES = { light: 'https://tiles.openfreemap.org/styles/positron', dark: 'https://tiles.openfreemap.org/styles/dark', color: 'https://tiles.openfreemap.org/styles/liberty' };
+  // Carte en couleurs (champs, forêts, eau…) : style « liberty » le jour, nuit sombre teintée
+  var colorsOn = false;
+  try { colorsOn = localStorage.getItem('vigie-colors') === '1'; } catch (e) {}
+  function styleUrl() { return theme === 'light' && colorsOn ? STYLES.color : STYLES[theme]; }
   var themePref = 'auto';
   try { themePref = localStorage.getItem('vigie-theme') || 'auto'; } catch (e) {}
   function sunAltitude(lat, lon, date) {
@@ -418,7 +423,7 @@
   document.body.classList.toggle('light', theme === 'light');
 
   var map = new maplibregl.Map({
-    container: 'map', style: STYLES[theme],
+    container: 'map', style: styleUrl(),
     center: [6.45, 46.35], zoom: 11, attributionControl: false, maxPitch: 70
   });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
@@ -476,7 +481,9 @@
       map.getStyle().layers.forEach(function (l) {
         var id = l.id.toLowerCase();
         if (l.type === 'background') map.setPaintProperty(l.id, 'background-color', '#1c1d1f');
-        else if (l.type === 'fill' && /water/.test(id)) map.setPaintProperty(l.id, 'fill-color', '#101418');
+        else if (l.type === 'fill' && /water/.test(id)) map.setPaintProperty(l.id, 'fill-color', colorsOn ? '#0f1d2a' : '#101418');
+        else if (colorsOn && l.type === 'fill' && /(wood|forest)/.test(id)) { map.setPaintProperty(l.id, 'fill-color', '#1c2a1f'); map.setPaintProperty(l.id, 'fill-opacity', 0.95); }
+        else if (colorsOn && l.type === 'fill' && /(grass|park|meadow|farm|landcover|landuse)/.test(id)) { map.setPaintProperty(l.id, 'fill-color', '#222920'); map.setPaintProperty(l.id, 'fill-opacity', 0.8); }
         else if (l.type === 'fill' && /(landuse|landcover|park|wood|grass)/.test(id)) map.setPaintProperty(l.id, 'fill-opacity', 0.35);
         else if (l.type === 'line' && /(road|highway|street|bridge|tunnel|motorway|trunk|primary|secondary|tertiary|minor|service|link)/.test(id) && !/(casing|outline|rail|path|track)/.test(id)) {
           var c = /(motorway|trunk|primary)/.test(id) ? '#b5b5b5' : /(secondary|tertiary)/.test(id) ? '#8f8f8f' : '#6a6a6a';
@@ -495,7 +502,7 @@
     document.body.classList.toggle('light', theme === 'light');
     drawCar();
     mapReady = false;
-    map.setStyle(STYLES[theme]);
+    map.setStyle(styleUrl());
   }
   function refreshThemeButtons() {
     [].forEach.call(document.querySelectorAll('#themeRow button'), function (b) { b.classList.toggle('sel', b.getAttribute('data-t') === themePref); });
@@ -510,6 +517,12 @@
     };
   });
   refreshThemeButtons();
+  $('optColors').checked = colorsOn;
+  $('optColors').onchange = function () {
+    colorsOn = this.checked;
+    try { localStorage.setItem('vigie-colors', colorsOn ? '1' : '0'); } catch (e) {}
+    mapReady = false; map.setStyle(styleUrl(), { diff: false });   // rechargement complet, même si l'adresse du style ne change pas (nuit)
+  };
   $('optRelief').checked = reliefOn;
   $('optRelief').onchange = function () {
     reliefOn = this.checked;
@@ -1653,7 +1666,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794432195';
+  var BUILD = '1794432339';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
