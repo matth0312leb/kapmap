@@ -1649,7 +1649,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794429547';
+  var BUILD = '1794431837';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
