@@ -280,6 +280,7 @@
   .pCols { display:grid; grid-template-columns:1.25fr 1fr; gap:12px; margin-top:14px; }
   .pBox { padding:16px; border-radius:18px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); min-width:0; }
   #pNews a { display:flex; align-items:center; gap:10px; color:#e6e6ea; text-decoration:none; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.06); font-size:14px; line-height:1.35; transition:color .15s; }
+  #pNews a span { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   #pNews a::after { content:'›'; margin-left:auto; color:#e31937; font-size:20px; }
   #pNews a:hover, #pNews a:active { color:#fff; text-shadow:0 0 12px rgba(227,25,55,.5); }
   #pNews .src { font-size:11px; color:#77777c; margin-top:8px; }
@@ -1754,7 +1755,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794433349';
+  var BUILD = '1794433436';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2014,7 +2015,7 @@
         $('pWeatherTxt').textContent = WMO[d.current.weather_code] || '';
       }).catch(function () {});
     fetch(API + '/news').then(function (r) { return r.json(); }).then(function (d) {
-      $('pNews').innerHTML = (d.items || []).map(function (n) { return '<a href="' + esc(n.link) + '" target="_blank" rel="noopener">' + esc(n.title) + '</a>'; }).join('') +
+      $('pNews').innerHTML = (d.items || []).slice(0, 4).map(function (n) { return '<a href="' + esc(n.link) + '" target="_blank" rel="noopener"><span>' + esc(n.title) + '</span></a>'; }).join('') +
         '<div class="src">Titres : franceinfo</div>';
     }).catch(function () { $('pNews').textContent = 'Actualités indisponibles.'; });
     renderQuiz();
