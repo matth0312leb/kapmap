@@ -620,7 +620,7 @@
   }
   var lastHzAlertId = null;
   function showHazard(hz) {
-    if (lastHzAlertId !== hz.h.id) { lastHzAlertId = hz.h.id; beep(1); }
+    if (lastHzAlertId !== hz.h.id) { lastHzAlertId = hz.h.id; beep(1); setTimeout(function () { speak(HZ[hz.h.type][2] + ' signalé à ' + formatDist(hz.d)); }, 500); }
     setAlert('hazard', HZ[hz.h.type][2] + ' signalé', 'À ' + (hz.d >= 1000 ? (hz.d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(hz.d / 10) * 10 + ' m') + ' devant toi');
   }
 
@@ -728,7 +728,7 @@
     });
     return { coords: coords, cum: cum, steps: steps, total: route.distance, duration: route.duration };
   }
-  function startNav(dest) {
+  function startNav(dest, resumed) {
     clearResults(); $('q').value = ''; $('q').blur();
     unlockAudio();
     var from = myPos();
@@ -743,15 +743,17 @@
       setStatus('Itinéraire prêt', 'ok');
       // Vue d'ensemble puis suivi
       var b = new maplibregl.LngLatBounds(nav.coords[0], nav.coords[0]); nav.coords.forEach(function (c) { b.extend(c); });
-      map.fitBounds(b, { padding: { top: 140, bottom: 160, left: 60, right: 120 }, pitch: 0, bearing: 0, duration: 800 });
+      if (!resumed) map.fitBounds(b, { padding: { top: 140, bottom: 160, left: 60, right: 120 }, pitch: 0, bearing: 0, duration: 800 });
       setTimeout(function () { follow = true; $('btnStart').classList.add('go'); if (last) navTo(last.lat, last.lon, false); }, 2500);
       renderNav(from.lat, from.lon);
-      speak('C\'est parti. ' + formatDist(nav.total) + ' jusqu\'à ' + dest.short + '.');
+      try { localStorage.setItem('vigie-nav', JSON.stringify(dest)); } catch (e) {}
+      if (!resumed) speak('C\'est parti. ' + formatDist(nav.total) + ' jusqu\'à ' + dest.short + '.');
       if (watchId === null && !demoTimer) $('btnStart').onclick();
     }).catch(function () { setStatus('Itinéraire indisponible', 'err'); toast('Impossible de calculer l\'itinéraire pour le moment'); });
   }
   function stopNav(silent) {
     nav = null; clearRoute(); if (destMarker) { destMarker.remove(); destMarker = null; }
+    try { localStorage.removeItem('vigie-nav'); } catch (e) {}
     document.body.classList.remove('navigating'); $('nav').classList.remove('show'); $('trip').classList.remove('show');
     $('alert').style.display = '';
     if (!silent) toast('Navigation arrêtée');
@@ -891,7 +893,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794417670';
+  var BUILD = '1794417773';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -979,7 +981,7 @@
           if (!cand || d < cand.d) cand = { p: p, d: d, L: L0 };
         }
       }
-      if (cand) { active = { p: cand.p, L: cand.L, done: 0 }; beep(2); }
+      if (cand) { active = { p: cand.p, L: cand.L, done: 0 }; beep(2); setTimeout(function () { speak('Zone de danger' + (cand.p[2] ? ', limitée à ' + cand.p[2] : '')); }, 700); }
     }
 
     if (active) {
@@ -1011,6 +1013,8 @@
     if (demoTimer) stopDemo();
     if (watchId !== null) return;
     if (!('geolocation' in navigator)) { setStatus('Géolocalisation indisponible', 'err'); return; }
+    try { localStorage.setItem('vigie-autostart', '1'); } catch (e) {}
+    keepAwake();
     setAlert('off', 'Recherche du GPS…', 'Accepte la demande de position si elle s\'affiche.');
     watchId = navigator.geolocation.watchPosition(function (pos) {
       var c = pos.coords; update(c.latitude, c.longitude, c.speed, c.heading, c.accuracy, false, null);
@@ -1019,6 +1023,21 @@
       setAlert('off', 'GPS indisponible', 'Vérifie que la page a le droit d\'utiliser la position.');
     }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
   };
+
+  // Écran maintenu allumé pendant l'utilisation (téléphones)
+  var wakeLock = null;
+  function keepAwake() {
+    try { if (navigator.wakeLock && !wakeLock) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; w.addEventListener('release', function () { wakeLock = null; }); }).catch(function () {}); } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && watchId !== null) keepAwake(); });
+
+  // Reprise automatique après un rechargement (GPS + guidage en cours)
+  setTimeout(function () {
+    var auto = null, dest = null;
+    try { auto = localStorage.getItem('vigie-autostart'); dest = JSON.parse(localStorage.getItem('vigie-nav') || 'null'); } catch (e) {}
+    if (auto === '1' && watchId === null) $('btnStart').onclick.call($('btnStart'));
+    if (dest && dest.lat) setTimeout(function () { startNav(dest, true); }, 2500);
+  }, 800);
 
   // ================= Démo =================
   var demoTimer = null;
