@@ -205,6 +205,13 @@
   #sheet h3 { font-size:18px; } #sheet .grid button { font-size:14px; padding:12px 8px; } #sheet .grid b { width:34px; height:34px; }
   .hz { width:30px; height:30px; } .hz svg { width:18px; height:18px; }
   .maplibregl-popup-content { font-size:14px; padding:11px 14px; } .maplibregl-popup-content b { font-size:15px; }
+  /* Panneau des calques : ne déborde jamais sur la barre du bas, défile en entier */
+  #layers { max-height:calc(100vh - 16px - 120px); overflow-y:auto; overscroll-behavior:contain; min-width:240px; }
+  #layers label { padding:7px 10px !important; font-size:14px !important; }
+  #layers .note { padding:8px 10px 4px !important; }
+  #netList { max-height:none !important; overflow:visible !important; }
+  body.layers-open #bottom { opacity:.0; pointer-events:none; transition:opacity .15s; }
+  @media (max-width: 700px) { #layers { max-height:calc(100vh - 32px); left:16px; right:80px; min-width:0; } }
   @media (max-width: 700px) {
     #alert { right:86px; padding:12px 14px; gap:12px; }
     #alertIcon { width:38px; height:38px; }
@@ -677,7 +684,12 @@
   $('lySc').onchange = function () { setVis(['sc-circle', 'sc-label'], this.checked); try { localStorage.setItem('vigie-sc', this.checked ? '1' : '0'); } catch (e) {} if (netOn) saveNetworks(); };
   try { if (localStorage.getItem('vigie-sc') === '0') $('lySc').checked = false; } catch (e) {}
   $('lyPoi').onchange = function () { setVis(['poi-circle', 'poi-label'], this.checked); if (this.checked) { poiLastKey = ''; if (map.getZoom() < 14) toast('Zoome sur la carte pour voir les lieux'); autoPoi(); } };
-  $('btnLayers').onclick = function () { $('layers').classList.toggle('show'); this.classList.toggle('on'); };
+  $('btnLayers').onclick = function () {
+    var open = $('layers').classList.toggle('show'); this.classList.toggle('on', open);
+    document.body.classList.toggle('layers-open', open);
+  };
+  // Fermer les calques en touchant la carte
+  map.on('click', function () { if ($('layers').classList.contains('show')) { $('layers').classList.remove('show'); $('btnLayers').classList.remove('on'); document.body.classList.remove('layers-open'); } });
 
   var POI = {
     restaurant: ['#3a3a3a', 'Restaurant'], fast_food: ['#3a3a3a', 'Restauration rapide'], cafe: ['#3a3a3a', 'Café'],
@@ -1165,7 +1177,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794423593';
+  var BUILD = '1794423721';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
