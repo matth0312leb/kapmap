@@ -541,7 +541,8 @@
   function hash(i, p, salt) { return Math.abs(Math.sin(i * 12.9898 + p[0] * 78.233 + p[1] * 37.719 + salt) * 43758.5453) % 1; }
   function zoneStartFraction(i, p) { return 0.3 + 0.4 * hash(i, p, 0); }
   function zoneShape(i, p) {
-    var L = zoneLength(p[2]), r = L * 0.6, off = L * 0.3 * (0.4 + 0.6 * hash(i, p, 7)), ang = hash(i, p, 3) * 2 * Math.PI;
+    // Cercle d'affichage plus petit (≈ 1/4 de la zone, 300 m minimum) ; le point reste décalé du centre
+    var L = zoneLength(p[2]), r = Math.max(300, L * 0.25), off = r * 0.6 * (0.4 + 0.6 * hash(i, p, 7)), ang = hash(i, p, 3) * 2 * Math.PI;
     return { lat: p[0] + (off * Math.cos(ang)) / 110540, lon: p[1] + (off * Math.sin(ang)) / (111320 * Math.cos(p[0] * toR)), r: r };
   }
 
@@ -1275,7 +1276,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794424234';
+  var BUILD = '1794424503';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
