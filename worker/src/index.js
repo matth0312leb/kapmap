@@ -98,7 +98,19 @@ export default {
         return json({ ok: true });
       }
 
-      if (url.pathname === '/') return json({ service: 'vigie-api', ok: true });
+      // Tuiles de trafic en direct (TomTom), la clé reste sur le serveur
+      const tm = url.pathname.match(/^\/traffic\/(relative0|relative0-dark)\/(\d{1,2})\/(\d+)\/(\d+)\.png$/);
+      if (request.method === 'GET' && tm) {
+        if (!env.TOMTOM_KEY) return new Response('Clé trafic absente', { status: 503, headers: cors });
+        const [, style, z, x, y] = tm;
+        if (+z < 6 || +z > 22) return new Response(null, { status: 204, headers: cors });
+        const upstream = 'https://api.tomtom.com/traffic/map/4/tile/flow/' + style + '/' + z + '/' + x + '/' + y + '.png?tileSize=256&key=' + env.TOMTOM_KEY;
+        const r = await fetch(upstream, { cf: { cacheTtl: 60, cacheEverything: true } });
+        if (!r.ok) return new Response(null, { status: r.status, headers: cors });
+        return new Response(r.body, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60', ...cors } });
+      }
+
+      if (url.pathname === '/') return json({ service: 'vigie-api', ok: true, traffic: !!env.TOMTOM_KEY });
       return json({ error: 'Introuvable' }, 404);
     } catch (e) {
       return json({ error: 'Erreur serveur' }, 500);

@@ -442,16 +442,16 @@
   }
 
   // ================= Trafic en direct (TomTom) =================
-  var TOMTOM_KEY = '';   // clé à ajouter
+  // Les tuiles passent par notre serveur, qui garde la clé TomTom secrète
   function addTrafficLayer() {
-    if (!TOMTOM_KEY || map.getSource('traffic')) return;
+    if (map.getSource('traffic')) return;
     var style = theme === 'light' ? 'relative0' : 'relative0-dark';
     map.addSource('traffic', { type: 'raster', tileSize: 256, attribution: '&copy; TomTom',
-      tiles: ['https://api.tomtom.com/traffic/map/4/tile/flow/' + style + '/{z}/{x}/{y}.png?key=' + TOMTOM_KEY + '&tileSize=256'] });
+      tiles: [API + '/traffic/' + style + '/{z}/{x}/{y}.png'] });
     map.addLayer({ id: 'traffic', type: 'raster', source: 'traffic', minzoom: 6, paint: { 'raster-opacity': 0.85 } }, firstSymbolId());
     setVis(['traffic'], $('lyTraffic').checked);
   }
-  $('trafficNote').textContent = TOMTOM_KEY ? '' : '(bientôt)';
+  setTimeout(function () { fetch(API + '/').then(function (r) { return r.json(); }).then(function (d) { $('trafficNote').textContent = d.traffic ? '' : '(bientôt)'; }).catch(function () {}); }, 0);
   $('lyTraffic').onchange = function () { setVis(['traffic'], this.checked); };
 
   // ================= Calques =================
@@ -908,7 +908,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794417857';
+  var BUILD = '1794418531';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
