@@ -1473,7 +1473,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794425641';
+  var BUILD = '1794426045';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1787,7 +1787,7 @@
     var el2 = $('limit');
     if (!limit) { el2.className = ''; $('speed').className = ''; overSince = 0; return; }
     el2.textContent = limit;
-    var over = speed !== null && speed > limit + 3;
+    var over = speed !== null && speed > limit + 15;   // marge choisie : +15 km/h
     el2.className = 'show always' + (over ? ' over' : '');
     $('speed').className = over ? 'over' : '';
     if (over) {
