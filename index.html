@@ -235,7 +235,16 @@
   #layers label.chip { display:inline-flex !important; align-items:center; padding:6px 11px !important; font-size:13px !important; border-radius:999px; border:1px solid var(--line); color:var(--mut); cursor:pointer; user-select:none; }
   #layers label.chip input { display:none; }
   #layers label.chip:has(input:checked) { background:var(--txt); color:var(--inv); border-color:var(--txt); }
-  #themeRow { padding:0 !important; }
+  #themeRow, #satRow { padding:0 !important; }
+  .seg { display:flex; gap:6px; }
+  #satRow button { flex:1; font:inherit; font-size:15px; padding:10px 6px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
+  #satRow button.sel { background:var(--txt); color:var(--inv); border-color:var(--txt); }
+  #layers .lyTop { display:flex; align-items:center; justify-content:space-between; padding:6px 2px 2px; }
+  #layers .lyTop b { font-size:17px; }
+  #layers .lyTop button { width:34px; height:34px; border-radius:50%; border:0; background:rgba(127,127,127,.15); color:var(--txt); font-size:20px; line-height:1; cursor:pointer; }
+  #layers .lySub { font-size:12px; color:var(--mut); margin:10px 2px 6px; }
+  #layers .lyHead { border-top:1px solid var(--line); padding-top:14px; }
+  #layers .lyTop + .lyHead { border-top:0; padding-top:0; }
   #navLanes { display:none; gap:6px; margin-top:8px; padding:5px 8px; background:rgba(127,127,127,.18); border-radius:8px; width:max-content; }
   label.chip2 { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:7px 10px; border-radius:999px; border:1px solid var(--line); cursor:pointer; }
   label.chip2 input { accent-color:var(--acc); }
@@ -295,18 +304,29 @@
 <button id="btnCompass" title="Orientation de la carte"><svg id="needle" viewBox="0 0 24 24"><path d="M12 2.5l3.2 9.5h-6.4z" fill="#e31937"/><path d="M12 21.5l-3.2-9.5h6.4z" fill="currentColor" opacity=".55"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg><span id="compassN">N</span></button>
 
 <div id="layers" class="panel">
-  <div class="lyHead">Sur la carte</div>
+  <div class="lyTop"><b>Réglages</b><button id="lyClose" title="Fermer">×</button></div>
+
+  <div class="lyHead">Carte</div>
+  <div id="satRow" class="seg"><button data-s="0">Plan</button><button data-s="1">Satellite</button></div>
+  <div class="lySub">Couleurs</div>
+  <div id="themeRow" class="seg"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
+  <input type="checkbox" id="optSat" hidden>
+
+  <div class="lyHead">Afficher</div>
   <label class="sw2">Zones de danger<input type="checkbox" id="lyZones" checked></label>
-  <label class="sw2">Dangers signalés<input type="checkbox" id="lyHz" checked></label>
-  <label class="sw2">Lieux autour de moi<input type="checkbox" id="lyPoi"></label>
+  <label class="sw2">Dangers et accidents<input type="checkbox" id="lyHz" checked></label>
   <label class="sw2">Trafic sur toutes les routes <small id="trafficNote"></small><input type="checkbox" id="lyTraffic"></label>
-  <div class="lyHead">Recharge</div>
+  <label class="sw2">Lieux autour de moi<input type="checkbox" id="lyPoi"></label>
+
+  <div class="lyHead">Itinéraire</div>
+  <label class="sw2">Éviter les péages<input type="checkbox" id="prefToll"></label>
+  <label class="sw2">Éviter les autoroutes<input type="checkbox" id="prefMoto"></label>
+
+  <div class="lyHead">Bornes de recharge</div>
   <div id="netList"><label class="chip"><input type="checkbox" id="lySc" checked>Superchargeurs</label></div>
+
   <div class="lyHead">Son</div>
   <label class="sw2">Annonces vocales<input type="checkbox" id="optVoice"></label>
-  <div class="lyHead">Apparence</div>
-  <label class="sw2">Vue satellite<input type="checkbox" id="optSat"></label>
-  <div id="themeRow"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
 </div>
 </div>
 
@@ -538,6 +558,11 @@
     };
   });
   refreshThemeButtons();
+  function refreshSatRow() { [].forEach.call(document.querySelectorAll('#satRow button'), function (b) { b.classList.toggle('sel', (b.getAttribute('data-s') === '1') === satOn); }); }
+  [].forEach.call(document.querySelectorAll('#satRow button'), function (b) {
+    b.onclick = function () { var on = b.getAttribute('data-s') === '1'; if (on === satOn) return; $('optSat').checked = on; $('optSat').onchange.call($('optSat')); refreshSatRow(); };
+  });
+  refreshSatRow();
   $('optSat').checked = satOn;
   $('optSat').onchange = function () {
     satOn = this.checked;
@@ -967,6 +992,7 @@
     document.body.classList.toggle('layers-open', open);
   };
   // Fermer les calques en touchant la carte
+  $('lyClose').onclick = function () { $('layers').classList.remove('show'); $('btnLayers').classList.remove('on'); document.body.classList.remove('layers-open'); };
   map.on('click', function () { if ($('layers').classList.contains('show')) { $('layers').classList.remove('show'); $('btnLayers').classList.remove('on'); document.body.classList.remove('layers-open'); } });
 
   var POI = {
@@ -1421,7 +1447,10 @@
     setInterval(place, 1000);
   })();
   window.KapMapDebug = { launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
-  function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} }
+  function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
+  $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
+  $('prefToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); if (pendingRoutes && pendingDest) startNav(pendingDest); };
+  $('prefMoto').onchange = function () { routePrefs.motorways = this.checked; saveRoutePrefs(); if (pendingRoutes && pendingDest) startNav(pendingDest); };
   function launchRoute(i) {
     var dest = pendingDest, rt = pendingRoutes[i], from = myPos();
     pendingRoutes = null; clearAlts(); clearResults();
@@ -1681,7 +1710,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794432647';
+  var BUILD = '1794433020';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
