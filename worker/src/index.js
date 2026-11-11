@@ -110,6 +110,18 @@ export default {
         return new Response(r.body, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60', ...cors } });
       }
 
+      // Trafic en données vectorielles (dessiné par la carte, aligné sur les routes)
+      const tv = url.pathname.match(/^\/trafficv\/(\d{1,2})\/(\d+)\/(\d+)\.pbf$/);
+      if (request.method === 'GET' && tv) {
+        if (!env.TOMTOM_KEY) return new Response('Clé trafic absente', { status: 503, headers: cors });
+        const [, z, x, y] = tv;
+        if (+z < 6 || +z > 22) return new Response(null, { status: 204, headers: cors });
+        const upstream = 'https://api.tomtom.com/traffic/map/4/tile/flow/relative/' + z + '/' + x + '/' + y + '.pbf?key=' + env.TOMTOM_KEY;
+        const r = await fetch(upstream, { cf: { cacheTtl: 60, cacheEverything: true } });
+        if (!r.ok) return new Response(null, { status: r.status, headers: cors });
+        return new Response(r.body, { headers: { 'Content-Type': 'application/x-protobuf', 'Cache-Control': 'public, max-age=60', ...cors } });
+      }
+
       if (url.pathname === '/') return json({ service: 'vigie-api', ok: true, traffic: !!env.TOMTOM_KEY });
       return json({ error: 'Introuvable' }, 404);
     } catch (e) {
