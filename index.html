@@ -211,6 +211,21 @@
   #layers .note { padding:8px 10px 4px !important; }
   #netList { max-height:none !important; overflow:visible !important; }
   body.layers-open #bottom { opacity:.0; pointer-events:none; transition:opacity .15s; }
+  /* ---- Panneau des calques : sections, interrupteurs, pastilles ---- */
+  #layers { padding:6px 14px 14px !important; width:300px; }
+  #layers .lyHead { font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--mut); margin:14px 2px 6px; }
+  #layers label.sw2 { display:flex !important; align-items:center; justify-content:space-between; gap:12px; padding:9px 2px !important; font-size:15px !important; border-radius:0; border-bottom:1px solid var(--line); cursor:pointer; }
+  #layers label.sw2:last-of-type { border-bottom:0; }
+  #layers label.sw2 small { color:var(--mut); font-size:11px; margin-left:4px; }
+  #layers label.sw2 input { appearance:none; -webkit-appearance:none; width:40px !important; height:24px !important; border-radius:12px; background:rgba(127,127,127,.35); position:relative; flex:none; cursor:pointer; transition:background .15s; margin:0; }
+  #layers label.sw2 input::after { content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  #layers label.sw2 input:checked { background:var(--txt); }
+  #layers label.sw2 input:checked::after { left:19px; background:var(--inv); }
+  #netList { display:flex; flex-wrap:wrap; gap:6px; }
+  #layers label.chip { display:inline-flex !important; align-items:center; padding:6px 11px !important; font-size:13px !important; border-radius:999px; border:1px solid var(--line); color:var(--mut); cursor:pointer; user-select:none; }
+  #layers label.chip input { display:none; }
+  #layers label.chip:has(input:checked) { background:var(--txt); color:var(--inv); border-color:var(--txt); }
+  #themeRow { padding:0 !important; }
   @media (max-width: 700px) { #layers { max-height:calc(100vh - 32px); left:16px; right:80px; min-width:0; } }
   @media (max-width: 700px) {
     #alert { right:86px; padding:12px 14px; gap:12px; }
@@ -249,16 +264,18 @@
 </div>
 
 <div id="layers" class="panel">
-  <label><input type="checkbox" id="lyTraffic"><span class="sw" style="background:#e31937"></span>Trafic sur toutes les routes <small id="trafficNote" style="color:var(--mut);font-size:12px"></small></label>
-  <label><input type="checkbox" id="lyZones" checked><span class="sw" style="background:var(--err)"></span>Zones de danger</label>
-  <label><input type="checkbox" id="lyHz" checked><span class="sw" style="background:var(--txt)"></span>Dangers signalés</label>
-  <label><input type="checkbox" id="lyPoi"><span class="sw" style="background:var(--mut)"></span>Lieux autour de moi</label>
-  <label><input type="checkbox" id="optVoice"><span class="sw" style="background:var(--mut)"></span>Voix (annonces parlées)</label>
-  <div class="note" style="padding-top:10px">Réseaux de recharge affichés</div>
-  <div id="netList" style="max-height:34vh;overflow:auto"><label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--txt)"></span>Superchargeurs Tesla</label></div>
-  <div class="note" style="padding-top:10px">Apparence de la carte</div>
+  <div class="lyHead">Sur la carte</div>
+  <label class="sw2">Zones de danger<input type="checkbox" id="lyZones" checked></label>
+  <label class="sw2">Dangers signalés<input type="checkbox" id="lyHz" checked></label>
+  <label class="sw2">Lieux autour de moi<input type="checkbox" id="lyPoi"></label>
+  <label class="sw2">Trafic sur toutes les routes <small id="trafficNote"></small><input type="checkbox" id="lyTraffic"></label>
+  <div class="lyHead">Recharge</div>
+  <div id="netList"><label class="chip"><input type="checkbox" id="lySc" checked>Superchargeurs</label></div>
+  <div class="lyHead">Son</div>
+  <label class="sw2">Annonces vocales<input type="checkbox" id="optVoice"></label>
+  <div class="lyHead">Apparence</div>
   <div id="themeRow"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
-  <div class="note">Zones visibles en France uniquement, sans position précise.<br>Lieux : visibles en zoomant sur la carte.</div>
+</div>
 </div>
 
 <div id="nav" class="panel"><div id="navIcon"></div><div style="min-width:0"><div id="navDist"></div><div id="navText"></div></div></div>
@@ -536,7 +553,7 @@
       } }, firstSymbolId());
     setVis(['traffic'], $('lyTraffic').checked);
   }
-  setTimeout(function () { fetch(API + '/').then(function (r) { return r.json(); }).then(function (d) { $('trafficNote').textContent = d.traffic ? '' : '(bientôt)'; }).catch(function () {}); }, 0);
+  setTimeout(function () { fetch(API + '/').then(function (r) { return r.json(); }).then(function (d) { $('trafficNote').textContent = d.traffic ? '' : 'bientôt'; }).catch(function () {}); }, 0);
   $('lyTraffic').onchange = function () { setVis(['traffic'], this.checked); };
 
   // ================= Calques =================
@@ -630,8 +647,8 @@
     if (!netOn) netOn = [];
     var box = $('netList');
     Object.keys(names).sort(function (a, b) { return a.localeCompare(b, 'fr'); }).forEach(function (n) {
-      var lab = document.createElement('label');
-      lab.innerHTML = '<input type="checkbox"' + (netOn.indexOf(n) >= 0 ? ' checked' : '') + '><span class="sw" style="background:transparent;border:3px solid var(--txt)"></span>' + esc(n);
+      var lab = document.createElement('label'); lab.className = 'chip';
+      lab.innerHTML = '<input type="checkbox"' + (netOn.indexOf(n) >= 0 ? ' checked' : '') + '>' + esc(n);
       lab.querySelector('input').onchange = function () {
         if (this.checked) { if (netOn.indexOf(n) < 0) netOn.push(n); } else netOn = netOn.filter(function (x) { return x !== n; });
         applyNetworks(); saveNetworks();
@@ -1177,7 +1194,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794423721';
+  var BUILD = '1794423862';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
