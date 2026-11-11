@@ -296,7 +296,7 @@ export default {
         const alts = Math.max(0, Math.min(2, parseInt(url.searchParams.get('alt') || '0', 10) || 0));
         const heading = parseInt(url.searchParams.get('heading') || '', 10);
         let q = 'traffic=true&routeType=fastest&travelMode=car&instructionsType=text&language=fr-FR' +
-          '&sectionType=traffic&sectionType=speedLimit&sectionType=lanes&maxAlternatives=' + alts;
+          '&sectionType=traffic&sectionType=speedLimit&sectionType=lanes&sectionType=tollRoad&maxAlternatives=' + alts;
         avoid.forEach(a => { q += '&avoid=' + a; });
         if (heading >= 0 && heading < 360) q += '&vehicleHeading=' + heading;
         const r = await fetch('https://api.tomtom.com/routing/1/calculateRoute/' + f[0] + ',' + f[1] + ':' + t[0] + ',' + t[1] + '/json?' + q + '&key=' + env.TOMTOM_KEY);
@@ -314,6 +314,7 @@ export default {
               street: i.street || '', exit: i.exitNumber || '' })),
             speed: sec.filter(x => x.sectionType === 'SPEED_LIMIT').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
               v: x.maxSpeedLimitInKmh || x.maxSpeedLimitInKilometersPerHour || (x.speedRestrictions && x.speedRestrictions[0] && x.speedRestrictions[0].maxSpeedLimitInKilometersPerHour) || null })).filter(x => x.v),
+            toll: sec.some(x => x.sectionType === 'TOLL_ROAD'),
             jams: sec.filter(x => x.sectionType === 'TRAFFIC').map(x => ({ s: x.startPointIndex, e: x.endPointIndex, cat: x.simpleCategory || 'JAM', mag: x.magnitudeOfDelay || 0 })),
             lanes: sec.filter(x => x.sectionType === 'LANES').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
               l: (x.lanes || []).map(ln => ({ d: ln.directions || [], f: ln.follow || null })) })).filter(x => x.l.length > 1),
@@ -321,6 +322,48 @@ export default {
         });
         if (!routes.length) return json({ error: 'Aucun itinéraire' }, 404);
         return json({ routes });
+      }
+
+      // ----- Prix des péages d'un trajet (HERE Routing v8 : import du tracé puis calcul des péages) -----
+      if (request.method === 'POST' && url.pathname === '/tolls') {
+        if (!env.HERE_KEY) return json({ error: 'Clé absente' }, 503);
+        let body; try { body = await request.json(); } catch (e) { return json({ error: 'Requête invalide' }, 400); }
+        const pts = Array.isArray(body.pts) ? body.pts.filter(p => Array.isArray(p) && validCoord(p[1], p[0])) : [];
+        if (pts.length < 2 || pts.length > 20000) return json({ error: 'Tracé invalide' }, 400);
+        // Allègement du tracé : un point tous les ~200 m minimum, 800 points au plus
+        let total = 0;
+        for (let i = 1; i < pts.length; i++) total += hav(pts[i - 1], pts[i]);
+        const step = Math.max(200, total / 800);
+        const trace = [{ lat: pts[0][1], lng: pts[0][0] }];
+        let acc = 0;
+        for (let i = 1; i < pts.length - 1; i++) { acc += hav(pts[i - 1], pts[i]); if (acc >= step) { trace.push({ lat: pts[i][1], lng: pts[i][0] }); acc = 0; } }
+        trace.push({ lat: pts[pts.length - 1][1], lng: pts[pts.length - 1][0] });
+        const imp = await fetch('https://router.hereapi.com/v8/import?return=routeHandle&transportMode=car&apiKey=' + env.HERE_KEY, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trace }) });
+        if (!imp.ok) return json({ error: 'Péages indisponibles' }, 502);
+        const handle = (((await imp.json()).routes || [])[0] || {}).routeHandle;
+        if (!handle) return json({ error: 'Péages indisponibles' }, 502);
+        const tr = await fetch('https://router.hereapi.com/v8/routes/' + encodeURIComponent(handle) + '?return=tolls&transportMode=car&currency=EUR&apiKey=' + env.HERE_KEY);
+        if (!tr.ok) return json({ error: 'Péages indisponibles' }, 502);
+        const td = await tr.json();
+        let price = 0, count = 0, vignette = false;
+        (((td.routes || [])[0] || {}).sections || []).forEach(sec => (sec.tolls || []).forEach(t => {
+          // Pour chaque péage : le tarif simple le moins cher (hors abonnements et vignettes)
+          // Tarif payé au guichet (espèces ou carte) en priorité, sinon n'importe quel tarif simple
+          let best = null, bestAny = null;
+          (t.fares || []).forEach(fa => {
+            const pr = fa.convertedPrice && fa.convertedPrice.currency === 'EUR' ? fa.convertedPrice : fa.price;
+            if (!pr || pr.currency !== 'EUR' || typeof pr.value !== 'number') return;
+            if (fa.pass) { vignette = true; return; }
+            const pm = fa.paymentMethods || [];
+            const booth = !pm.length || pm.some(m => m === 'cash' || m === 'bankCard' || m === 'creditCard');
+            if (booth && (best === null || pr.value < best)) best = pr.value;
+            if (bestAny === null || pr.value < bestAny) bestAny = pr.value;
+          });
+          if (best === null) best = bestAny;
+          if (best !== null) { price += best; count++; }
+        }));
+        return json({ price: Math.round(price * 100) / 100, count, vignette });
       }
 
       // ----- Limitation de vitesse à une position (hors guidage) -----
@@ -409,3 +452,10 @@ export default {
     }
   },
 };
+
+// Distance en mètres entre deux points [lon, lat]
+function hav(a, b) {
+  const R = 6371000, toR = Math.PI / 180, dLat = (b[1] - a[1]) * toR, dLon = (b[0] - a[0]) * toR;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(a[1] * toR) * Math.cos(b[1] * toR) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}

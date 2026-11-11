@@ -1230,7 +1230,7 @@
         return { idx: Math.min(it.i, coords.length - 1), tt: it.m, msg: it.msg, exit: it.ex, type: /ARRIVE/.test(it.m) ? 'arrive' : it.m === 'DEPART' ? 'depart' : 'tt', said: {} };
       });
       return { coords: coords, cum: cum, steps: steps, total: route.length, duration: route.travel, speed: route.speed || [], lanes: route.lanes || [],
-        tt: { travel: route.travel, delay: route.delay, jams: route.jams || [], points: coords } };
+        tt: { travel: route.travel, delay: route.delay, jams: route.jams || [], points: coords }, toll: !!route.toll, srcRoute: route };
     }
     var coords2 = route.geometry.coordinates, cum2 = [0];
     for (var j = 1; j < coords2.length; j++) cum2.push(cum2[j - 1] + dist(coords2[j - 1][1], coords2[j - 1][0], coords2[j][1], coords2[j][0]));
@@ -1276,8 +1276,9 @@
     var opts = (pendingRoutes || []).map(function (rt, i) {
       var len = rt.kind === 'tomtom' ? rt.length : rt.distance, t = rt.kind === 'tomtom' ? rt.travel : rt.duration, dl = rt.kind === 'tomtom' ? rt.delay : 0;
       var best = i === 0 ? ' <span style="color:var(--acc);font-size:12px;font-weight:700">LE PLUS RAPIDE</span>' : '';
+      if (rt.toll) loadTollPrice(rt);
       return '<div class="res" data-i="' + i + '" style="cursor:pointer;' + (i === pendingSel ? 'background:rgba(127,127,127,.12);border-radius:10px' : '') + '"><div class="t"><b>' + fmtDur(t) + best + '</b><span>' + formatDist(len) +
-        (dl >= 60 ? ' · dont ' + fmtDur(dl) + ' de bouchons' : '') + '</span></div>' + (i === pendingSel ? '<button class="go">Démarrer</button>' : '') + '</div>';
+        (dl >= 60 ? ' · dont ' + fmtDur(dl) + ' de bouchons' : '') + (rt.toll ? ' · ' + tollText(rt) : '') + '</span></div>' + (i === pendingSel ? '<button class="go">Démarrer</button>' : '') + '</div>';
     }).join('');
     box.innerHTML = '<div style="display:flex;gap:6px;padding:6px 2px 8px">' +
       '<label class="chip2"><input type="checkbox" id="avToll"' + (routePrefs.tolls ? ' checked' : '') + '> Éviter les péages</label>' +
@@ -1293,6 +1294,24 @@
     $('rtCancel').onclick = function () { pendingRoutes = null; clearAlts(); clearResults(); if (destMarker) { destMarker.remove(); destMarker = null; } };
     $('avToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); startNav(pendingDest); };
     $('avMoto').onchange = function () { routePrefs.motorways = this.checked; saveRoutePrefs(); startNav(pendingDest); };
+  }
+  // ---------- Prix des péages (calculé par le serveur, une fois par itinéraire) ----------
+  function tollText(rt) {
+    if (typeof rt.tollPrice === 'number' && rt.tollPrice > 0) return 'Péage ≈ ' + rt.tollPrice.toFixed(2).replace('.', ',') + ' €';
+    return 'Péage';
+  }
+  function loadTollPrice(rt, cb) {
+    if (rt.tollState) { if (cb && rt.tollState === 'ok') cb(); return; }
+    rt.tollState = 'loading';
+    fetch(API + '/tolls', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pts: rt.points }) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        rt.tollState = 'ok';
+        if (typeof d.price === 'number') rt.tollPrice = d.price;
+        if (pendingRoutes && pendingRoutes.indexOf(rt) >= 0) showRouteChoice();
+        if (nav && nav.srcRoute === rt) nav.tollPrice = rt.tollPrice;
+        if (cb) cb();
+      }).catch(function () { rt.tollState = 'err'; });
   }
   window.KapMapDebug = { launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} }
@@ -1347,6 +1366,7 @@
   function beginNav(dest, n, resumed, from) {
     if (!resumed) addRecent(dest);
     nav = n; nav.dest = dest; nav.idx = 0; nav.offCount = 0; nav.lastReroute = Date.now();
+    if (n.toll && n.srcRoute) { n.tollPrice = n.srcRoute.tollPrice; loadTollPrice(n.srcRoute); }
     setRoute(nav.coords);
     if (destMarker) destMarker.remove();
     destMarker = new maplibregl.Marker({ color: '#e31937' }).setLngLat([dest.lon, dest.lat]).addTo(map);
@@ -1472,6 +1492,7 @@
       if (!nav.workAhead && dW < 1500) nav.workAhead = { d: Math.max(0, dW), inside: dW <= 0, cat: w.cat, len: endAlong - Math.max(startAlong, pos.along) };
       if (dW < 1500 && dW > 0 && !w.said) { w.said = true; beep(1); speak((w.cat === 'ROAD_CLOSURE' ? 'Route fermée' : 'Travaux') + ' dans ' + formatDist(dW)); }
     });
+    if (nav.toll) late += ' · ' + (typeof nav.tollPrice === 'number' && nav.tollPrice > 0 ? 'Péage ≈ ' + nav.tollPrice.toFixed(2).replace('.', ',') + ' €' : 'Péage');
     if (worksLeft) late += ' · ' + worksLeft + ' zone' + (worksLeft > 1 ? 's' : '') + ' de travaux';
     $('tripInfo').innerHTML = formatDist(remaining) + ' · ' + Math.max(1, Math.round(secs / 60)) + ' min' + late + (hz ? '<br>' + hz + ' danger' + (hz > 1 ? 's' : '') + ' signalé' + (hz > 1 ? 's' : '') + ' sur le trajet' : '');
     // Annonces vocales
@@ -1553,7 +1574,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794427190';
+  var BUILD = '1794427730';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
