@@ -187,7 +187,10 @@ def build_superchargers():
         if lat is None or lon is None:
             continue
         out.append([round(lat, 5), round(lon, 5), x.get("name") or "",
-                    x.get("stallCount") or 0, x.get("powerKilowatt") or 0])
+                    x.get("stallCount") or 0, x.get("powerKilowatt") or 0,
+                    1 if x.get("otherEVs") else 0,
+                    (addr.get("street") or "")[:60], (addr.get("city") or "")[:40],
+                    1 if x.get("solarCanopy") else 0, 1 if x.get("battery") else 0])
     print(f"Superchargeurs : {len(out)} sites ouverts en Europe")
     return {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "count": len(out), "items": out}
 
@@ -197,7 +200,7 @@ NETWORKS = [
     ("Ionity", r"ionity"), ("Fastned", r"fastned"), ("Electra", r"electra"), ("Atlante", r"atlante"),
     ("Allego", r"allego"), ("TotalEnergies", r"total"), ("Engie Vianeo", r"vianeo|engie"), ("Izivia", r"izivia"),
     ("Power Dot", r"power ?dot"), ("Zunder", r"zunder"), ("Shell Recharge", r"shell"), ("bp pulse", r"bp ?pulse|aral pulse"),
-    ("Lidl", r"lidl"), ("GOFAST", r"gofast"), ("Move", r"^move|move mobility"), ("evpass", r"evpass"), ("Swisscharge", r"swisscharge"),
+    ("Lidl", r"lidl"), ("Electrify/EnBW", r"enbw"), ("Engie Belgique", r"engie electrabel"), ("GOFAST", r"gofast"), ("Move", r"^move|move mobility"), ("evpass", r"evpass"), ("Swisscharge", r"swisscharge"),
     ("Leclerc", r"leclerc"), ("Carrefour", r"carrefour"),
 ]
 OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
@@ -207,7 +210,7 @@ def build_chargers():
     import re as _re
     rx = "|".join(r for _, r in NETWORKS).replace("^", "")
     q = f"""[out:json][timeout:300];
-(area["ISO3166-1"="FR"][admin_level=2];area["ISO3166-1"="CH"][admin_level=2];)->.a;
+(area["ISO3166-1"="FR"][admin_level=2];area["ISO3166-1"="BE"][admin_level=2];area["ISO3166-1"="LU"][admin_level=2];area["ISO3166-1"="CH"][admin_level=2];)->.a;
 (
   nwr["amenity"="charging_station"]["network"~"{rx}",i](area.a);
   nwr["amenity"="charging_station"]["operator"~"{rx}",i](area.a);

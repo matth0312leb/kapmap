@@ -88,7 +88,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var app = $('app'), W = 880, H = 700;
   var base = location.pathname.replace(/sim\.html$/, '');
-  function loadApp() { app.src = base + 'index.html?sim=1&t=' + Date.now(); }
+  function loadApp() { app.src = base + 'index.html?sim=1&t=' + Date.now() + (simBuild ? '&v=' + simBuild : ''); }
 
   // ---------- Taille de l'écran simulé, mise à l'échelle pour tenir dans la fenêtre ----------
   function fit() {
@@ -232,6 +232,15 @@
 
   $('toggle').onclick = function () { document.body.classList.toggle('hide'); fit(); };
   if (innerWidth < 1000) document.body.classList.add('hide');
+  // Mise à jour automatique : dès qu'une nouvelle version est publiée, tout se recharge
+  var simBuild = null;
+  function checkBuild() {
+    fetch(base + 'version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+      if (simBuild && d.v !== simBuild) { location.replace(location.pathname + '?v=' + d.v); return; }
+      simBuild = d.v;
+    }).catch(function () {});
+  }
+  checkBuild(); setInterval(checkBuild, 20000);
   setSize('880x700'); loadApp();
 })();
 </script>

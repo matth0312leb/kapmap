@@ -244,11 +244,11 @@
 <div id="layers" class="panel">
   <label><input type="checkbox" id="lyTraffic"><span class="sw" style="background:#e31937"></span>Trafic sur toutes les routes <small id="trafficNote" style="color:var(--mut);font-size:12px"></small></label>
   <label><input type="checkbox" id="lyZones" checked><span class="sw" style="background:var(--err)"></span>Zones de danger</label>
-  <label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--txt);border:2px solid var(--mut)"></span>Superchargeurs Tesla</label>
-  <label><input type="checkbox" id="lyCh" checked><span class="sw" style="background:transparent;border:3px solid var(--txt)"></span>Autres réseaux de recharge</label>
   <label><input type="checkbox" id="lyHz" checked><span class="sw" style="background:var(--txt)"></span>Dangers signalés</label>
   <label><input type="checkbox" id="lyPoi"><span class="sw" style="background:var(--mut)"></span>Lieux autour de moi</label>
   <label><input type="checkbox" id="optVoice"><span class="sw" style="background:var(--mut)"></span>Voix (annonces parlées)</label>
+  <div class="note" style="padding-top:10px">Réseaux de recharge affichés</div>
+  <div id="netList" style="max-height:34vh;overflow:auto"><label><input type="checkbox" id="lySc" checked><span class="sw" style="background:var(--txt)"></span>Superchargeurs Tesla</label></div>
   <div class="note" style="padding-top:10px">Apparence de la carte</div>
   <div id="themeRow"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
   <div class="note">Zones visibles en France uniquement, sans position précise.<br>Lieux : visibles en zoomant sur la carte.</div>
@@ -272,7 +272,7 @@
 <div id="welcome" class="overlay"><div class="card">
   <h2>Bienvenue sur Vigie</h2>
   <p class="lead">La carte de conduite pensée pour ta Tesla.</p>
-  <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alertes sonores en France, coupées en Suisse</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons sur ton trajet et heure d'arrivée réelle</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l7 19-7-4-7 4z"/></svg><p style="margin:0"><b>Navigation guidée</b><span>Instructions vocales, Domicile et Travail en 1 touche</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg><p style="margin:0"><b>Signalements</b><span>Accidents, travaux, objets… partagés par la communauté</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Superchargeurs</b><span>Tous les sites d'Europe et les lieux utiles autour</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg><p style="margin:0"><b>Commande vocale</b><span>« Maison », « Signaler un accident »…</span></p></div></div>
+  <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alertes sonores en France, désactivées là où c'est interdit</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons sur ton trajet et heure d'arrivée réelle</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l7 19-7-4-7 4z"/></svg><p style="margin:0"><b>Navigation guidée</b><span>Instructions vocales, Domicile et Travail en 1 touche</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg><p style="margin:0"><b>Signalements</b><span>Accidents, travaux, objets… partagés par la communauté</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Superchargeurs</b><span>Tous les sites d'Europe et les lieux utiles autour</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg><p style="margin:0"><b>Commande vocale</b><span>« Maison », « Signaler un accident »…</span></p></div></div>
   <button class="btn pri" id="wRegister">Créer mon compte</button>
   <button class="btn sec" id="wLogin">J'ai déjà un compte</button>
   <button class="btn link" id="wSkip">Continuer sans compte</button>
@@ -447,7 +447,7 @@
   }).catch(function () { setStatus('Données des zones indisponibles', 'err'); });
 
   loadJSON('data/superchargers.json').then(function (d) { drawSuperchargers(d.items || []); }).catch(function () {});
-  loadJSON('data/chargers.json').then(function (d) { chItems = d.items || []; whenReady(addChLayers); }).catch(function () {});
+  loadJSON('data/chargers.json').then(function (d) { chItems = d.items || []; buildNetList(); whenReady(addChLayers); }).catch(function () {});
 
   // ================= Géométrie =================
   var R = 6371000, toR = Math.PI / 180;
@@ -565,7 +565,7 @@
     if (!scItems || map.getSource('sc')) return;
     var light = theme === 'light';
     map.addSource('sc', { type: 'geojson', data: { type: 'FeatureCollection', features: scItems.map(function (s) {
-      return { type: 'Feature', properties: { name: s[2], stalls: s[3] || 0, kw: s[4] || 0 }, geometry: { type: 'Point', coordinates: [s[1], s[0]] } };
+      return { type: 'Feature', properties: { name: s[2], stalls: s[3] || 0, kw: s[4] || 0, open: s[5] || 0, street: s[6] || '', city: s[7] || '', solar: s[8] || 0, battery: s[9] || 0 }, geometry: { type: 'Point', coordinates: [s[1], s[0]] } };
     }) } });
     map.addLayer({ id: 'sc-circle', type: 'circle', source: 'sc', paint: {
       'circle-color': light ? '#111111' : '#f5f5f5', 'circle-stroke-color': light ? '#ffffff' : '#111111', 'circle-stroke-width': 2,
@@ -575,10 +575,7 @@
       paint: { 'text-color': light ? '#111111' : '#f5f5f5', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
     if (!scClickBound) {
       scClickBound = true;
-      map.on('click', 'sc-circle', function (e) {
-        var p = e.features[0].properties;
-        popup(e.features[0].geometry.coordinates, el('<b>' + esc(p.name) + '</b><br><span class="m">Superchargeur · ' + (p.stalls || '?') + ' bornes' + (+p.kw ? ' · ' + p.kw + ' kW' : '') + '</span>'));
-      });
+      map.on('click', 'sc-circle', function (e) { showSupercharger(e.features[0]); });
       map.on('mouseenter', 'sc-circle', function () { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'sc-circle', function () { map.getCanvas().style.cursor = ''; });
     }
@@ -594,8 +591,8 @@
     }) } });
     map.addLayer({ id: 'ch-circle', type: 'circle', source: 'ch', minzoom: 7, paint: {
       'circle-color': light ? '#ffffff' : '#1c1d1f', 'circle-stroke-color': light ? '#111111' : '#f5f5f5', 'circle-stroke-width': 2.2,
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 3, 11, 5.5, 15, 9] } });
-    map.addLayer({ id: 'ch-label', type: 'symbol', source: 'ch', minzoom: 13, layout: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 3, 11, 5.5, 15, 9] }, filter: chFilter() });
+    map.addLayer({ id: 'ch-label', filter: chFilter(), type: 'symbol', source: 'ch', minzoom: 13, layout: {
       'text-field': ['get', 'net'], 'text-font': ['Noto Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.3], 'text-anchor': 'top' },
       paint: { 'text-color': light ? '#111111' : '#e5e5e5', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
     if (!chClickBound) {
@@ -607,11 +604,78 @@
         popup(e.features[0].geometry.coordinates, el('<b>' + esc(p.net) + '</b>' + (p.name ? '<br>' + esc(p.name) : '') + '<br><span class="m">Recharge rapide' + (bits.length ? ' · ' + bits.join(' · ') : '') + '</span>'));
       });
     }
-    setVis(['ch-circle', 'ch-label'], $('lyCh').checked);
+    setVis(['ch-circle', 'ch-label'], true);
   }
-  $('lyCh').onchange = function () { setVis(['ch-circle', 'ch-label'], this.checked); };
+  // Choix des réseaux affichés (mémorisé, et sur le compte)
+  var NET_DEFAULT_OFF = true, netOn = null;
+  try { netOn = JSON.parse(localStorage.getItem('vigie-networks') || 'null'); } catch (e) {}
+  function chFilter() { return ['in', ['get', 'net'], ['literal', netOn || []]]; }
+  function applyNetworks() {
+    if (map.getLayer('ch-circle')) { map.setFilter('ch-circle', chFilter()); map.setFilter('ch-label', chFilter()); }
+  }
+  function saveNetworks() {
+    try { localStorage.setItem('vigie-networks', JSON.stringify(netOn)); } catch (e) {}
+    if (me) apiJSON('PUT', '/me/car', Object.assign({}, myCar || { model: '3', color: '#f2f2f2' }, { networks: netOn.concat($('lySc').checked ? ['Tesla'] : []) })).catch(function () {});
+  }
+  function buildNetList() {
+    var names = {};
+    (chItems || []).forEach(function (c) { names[c[2]] = (names[c[2]] || 0) + 1; });
+    if (!netOn) netOn = [];
+    var box = $('netList');
+    Object.keys(names).sort(function (a, b) { return a.localeCompare(b, 'fr'); }).forEach(function (n) {
+      var lab = document.createElement('label');
+      lab.innerHTML = '<input type="checkbox"' + (netOn.indexOf(n) >= 0 ? ' checked' : '') + '><span class="sw" style="background:transparent;border:3px solid var(--txt)"></span>' + esc(n);
+      lab.querySelector('input').onchange = function () {
+        if (this.checked) { if (netOn.indexOf(n) < 0) netOn.push(n); } else netOn = netOn.filter(function (x) { return x !== n; });
+        applyNetworks(); saveNetworks();
+      };
+      box.appendChild(lab);
+    });
+  }
+  // Fiche détaillée d'un Superchargeur : bornes, puissance, accès, distance, services à pied
+  function showSupercharger(f) {
+    var p = f.properties, c = f.geometry.coordinates, me0 = myPos();
+    var km = dist(me0.lat, me0.lon, c[1], c[0]) / 1000;
+    var tags = [];
+    if (+p.open) tags.push('ouvert à toutes les marques'); else tags.push('réservé aux Tesla');
+    if (+p.solar) tags.push('ombrières solaires');
+    if (+p.battery) tags.push('stockage batterie');
+    var node = el('<b>' + esc(p.name) + '</b><br><span class="m">' + esc([p.street, p.city].filter(Boolean).join(', ')) + '</span>' +
+      '<div style="margin-top:8px;font-size:14px"><b style="font-size:20px">' + (p.stalls || '?') + '</b> bornes' + (+p.kw ? ' · jusqu\'à <b>' + p.kw + ' kW</b>' : '') + '</div>' +
+      '<div class="m" style="margin-top:2px">' + tags.join(' · ') + '</div>' +
+      '<div class="m" style="margin-top:6px">À ' + (km < 10 ? km.toFixed(1).replace('.', ',') : Math.round(km)) + ' km à vol d\'oiseau</div>' +
+      '<div class="m" id="scAround" style="margin-top:6px">Services à pied : recherche…</div>' +
+      '<div class="m" style="margin-top:6px;font-size:12px">Disponibilité et tarifs en direct : dans l\'appli Tesla ou l\'écran de la voiture.</div>' +
+      '<div class="votes"><button class="yes" id="scGo">Y aller</button></div>');
+    var pop = popup(c, node);
+    node.querySelector('#scGo').onclick = function () { pop.remove(); startNav({ lat: c[1], lon: c[0], short: 'Superchargeur ' + p.name, title: p.name, sub: '' }); };
+    // Ce qu'il y a autour (OpenStreetMap, 300 m)
+    var q = '[out:json][timeout:15];(nwr(around:300,' + c[1] + ',' + c[0] + ')["amenity"~"^(restaurant|fast_food|cafe|toilets|bar)$"];nwr(around:300,' + c[1] + ',' + c[0] + ')["shop"~"^(supermarket|convenience|bakery)$"];nwr(around:300,' + c[1] + ',' + c[0] + ')["tourism"="hotel"];);out tags;';
+    fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var n = { resto: 0, rapide: 0, cafe: 0, wc: 0, courses: 0, hotel: 0 };
+        (d.elements || []).forEach(function (x) {
+          var t = x.tags || {};
+          if (t.amenity === 'restaurant') n.resto++; else if (t.amenity === 'fast_food') n.rapide++;
+          else if (t.amenity === 'cafe' || t.amenity === 'bar' || t.shop === 'bakery') n.cafe++;
+          else if (t.amenity === 'toilets') n.wc++; else if (t.shop) n.courses++; else if (t.tourism === 'hotel') n.hotel++;
+        });
+        var out = [];
+        if (n.resto) out.push(n.resto + ' restaurant' + (n.resto > 1 ? 's' : ''));
+        if (n.rapide) out.push(n.rapide + ' restauration rapide');
+        if (n.cafe) out.push(n.cafe + ' café' + (n.cafe > 1 ? 's' : '') + '/boulangerie');
+        if (n.courses) out.push('courses');
+        if (n.wc) out.push('toilettes');
+        if (n.hotel) out.push('hôtel');
+        var t2 = node.querySelector('#scAround');
+        if (t2) t2.textContent = out.length ? 'À pied (300 m) : ' + out.join(' · ') : 'Rien de répertorié à pied autour : prévois de quoi grignoter.';
+      })
+      .catch(function () { var t2 = node.querySelector('#scAround'); if (t2) t2.textContent = ''; });
+  }
   $('lyZones').onchange = refreshZonesLayer;
-  $('lySc').onchange = function () { setVis(['sc-circle', 'sc-label'], this.checked); };
+  $('lySc').onchange = function () { setVis(['sc-circle', 'sc-label'], this.checked); try { localStorage.setItem('vigie-sc', this.checked ? '1' : '0'); } catch (e) {} if (netOn) saveNetworks(); };
+  try { if (localStorage.getItem('vigie-sc') === '0') $('lySc').checked = false; } catch (e) {}
   $('lyPoi').onchange = function () { setVis(['poi-circle', 'poi-label'], this.checked); if (this.checked) { poiLastKey = ''; if (map.getZoom() < 14) toast('Zoome sur la carte pour voir les lieux'); autoPoi(); } };
   $('btnLayers').onclick = function () { $('layers').classList.toggle('show'); this.classList.toggle('on'); };
 
@@ -1101,7 +1165,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794422980';
+  var BUILD = '1794423226';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1127,7 +1191,14 @@
     $('btnAccount').classList.toggle('on', !!me);
     if (me) {
       syncPlaces();
-      if (me.car) { myCar = me.car; try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {} drawCar(); }
+      if (me.car && me.car.networks) {
+        netOn = me.car.networks.filter(function (n) { return n !== 'Tesla'; });
+        $('lySc').checked = me.car.networks.indexOf('Tesla') >= 0;
+        try { localStorage.setItem('vigie-networks', JSON.stringify(netOn)); } catch (e) {}
+        [].forEach.call($('netList').querySelectorAll('label'), function (l, i) { if (i > 0) l.remove(); });
+        buildNetList(); applyNetworks(); setVis(['sc-circle', 'sc-label'], $('lySc').checked);
+      }
+      if (me.car) { myCar = { model: me.car.model, color: me.car.color }; try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {} drawCar(); }
       else if (myCar) apiJSON('PUT', '/me/car', myCar).catch(function () {});
     }
   }
@@ -1167,7 +1238,7 @@
       function saveCar() {
         myCar = { model: car.model, color: car.color }; drawCar(); refreshPick();
         try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {}
-        apiJSON('PUT', '/me/car', myCar).catch(function () {});
+        apiJSON('PUT', '/me/car', Object.assign({}, myCar, netOn ? { networks: netOn.concat($('lySc').checked ? ['Tesla'] : []) } : {})).catch(function () {});
       }
       [].forEach.call($('pickModel').children, function (b) { b.onclick = function () { car.model = b.getAttribute('data-m'); saveCar(); }; });
       [].forEach.call($('pickColor').children, function (b) { b.onclick = function () { car.color = b.getAttribute('data-c'); saveCar(); }; });

@@ -125,7 +125,9 @@ export default {
         const b = await request.json().catch(() => ({}));
         const model = ['3', 'Y', 'S', 'X'].includes(b.model) ? b.model : '3';
         const color = /^#[0-9a-fA-F]{6}$/.test(b.color || '') ? b.color : '#f2f2f2';
-        await env.DB.prepare('UPDATE users SET car = ?2 WHERE id = ?1').bind(u.id, JSON.stringify({ model, color })).run();
+        const networks = Array.isArray(b.networks) ? b.networks.filter(n => typeof n === 'string' && n.length <= 30).slice(0, 40) : undefined;
+        const prev = u.car ? JSON.parse(u.car) : {};
+        await env.DB.prepare('UPDATE users SET car = ?2 WHERE id = ?1').bind(u.id, JSON.stringify({ model, color, networks: networks || prev.networks })).run();
         return json({ ok: true });
       }
       if (url.pathname === '/me/places' && request.method === 'PUT') {
