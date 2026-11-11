@@ -126,12 +126,21 @@
   }
   // Distance (m) jusqu'à la frontière la plus proche, pour garder une marge de sécurité.
   var BORDER_MARGIN_M = 300;
+  function ringBox(r) {
+    var b = [Infinity, Infinity, -Infinity, -Infinity];
+    for (var i = 0; i < r.length; i += 2) {
+      if (r[i] < b[0]) b[0] = r[i]; if (r[i + 1] < b[1]) b[1] = r[i + 1];
+      if (r[i] > b[2]) b[2] = r[i]; if (r[i + 1] > b[3]) b[3] = r[i + 1];
+    }
+    return b;
+  }
   function borderDistance(lat, lon, list) {
     var kx = 111320 * Math.cos(lat * toR), ky = 110540, best = Infinity;
     for (var k = 0; k < list.length; k++) {
       var r = list[k], n = r.length / 2;
-      var bx0 = (r[0] - lon) * kx, by0 = (r[1] - lat) * ky;
-      if (n > 50 && Math.sqrt(bx0 * bx0 + by0 * by0) > 400000) continue;
+      var bb = r.bbox || (r.bbox = ringBox(r));
+      var ex = Math.max(bb[0] - lon, 0, lon - bb[2]) * kx, ey = Math.max(bb[1] - lat, 0, lat - bb[3]) * ky;
+      if (Math.sqrt(ex * ex + ey * ey) > best) continue;
       for (var i = 0, j = n - 1; i < n; j = i++) {
         var ax = (r[2 * j] - lon) * kx, ay = (r[2 * j + 1] - lat) * ky;
         var bx = (r[2 * i] - lon) * kx, by = (r[2 * i + 1] - lat) * ky;
@@ -150,9 +159,11 @@
   }
   // France = dans le contour de la France ET hors des pays interdits (contour précis),
   // avec une marge de sécurité autour de leur frontière.
+  // Le contour de la France est approximatif : on l'élargit de 3 km. Ce sont les contours
+  // précis de la Suisse et de l'Allemagne qui décident près de ces frontières.
   function inFrance(lat, lon) {
-    if (!rings) return false;
-    return inAny(lat, lon, rings) && !inAny(lat, lon, banned);
+    if (!rings || inAny(lat, lon, banned)) return false;
+    return inAny(lat, lon, rings) || borderDistance(lat, lon, rings) < 3000;
   }
 
   // Longueur de zone selon le type de route (déduit de la vitesse limite) :
