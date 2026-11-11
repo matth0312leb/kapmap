@@ -61,7 +61,7 @@
   #navIcon svg { width:60px; height:60px; }
   #navDist { font-size:34px; font-weight:800; line-height:1; }
   #navText { font-size:18px; margin-top:4px; opacity:.95; }
-  body.navigating #alert { top:122px; }
+  body.navigating #alert { top:calc(var(--navBottom, 106px) + 10px); }
   #speedBox { top:auto; bottom:16px; left:16px; transform:none; }
   body.navigating #statusPill { display:none; }
   @media (max-width: 1100px) { #statusPill { display:none; } }
@@ -1313,6 +1313,14 @@
         if (cb) cb();
       }).catch(function () { rt.tollState = 'err'; });
   }
+  // Le bandeau d'alerte se place toujours juste sous le bandeau de guidage, quelle que soit sa hauteur
+  (function () {
+    var navBox = $('nav');
+    function place() { if (navBox.offsetHeight) document.body.style.setProperty('--navBottom', (navBox.offsetTop + navBox.offsetHeight) + 'px'); }
+    if (window.ResizeObserver) new ResizeObserver(place).observe(navBox);
+    window.addEventListener('resize', place);
+    setInterval(place, 1000);
+  })();
   window.KapMapDebug = { launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} }
   function launchRoute(i) {
@@ -1574,7 +1582,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794427730';
+  var BUILD = '1794428242';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
