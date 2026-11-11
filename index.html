@@ -1570,9 +1570,17 @@
         if (g1 && (!seq.length || seq[seq.length - 1].g !== g1.i)) seq.push({ g: g1.i, at: cum[e0] });
       }
       if (seq.length < 2) { total += (cum[e0] - cum[s0]) / 1000 * TOLL_EUR_KM; exact = false; return; }
-      // partie avant la première gare reconnue / après la dernière : estimée au km
-      var lead = Math.max(0, seq[0].at - cum[s0]), tail = Math.max(0, cum[e0] - seq[seq.length - 1].at);
-      if (lead > 3000 || tail > 3000) { total += (lead + tail) / 1000 * TOLL_EUR_KM; exact = false; }
+      // avant la première gare reconnue / après la dernière : payant seulement si on y croise une gare d'un autre réseau
+      function otherGateBetween(a, b) {
+        if (!d.other) return true;
+        for (var q = a; q <= b; q += 3) for (var o = 0; o < d.other.length; o++) if (dist(pts[q][1], pts[q][0], d.other[o][0], d.other[o][1]) < 200) return true;
+        return false;
+      }
+      var iFirst = s0, iLast = e0;
+      for (var q1 = s0; q1 <= e0; q1++) { if (cum[q1] >= seq[0].at) { iFirst = q1; break; } }
+      for (var q2 = e0; q2 >= s0; q2--) { if (cum[q2] <= seq[seq.length - 1].at) { iLast = q2; break; } }
+      if (seq[0].at - cum[s0] > 3000 && otherGateBetween(s0, iFirst)) { total += (seq[0].at - cum[s0]) / 1000 * TOLL_EUR_KM; exact = false; }
+      if (cum[e0] - seq[seq.length - 1].at > 3000 && otherGateBetween(iLast, e0)) { total += (cum[e0] - seq[seq.length - 1].at) / 1000 * TOLL_EUR_KM; exact = false; }
       var i = 0;
       while (i < seq.length - 1) {
         var j = seq.length - 1, p = null;
@@ -1882,7 +1890,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794440769';
+  var BUILD = '1794441046';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {

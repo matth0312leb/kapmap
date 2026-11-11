@@ -465,6 +465,7 @@ def build_tolls():
     by_compact = {}
     for k, v in by_key.items():
         by_compact.setdefault(compact(k), []).extend(v)
+    used_keys = set()
     found = 0
     for g in gates:
         variants = [g["key"], gare_key(re.sub(r"\(.*?\)", " ", g["name"])),
@@ -492,12 +493,17 @@ def build_tolls():
         if pts:
             g["pts"] = pts[:6]
             found += 1
+            for k, v in by_key.items():
+                if v is pts or any(p in pts for p in v[:1]):
+                    used_keys.add(k)
     print(f"Péages : {len(gates)} gares, {found} localisées, {len(pairs)} tarifs")
     out = {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "source": "Tarifs APRR / AREA (data.gouv.fr, Licence Ouverte) ; gares de péage (data.gouv.fr)",
            "class": 1,
            "gates": [[g["net"], g["name"], g["pts"]] for g in gates],
            "missing": sorted(g["net"] + ":" + g["name"] for g in gates if not g["pts"]),
+           # gares des autres réseaux (sans grille de tarifs) : pour savoir si un bout de trajet est vraiment payant
+           "other": [p for k, v in by_key.items() if k not in used_keys for p in v[:2]],
            "pairs": pairs}
     if found < 50 or len(pairs) < 1000:
         raise RuntimeError("trop peu de données de péage")
