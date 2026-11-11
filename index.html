@@ -360,6 +360,11 @@
   #layers .lyHead { display:flex; align-items:center; gap:8px; color:#a8a8ad; font-weight:700; letter-spacing:.12em; }
   #layers .lyHead::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--red); box-shadow:0 0 10px var(--red); }
   body:not(.light) #layers .lyTop button:active { box-shadow:0 0 16px rgba(227,25,55,.45); }
+  #btnStart { display:none !important; }
+  #btnRecenter { position:absolute; right:22px; bottom:28px; z-index:560; display:none; align-items:center; gap:8px; padding:12px 18px; border:0; border-radius:999px; cursor:pointer;
+    font:inherit; font-size:15px; font-weight:700; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 8px 26px rgba(227,25,55,.45), inset 0 1px 0 rgba(255,255,255,.25); animation:kIn .2s ease-out; }
+  body.free #btnRecenter { display:flex; }
+  body.navigating #btnRecenter { bottom:96px; }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -372,13 +377,13 @@
   <div id="alertIcon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg></div>
   <div style="flex:1;min-width:0">
     <div id="alertTitle">Bienvenue</div>
-    <div id="alertSub">Appuie sur le bouton rouge pour démarrer.</div>
+    <div id="alertSub">Recherche de ta position…</div>
     <div id="zoneBar"><i id="zoneFill"></i></div>
   </div>
 </div>
 
 <div id="tools" class="panel">
-  <button class="tbtn go" id="btnStart" title="Démarrer / recentrer"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg></button>
+  <button class="tbtn go" id="btnStart" hidden title="Démarrer / recentrer"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg></button>
   <button class="tbtn" id="btnAccount" title="Mon compte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
   <button class="tbtn" id="btnLayers" title="Calques"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
   <button class="tbtn on" id="btnSound" title="Son"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/></svg></button>
@@ -387,6 +392,8 @@
 </div>
 
 <button id="btnCompass" title="Orientation de la carte"><svg id="needle" viewBox="0 0 24 24"><path d="M12 2.5l3.2 9.5h-6.4z" fill="#e31937"/><path d="M12 21.5l-3.2-9.5h6.4z" fill="currentColor" opacity=".55"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg><span id="compassN">N</span></button>
+
+<button id="btnRecenter"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg>Recentrer</button>
 
 <div id="layers" class="panel">
   <div class="lyTop"><b>Réglages</b><button id="lyClose" title="Fermer">×</button></div>
@@ -670,16 +677,19 @@
   setInterval(function () { var c = last ? { lat: last.lat, lng: last.lon } : map.getCenter(); applyTheme(c.lat, c.lng); }, 60000);
 
   var follow = true, lastSpeed = 0;
+  // Carte déplacée à la main : on affiche « Recentrer » (le GPS démarre tout seul, plus besoin du bouton rouge)
+  function setFree(free) { document.body.classList.toggle('free', !!free); }
+  $('btnRecenter').onclick = function () { $('btnStart').onclick.call($('btnStart')); };
   // Quand on déplace la carte à la main, on arrête de suivre la voiture…
   var lastUserMove = 0;
-  function userMoved(e) { if (e && e.originalEvent) { follow = false; lastUserMove = Date.now(); $('btnStart').classList.remove('go'); } }
+  function userMoved(e) { if (e && e.originalEvent) { follow = false; lastUserMove = Date.now(); setFree(true); } }
   map.on('dragstart', userMoved); map.on('zoomstart', userMoved); map.on('rotatestart', userMoved); map.on('pitchstart', userMoved);
   // … et on y revient tout seul après 12 s sans toucher la carte, si la voiture roule
   function autoRecenter(speedKmh) {
     if (follow || !lastUserMove || (speedKmh || 0) < 8) return;
     if (Date.now() - lastUserMove < 12000 || document.querySelector('.maplibregl-popup')) return;
     if ($('layers').classList.contains('show') || $('account').classList.contains('show')) return;
-    follow = true; $('btnStart').classList.add('go');
+    follow = true; setFree(false);
   }
   // Orientation : « route » (la carte tourne avec la voiture, vue 3D) ou « nord » (nord en haut, vue à plat)
   var orient = 'route';
@@ -1251,7 +1261,7 @@
   $('sheetCancel').onclick = function () { $('sheet').classList.remove('show'); };
   function sendReport(type) {
     $('sheet').classList.remove('show');
-    if (!last) { toast('Appuie d\'abord sur le bouton rouge pour activer le GPS'); return; }
+    if (!last) { toast('Position GPS pas encore trouvée, réessaie dans un instant'); return; }
     fetch(API + '/reports', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ lat: last.lat, lon: last.lon, type: type }) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (x) { if (x.ok && me && !x.d.merged) me.reports = (me.reports || 0) + 1; if (x.ok && x.d.points) setTimeout(function () { gainedPoints(x.d.points); }, 1600); toast(x.ok ? (x.d.merged ? 'Déjà signalé : ta confirmation est ajoutée' : 'Danger signalé, merci') : (x.d.error || 'Envoi impossible')); loadHazards(last.lat, last.lon, true); })
@@ -1323,7 +1333,7 @@
   }
   // Domicile / Travail = position actuelle (pratique quand on est garé devant)
   function saveHere(kind) {
-    if (!last) { toast('Appuie d\'abord sur le bouton rouge pour activer le GPS'); return; }
+    if (!last) { toast('Position GPS pas encore trouvée, réessaie dans un instant'); return; }
     var here = { lat: last.lat, lon: last.lon };
     var fallback = { lat: here.lat, lon: here.lon, short: kind === 'home' ? 'Ma maison' : 'Mon travail', title: 'Position enregistrée', sub: '' };
     fetch('https://photon.komoot.io/reverse?lat=' + here.lat.toFixed(6) + '&lon=' + here.lon.toFixed(6) + '&lang=fr&limit=1')
@@ -1346,7 +1356,7 @@
   }
   var destMarker = null;
   function previewPlace(p) {
-    follow = false; $('btnStart').classList.remove('go');
+    follow = false; setFree(true);
     if (destMarker) destMarker.remove();
     destMarker = new maplibregl.Marker({ color: '#e82127' }).setLngLat([p.lon, p.lat]).addTo(map);
     map.flyTo({ center: [p.lon, p.lat], zoom: 15, pitch: 0, bearing: 0 });
@@ -1566,7 +1576,7 @@
       if (destMarker) destMarker.remove();
       destMarker = new maplibregl.Marker({ color: '#e31937' }).setLngLat([dest.lon, dest.lat]).addTo(map);
       drawAlts(); showRouteChoice(); setStatus('Choisis ton itinéraire', 'ok');
-      follow = false; $('btnStart').classList.remove('go');
+      follow = false; setFree(true);
       var b = new maplibregl.LngLatBounds([from.lon, from.lat], [from.lon, from.lat]);
       list.forEach(function (rt) { (rt.kind === 'tomtom' ? rt.points : rt.geometry.coordinates).forEach(function (c) { b.extend(c); }); });
       map.fitBounds(b, { padding: { top: 90, bottom: 260, left: 60, right: 120 }, pitch: 0, bearing: 0, duration: 700 });
@@ -1606,7 +1616,7 @@
     destMarker = new maplibregl.Marker({ color: '#e31937' }).setLngLat([dest.lon, dest.lat]).addTo(map);
     document.body.classList.add('navigating'); $('nav').classList.add('show'); $('trip').classList.add('show');
     setStatus('C\'est parti', 'ok');
-    follow = true; $('btnStart').classList.add('go'); if (last) navTo(last.lat, last.lon, false);
+    follow = true; setFree(false); if (last) navTo(last.lat, last.lon, false);
     if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic();
     renderNav(from.lat, from.lon);
     try { localStorage.setItem('vigie-nav', JSON.stringify(dest)); } catch (e) {}
@@ -1808,7 +1818,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794433525';
+  var BUILD = '1794433787';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2270,7 +2280,7 @@
   }
   $('btnStart').onclick = function () {
     unlockAudio();
-    follow = true; this.classList.add('go');
+    follow = true; setFree(false);
     if (last) navTo(last.lat, last.lon, false);
     if (demoTimer) stopDemo();
     if (watchId !== null) return;
@@ -2299,6 +2309,7 @@
     var auto = null, dest = null;
     try { auto = localStorage.getItem('vigie-autostart'); dest = JSON.parse(localStorage.getItem('vigie-nav') || 'null'); } catch (e) {}
     if (auto === '1' && watchId === null && !SIM) $('btnStart').onclick.call($('btnStart'));
+    else if (watchId === null && !SIM) hasLocPermission(function (ok) { if (ok && watchId === null) $('btnStart').onclick.call($('btnStart')); });
     if (dest && dest.lat) setTimeout(function () { startNav(dest, true); }, 2500);
   }, 800);
 
