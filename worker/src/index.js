@@ -80,6 +80,18 @@ function cleanPlace(p) {
   return JSON.stringify({ lat, lon, short: String(p.short || '').slice(0, 60), title: String(p.title || '').slice(0, 80), sub: String(p.sub || '').slice(0, 120) });
 }
 
+// Décodage des entités HTML (y compris doublement encodées : &amp;#xE9;)
+function decodeEntities(t) {
+  let out = String(t || '');
+  for (let k = 0; k < 2; k++) {
+    out = out.replace(/&amp;/g, '&')
+      .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+      .replace(/&#([0-9]+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+      .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ');
+  }
+  return out.replace(/\u00a0/g, ' ').replace(/<[^>]+>/g, '');
+}
+
 const validCoord = (lat, lon) => Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
 
 export default {
@@ -365,7 +377,7 @@ export default {
         if (!r.ok) return json({ items: [] });
         const xml = await r.text();
         const items = [...xml.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>[\s\S]*?<link>([\s\S]*?)<\/link>/g)]
-          .slice(0, 8).map(m => ({ title: m[1].replace(/&amp;/g, '&').replace(/&#039;|&apos;/g, "'").replace(/&quot;/g, '"').trim().slice(0, 140), link: m[2].trim() }));
+          .slice(0, 8).map(m => ({ title: decodeEntities(m[1]).trim().slice(0, 140), link: decodeEntities(m[2]).trim() }));
         return new Response(JSON.stringify({ source: 'franceinfo', items }), { headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=900', ...cors } });
       }
 
