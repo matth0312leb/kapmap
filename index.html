@@ -738,6 +738,29 @@
     refreshPlaces(); toast((kind === 'home' ? 'Domicile' : 'Travail') + ' enregistré : ' + p.short);
     if (me) { var b = {}; b[kind] = p; apiJSON('PUT', '/me/places', b).catch(function () {}); me[kind] = p; }
   }
+  // Domicile / Travail = position actuelle (pratique quand on est garé devant)
+  function saveHere(kind) {
+    if (!last) { toast('Appuie d\'abord sur le bouton rouge pour activer le GPS'); return; }
+    var here = { lat: last.lat, lon: last.lon };
+    var fallback = { lat: here.lat, lon: here.lon, short: kind === 'home' ? 'Ma maison' : 'Mon travail', title: 'Position enregistrée', sub: '' };
+    fetch('https://photon.komoot.io/reverse?lat=' + here.lat.toFixed(6) + '&lon=' + here.lon.toFixed(6) + '&lang=fr&limit=1')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var f = d.features && d.features[0];
+        if (!f) return fallback;
+        var p = placeLabel(f); p.lat = here.lat; p.lon = here.lon;      // on garde la position exacte de la voiture
+        var a = f.properties || {};
+        p.short = a.street ? a.street + (a.housenumber ? ' ' + a.housenumber : '') : (a.city || p.short);
+        return p;
+      })
+      .catch(function () { return fallback; })
+      .then(function (p) { savePlace(kind, p); clearResults(); });
+  }
+  function showPlaceSetup(kind) {
+    var box = $('results'), label = kind === 'home' ? 'Domicile' : 'Travail';
+    box.innerHTML = '<div class="res"><div class="t"><b>Définir ' + label + '</b><span>Garé devant ? Utilise ta position actuelle. Sinon, tape l\'adresse dans la barre.</span></div><button class="go" id="useHere">Ma position actuelle</button></div>';
+    $('useHere').onclick = function () { saveHere(kind); };
+  }
   var destMarker = null;
   function previewPlace(p) {
     follow = false; $('btnStart').classList.remove('go');
@@ -754,11 +777,19 @@
   function goSaved(kind) {
     var p = kind === 'home' ? homeAddr : workAddr;
     if (p) { startNav(p); return; }
-    toast('Cherche ton adresse, puis touche « ' + (kind === 'home' ? 'Domicile' : 'Travail') + ' » dans les résultats');
-    $('q').focus();
+    showPlaceSetup(kind);
   }
-  $('goHome').onclick = function () { goSaved('home'); };
-  $('goWork').onclick = function () { goSaved('work'); };
+  $('goHome').onclick = function () { if (longPressed) { longPressed = false; return; } goSaved('home'); };
+  $('goWork').onclick = function () { if (longPressed) { longPressed = false; return; } goSaved('work'); };
+  // Appui long (0,6 s) sur Domicile ou Travail : changer l'adresse
+  var longPressed = false;
+  [['goHome', 'home'], ['goWork', 'work']].forEach(function (x) {
+    var t = null, btn = $(x[0]);
+    function start() { longPressed = false; t = setTimeout(function () { longPressed = true; showPlaceSetup(x[1]); }, 600); }
+    function stop() { clearTimeout(t); }
+    btn.addEventListener('touchstart', start, { passive: true }); btn.addEventListener('mousedown', start);
+    ['touchend', 'touchcancel', 'mouseup', 'mouseleave'].forEach(function (ev) { btn.addEventListener(ev, stop); });
+  });
 
   // ---- Itinéraire ----
   var nav = null, routeGeo = null;      // nav = { dest, coords, cum, steps, total, duration, idx, lastSpoken, offCount, lastReroute }
@@ -999,7 +1030,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794420063';
+  var BUILD = '1794420403';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1044,8 +1075,11 @@
       c.innerHTML = '<h2>Salut ' + esc(hello()) + '</h2><p class="lead">Connecté en tant que <b>' + esc(me.pseudo) + '</b></p>' +
         '<div class="stat"><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div><div><b>' + since.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) + '</b><span>membre depuis</span></div></div>' +
         '<p class="small">Domicile : ' + esc(homeAddr ? homeAddr.short : 'non défini') + '<br>Travail : ' + esc(workAddr ? workAddr.short : 'non défini') + '<br>Ces adresses suivent ton compte, sur la voiture comme sur ton téléphone.</p>' +
+        '<button class="btn sec" id="aHome">Domicile = ma position actuelle</button><button class="btn sec" id="aWork">Travail = ma position actuelle</button>' +
         '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>';
       $('aClose').onclick = closeAccount;
+      $('aHome').onclick = function () { closeAccount(); saveHere('home'); };
+      $('aWork').onclick = function () { closeAccount(); saveHere('work'); };
       $('aLogout').onclick = function () { apiJSON('POST', '/auth/logout').catch(function () {}); setSession(null, null); closeAccount(); toast('Déconnecté'); };
     } else {
       var reg = view === 'register';
