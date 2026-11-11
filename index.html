@@ -1499,7 +1499,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794426117';
+  var BUILD = '1794426395';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -1892,7 +1892,7 @@
         setAlert('danger', 'Zone de danger', 'Fin de zone dans ' + (remaining >= 1000 ? (remaining / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(remaining / 10) * 10 + ' m'));
         $('zoneFill').style.width = Math.min(100, active.done / active.L * 100) + '%';
         $('limit').className = vma ? 'show' : ''; $('limit').textContent = vma || '–';
-        var over = vma && speed !== null && speed > vma + 2;
+        var over = vma && speed !== null && speed > vma + 5;   // dans une zone : +5 km/h
         $('speed').className = over ? 'over' : '';
         if (over && now - lastOverBeep > 6000) { beep(1); lastOverBeep = now; }
         return;
