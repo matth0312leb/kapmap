@@ -10,6 +10,7 @@ const TYPES = {
   travaux: 24 * 60,
   nid_de_poule: 7 * 24 * 60,
   meteo: 6 * 60,
+  zone_danger: 60,       // France uniquement (affiché comme « zone de danger », sans précision)
 };
 const MAX_RADIUS_KM = 50;
 
@@ -271,6 +272,91 @@ export default {
         const r = await fetch(upstream, { cf: { cacheTtl: 60, cacheEverything: true } });
         if (!r.ok) return new Response(null, { status: r.status, headers: cors });
         return new Response(r.body, { headers: { 'Content-Type': 'application/x-protobuf', 'Cache-Control': 'public, max-age=60', ...cors } });
+      }
+
+      // ----- Itinéraire complet (TomTom) : guidage FR, trafic, limitations, voies, options, alternatives -----
+      if (request.method === 'GET' && url.pathname === '/route') {
+        if (!env.TOMTOM_KEY) return json({ error: 'Clé absente' }, 503);
+        const f = (url.searchParams.get('from') || '').split(',').map(Number);
+        const t = (url.searchParams.get('to') || '').split(',').map(Number);
+        if (!validCoord(f[0], f[1]) || !validCoord(t[0], t[1])) return json({ error: 'Paramètres invalides' }, 400);
+        const avoid = (url.searchParams.get('avoid') || '').split(',').filter(a => ['tollRoads', 'motorways', 'ferries'].includes(a));
+        const alts = Math.max(0, Math.min(2, parseInt(url.searchParams.get('alt') || '0', 10) || 0));
+        const heading = parseInt(url.searchParams.get('heading') || '', 10);
+        let q = 'traffic=true&routeType=fastest&travelMode=car&instructionsType=text&language=fr-FR' +
+          '&sectionType=traffic&sectionType=speedLimit&sectionType=lanes&maxAlternatives=' + alts;
+        avoid.forEach(a => { q += '&avoid=' + a; });
+        if (heading >= 0 && heading < 360) q += '&vehicleHeading=' + heading;
+        const r = await fetch('https://api.tomtom.com/routing/1/calculateRoute/' + f[0] + ',' + f[1] + ':' + t[0] + ',' + t[1] + '/json?' + q + '&key=' + env.TOMTOM_KEY);
+        if (!r.ok) return json({ error: 'Itinéraire indisponible' }, 502);
+        const d = await r.json();
+        const routes = (d.routes || []).map(rt => {
+          const pts = [];
+          rt.legs.forEach(l => l.points.forEach(p => pts.push([Math.round(p.longitude * 1e5) / 1e5, Math.round(p.latitude * 1e5) / 1e5])));
+          const sec = rt.sections || [];
+          return {
+            length: rt.summary.lengthInMeters, travel: rt.summary.travelTimeInSeconds, delay: rt.summary.trafficDelayInSeconds || 0,
+            points: pts,
+            instr: ((rt.guidance && rt.guidance.instructions) || []).map(i => ({
+              i: i.pointIndex, off: i.routeOffsetInMeters, m: i.maneuver || '', msg: i.message || '', ex: i.roundaboutExitNumber || null,
+              street: i.street || '', exit: i.exitNumber || '' })),
+            speed: sec.filter(x => x.sectionType === 'SPEED_LIMIT').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
+              v: x.maxSpeedLimitInKmh || x.maxSpeedLimitInKilometersPerHour || (x.speedRestrictions && x.speedRestrictions[0] && x.speedRestrictions[0].maxSpeedLimitInKilometersPerHour) || null })).filter(x => x.v),
+            jams: sec.filter(x => x.sectionType === 'TRAFFIC').map(x => ({ s: x.startPointIndex, e: x.endPointIndex, cat: x.simpleCategory || 'JAM', mag: x.magnitudeOfDelay || 0 })),
+            lanes: sec.filter(x => x.sectionType === 'LANES').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
+              l: (x.lanes || []).map(ln => ({ d: ln.directions || [], f: ln.follow || null })) })).filter(x => x.l.length > 1),
+          };
+        });
+        if (!routes.length) return json({ error: 'Aucun itinéraire' }, 404);
+        return json({ routes });
+      }
+
+      // ----- Limitation de vitesse à une position (hors guidage) -----
+      if (request.method === 'GET' && url.pathname === '/speedlimit') {
+        if (!env.TOMTOM_KEY) return json({ error: 'Clé absente' }, 503);
+        const lat = parseFloat(url.searchParams.get('lat')), lon = parseFloat(url.searchParams.get('lon'));
+        const heading = parseInt(url.searchParams.get('heading') || '', 10);
+        if (!validCoord(lat, lon)) return json({ error: 'Paramètres invalides' }, 400);
+        const r = await fetch('https://api.tomtom.com/search/2/reverseGeocode/' + lat.toFixed(5) + ',' + lon.toFixed(5) + '.json?returnSpeedLimit=true&radius=40' +
+          (heading >= 0 && heading < 360 ? '&heading=' + heading : '') + '&key=' + env.TOMTOM_KEY, { cf: { cacheTtl: 3600, cacheEverything: true } });
+        if (!r.ok) return json({ limit: null });
+        const d = await r.json();
+        const a = d.addresses && d.addresses[0] && d.addresses[0].address;
+        const m = a && a.speedLimit ? String(a.speedLimit).match(/([0-9.]+)\s*(KPH|MPH)/i) : null;
+        const v = m ? Math.round(parseFloat(m[1]) * (m[2].toUpperCase() === 'MPH' ? 1.609 : 1)) : null;
+        return json({ limit: v, street: a ? (a.streetName || '') : '' });
+      }
+
+      // ----- Partage de trajet (lien temporaire) -----
+      if (request.method === 'POST' && url.pathname === '/share') {
+        const b = await request.json().catch(() => ({}));
+        if (!validCoord(Number(b.lat), Number(b.lon))) return json({ error: 'Position invalide' }, 400);
+        const id = randomHex(6), secret = randomHex(16);
+        const owner = await currentUser(request, env);
+        const data = { name: owner ? (owner.name || owner.pseudo) : String(b.name || '').slice(0, 30), dest: String(b.dest || '').slice(0, 80),
+          dlat: Number(b.dlat) || null, dlon: Number(b.dlon) || null, lat: Number(b.lat), lon: Number(b.lon), eta: Number(b.eta) || null, speed: 0, arrived: false };
+        await env.DB.prepare('INSERT INTO shares (id, secret, data, updated, expires) VALUES (?1, ?2, ?3, ?4, ?5)').bind(id, secret, JSON.stringify(data), now, now + 4 * 3600000).run();
+        await env.DB.prepare('DELETE FROM shares WHERE expires < ?1').bind(now).run();
+        return json({ id, secret });
+      }
+      const sh = url.pathname.match(/^\/share\/([a-f0-9]{12})$/);
+      if (sh && request.method === 'PUT') {
+        const b = await request.json().catch(() => ({}));
+        const row = await env.DB.prepare('SELECT * FROM shares WHERE id = ?1').bind(sh[1]).first();
+        if (!row || row.secret !== String(b.secret || '')) return json({ error: 'Lien inconnu' }, 404);
+        const data = JSON.parse(row.data);
+        if (validCoord(Number(b.lat), Number(b.lon))) { data.lat = Number(b.lat); data.lon = Number(b.lon); }
+        if (b.eta) data.eta = Number(b.eta);
+        data.speed = Number(b.speed) || 0;
+        if (b.arrived) data.arrived = true;
+        await env.DB.prepare('UPDATE shares SET data = ?2, updated = ?3, expires = ?4 WHERE id = ?1')
+          .bind(sh[1], JSON.stringify(data), now, b.arrived ? now + 1800000 : row.expires).run();
+        return json({ ok: true });
+      }
+      if (sh && request.method === 'GET') {
+        const row = await env.DB.prepare('SELECT data, updated, expires FROM shares WHERE id = ?1').bind(sh[1]).first();
+        if (!row || row.expires < now) return json({ error: 'Ce partage est terminé' }, 404);
+        return json(Object.assign(JSON.parse(row.data), { updated: row.updated }));
       }
 
       // Trafic sur un trajet : durée réelle + tronçons ralentis
