@@ -36,6 +36,18 @@
   .dot { display:inline-block; width:12px; height:12px; border-radius:50%; background:var(--mut); margin-right:8px; vertical-align:middle; }
   .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); } .dot.err { background:var(--err); }
   footer { color:var(--mut); font-size:14px; margin-top:auto; line-height:1.5; }
+  @media (max-width: 700px) {
+    body { padding:14px; gap:12px; }
+    header { flex-direction:column; align-items:flex-start; }
+    button { font-size:17px; padding:12px 16px; }
+    #zone { padding:18px; min-height:140px; }
+    #zoneTitle { font-size:30px; }
+    #zoneSub { font-size:17px; }
+    .limit { width:96px; height:96px; border-width:10px; font-size:36px; }
+    .grid { grid-template-columns:1fr 1fr; }
+    .grid .card:first-child { grid-column:1 / -1; }
+    .val { font-size:44px; }
+  }
 </style>
 </head>
 <body>
