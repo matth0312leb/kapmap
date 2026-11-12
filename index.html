@@ -488,6 +488,9 @@
   .prTop small { color:var(--mut); font-size:12px; text-transform:uppercase; letter-spacing:.12em; } .prTop h2 { margin:0 !important; }
   .prList { list-style:none; padding:0; margin:10px 0 14px; display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; font-size:14px; }
   .prList li { padding-left:22px; position:relative; } .prList li::before { content:''; position:absolute; left:2px; top:5px; width:10px; height:10px; border-radius:50%; background:#e31937; box-shadow:0 0 10px #e31937; }
+  .prAgree { display:flex; gap:10px; align-items:flex-start; margin:0 0 12px; font-size:12.5px; line-height:1.4; color:var(--mut); cursor:pointer; }
+  .prAgree input { flex:none; width:20px; height:20px; margin:1px 0 0; accent-color:#e31937; }
+  .prAgree a { color:inherit; }
   .prPlans { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
   .prPlan { position:relative; font:inherit; color:var(--txt); text-align:left; padding:16px 10px 12px; min-width:0; border-radius:16px; cursor:pointer; background:rgba(127,127,127,.08); border:1px solid var(--line); transition:all .15s; }
   .prPlan span { display:block; font-size:13px; color:var(--mut); } .prPlan b { display:block; font-size:17px; white-space:nowrap; margin:4px 0 2px; } .prPlan small { font-size:12px; color:var(--mut); }
@@ -630,6 +633,7 @@
     <button class="prPlan best" data-p="year"><em>Populaire</em><span>Annuel</span><b id="prYear">Tarif à venir</b><small>Soit 2,99 €/mois</small></button>
     <button class="prPlan" data-p="life"><em>Lancement</em><span>À vie</span><b id="prLife">Tarif à venir</b><small>Un seul paiement</small></button>
   </div>
+  <label class="prAgree"><input type="checkbox" id="prAgree"><span>Je demande l'accès immédiat à KapMap Premium et je renonce à mon droit de rétractation de 14 jours. J'ai lu les <a href="legal.html#cgu" target="_blank">conditions</a>.</span></label>
   <button class="btn pri" id="prGo" disabled>Bientôt disponible</button>
   <button class="btn sec" id="prClose">Plus tard</button>
   <p class="small">Sans engagement : tu résilies quand tu veux, l'accès reste actif jusqu'à la fin de la période payée. Paiements non remboursables. Paiement sécurisé.</p>
@@ -2202,13 +2206,15 @@
     if (PRICES.month) $('prMonth').textContent = PRICES.month;
     if (PRICES.year) $('prYear').textContent = PRICES.year;
     if (PRICES.life) $('prLife').textContent = PRICES.life;
-    if (isBeta) $('prGo').textContent = 'Gratuit pendant la bêta';
-    else if (PRICES.url) { $('prGo').disabled = false; $('prGo').textContent = 'Passer à Premium'; }
+    if (isBeta) { $('prGo').textContent = 'Gratuit pendant la bêta'; document.querySelector('.prAgree').style.display = 'none'; }
+    else if (PRICES.url) { $('prGo').textContent = 'Passer à Premium'; $('prGo').disabled = !$('prAgree').checked; }
+    // Paiement possible seulement après avoir coché la renonciation au délai de rétractation
+    $('prAgree').onchange = function () { if (!isBeta && PRICES.url) $('prGo').disabled = !this.checked; };
     [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.onclick = function () { plan = b.getAttribute('data-p'); sel(); }; });
     sel();
     $('btnPremium').onclick = function () { $('lyClose').onclick(); $('premium').classList.add('show'); };
     $('prClose').onclick = function () { $('premium').classList.remove('show'); };
-    $('prGo').onclick = function () { if (PRICES.url) window.open(PRICES.url + (PRICES.url.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(me ? me.pseudo : '') + '&plan=' + plan, '_blank'); };
+    $('prGo').onclick = function () { if (PRICES.url && $('prAgree').checked) window.open(PRICES.url + (PRICES.url.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(me ? me.pseudo : '') + '&plan=' + plan, '_blank'); };
   })();
   window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
@@ -2527,7 +2533,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794525423';
+  var BUILD = '1794525653';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
