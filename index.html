@@ -1159,6 +1159,22 @@
     });
   }
   function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // Pictogrammes des bornes : Superchargeur (carré rouge, éclair blanc) et autres réseaux (rond sombre, éclair bleu)
+  function chargerIcons() {
+    if (!map.addImage || (map.hasImage && map.hasImage('chg-sc'))) return;
+    function make(id, draw) { var cv = document.createElement('canvas'); cv.width = cv.height = 64; var g = cv.getContext('2d'); draw(g); try { map.addImage(id, g.getImageData(0, 0, 64, 64), { pixelRatio: 2 }); } catch (e) {} }
+    var bolt = new Path2D('M13 2L4 14h7l-1 8 9-12h-7z');
+    make('chg-sc', function (g) {
+      g.shadowColor = 'rgba(227,25,55,.7)'; g.shadowBlur = 8;
+      g.beginPath(); if (g.roundRect) g.roundRect(6, 6, 52, 52, 14); else g.rect(6, 6, 52, 52); g.fillStyle = '#e31937'; g.fill();
+      g.shadowBlur = 0; g.lineWidth = 3; g.strokeStyle = '#ffffff'; g.stroke();
+      g.save(); g.translate(14, 13); g.scale(1.5, 1.6); g.fillStyle = '#fff'; g.fill(bolt); g.restore();
+    });
+    make('chg-other', function (g) {
+      g.beginPath(); g.arc(32, 32, 24, 0, Math.PI * 2); g.fillStyle = '#16233a'; g.fill(); g.lineWidth = 3.5; g.strokeStyle = '#ffffff'; g.stroke();
+      g.save(); g.translate(16, 15); g.scale(1.35, 1.45); g.fillStyle = '#4da3ff'; g.fill(bolt); g.restore();
+    });
+  }
   var scItems = null, scClickBound = false;
   function drawSuperchargers(items) { scItems = items; whenReady(addScLayers); }
   function addScLayers() {
@@ -1167,9 +1183,9 @@
     map.addSource('sc', { type: 'geojson', data: { type: 'FeatureCollection', features: scItems.map(function (s) {
       return { type: 'Feature', properties: { name: s[2], stalls: s[3] || 0, kw: s[4] || 0, open: s.length > 5 ? s[5] : -1, street: s[6] || '', city: s[7] || '', solar: s[8] || 0, battery: s[9] || 0 }, geometry: { type: 'Point', coordinates: [s[1], s[0]] } };
     }) } });
-    map.addLayer({ id: 'sc-circle', type: 'circle', source: 'sc', paint: {
-      'circle-color': light ? '#111111' : '#f5f5f5', 'circle-stroke-color': light ? '#ffffff' : '#111111', 'circle-stroke-width': 2,
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 4, 10, 7, 15, 11] } });
+    chargerIcons();
+    map.addLayer({ id: 'sc-circle', type: 'symbol', source: 'sc', layout: { 'icon-image': 'chg-sc', 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 5, 0.45, 10, 0.7, 15, 1] } });
     map.addLayer({ id: 'sc-label', type: 'symbol', source: 'sc', minzoom: 12, layout: {
       'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 13, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-max-width': 12 },
       paint: { 'text-color': light ? '#111111' : '#f5f5f5', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
@@ -1189,9 +1205,9 @@
     map.addSource('ch', { type: 'geojson', data: { type: 'FeatureCollection', features: chItems.map(function (c) {
       return { type: 'Feature', properties: { net: c[2], name: c[3], cap: c[4], kw: c[5] }, geometry: { type: 'Point', coordinates: [c[1], c[0]] } };
     }) } });
-    map.addLayer({ id: 'ch-circle', type: 'circle', source: 'ch', minzoom: 7, paint: {
-      'circle-color': light ? '#ffffff' : '#1c1d1f', 'circle-stroke-color': light ? '#111111' : '#f5f5f5', 'circle-stroke-width': 2.2,
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 3, 11, 5.5, 15, 9] }, filter: chFilter() });
+    chargerIcons();
+    map.addLayer({ id: 'ch-circle', type: 'symbol', source: 'ch', minzoom: 7, filter: chFilter(), layout: { 'icon-image': 'chg-other', 'icon-allow-overlap': true,
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 7, 0.4, 11, 0.6, 15, 0.9] } });
     map.addLayer({ id: 'ch-label', filter: chFilter(), type: 'symbol', source: 'ch', minzoom: 13, layout: {
       'text-field': ['get', 'net'], 'text-font': ['Noto Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.3], 'text-anchor': 'top' },
       paint: { 'text-color': light ? '#111111' : '#e5e5e5', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
@@ -1287,9 +1303,9 @@
     if (map.getSource('irve')) return;
     var light = theme === 'light';
     map.addSource('irve', { type: 'geojson', data: { type: 'FeatureCollection', features: irveFeats } });
-    map.addLayer({ id: 'irve-circle', type: 'circle', source: 'irve', minzoom: 8, filter: chFilter(), paint: {
-      'circle-color': light ? '#ffffff' : '#1c1d1f', 'circle-stroke-color': light ? '#111111' : '#f5f5f5', 'circle-stroke-width': 2,
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 2.5, 11, 5, 15, 8.5] } });
+    chargerIcons();
+    map.addLayer({ id: 'irve-circle', type: 'symbol', source: 'irve', minzoom: 8, filter: chFilter(), layout: { 'icon-image': 'chg-other', 'icon-allow-overlap': true,
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.4, 11, 0.6, 15, 0.9] } });
     map.addLayer({ id: 'irve-label', type: 'symbol', source: 'irve', minzoom: 14, filter: chFilter(), layout: {
       'text-field': ['get', 'net'], 'text-font': ['Noto Sans Regular'], 'text-size': 11, 'text-offset': [0, 1.3], 'text-anchor': 'top' },
       paint: { 'text-color': light ? '#111111' : '#e5e5e5', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
@@ -2443,7 +2459,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794520596';
+  var BUILD = '1794520720';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
