@@ -1325,10 +1325,9 @@
         });
         poiFC = { type: 'FeatureCollection', features: feats };
         if (map.getSource('poi')) map.getSource('poi').setData(poiFC); else addPoiLayers();
-        if (poiAnnounce && !feats.length) toast('Aucun resto, café ou commerce par ici');
         poiAnnounce = false;
       })
-      .catch(function () { if (poiAnnounce) toast('Lieux indisponibles pour le moment, réessaie dans un instant'); poiAnnounce = false; poiLastKey = ''; });
+      .catch(function () { poiAnnounce = false; poiLastKey = ''; });
   }
 
 
@@ -2237,7 +2236,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794510127';
+  var BUILD = '1794510257';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
