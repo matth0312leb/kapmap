@@ -418,6 +418,14 @@
   #splash i { width:120px; height:3px; border-radius:2px; background:rgba(255,255,255,.1); overflow:hidden; position:relative; }
   #splash i::after { content:''; position:absolute; inset:0; width:40%; background:#e31937; border-radius:2px; animation:spl 1.1s ease-in-out infinite; }
   @keyframes spl { from { left:-40%; } to { left:100%; } }
+  #layers .lyRow { display:flex; align-items:center; justify-content:space-between; width:100%; font:inherit; font-size:15px; text-align:left; color:var(--txt); background:transparent; border:0; padding:12px 2px; cursor:pointer; }
+  #layers .lyRow i { font-style:normal; color:var(--red); font-size:22px; line-height:1; }
+  #layers .lyVer { font-size:11px; color:var(--mut); padding:6px 2px 4px; }
+  #fbKind { margin-top:14px; }
+  #fbKind button { flex:1; font:inherit; font-size:15px; padding:10px 6px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
+  #fbKind button.sel { background:linear-gradient(180deg,#ef2a47,#c8102e); color:#fff; border-color:transparent; box-shadow:0 6px 18px rgba(227,25,55,.35); }
+  .field textarea { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:13px 14px; border-radius:12px; border:1px solid var(--line); background:rgba(127,127,127,.08); color:var(--txt); outline:none; resize:none; }
+  .field textarea:focus { border-color:rgba(227,25,55,.7); box-shadow:0 0 0 3px rgba(227,25,55,.18); }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -473,6 +481,10 @@
 
   <div class="lyHead">Son</div>
   <label class="sw2">Annonces vocales<input type="checkbox" id="optVoice"></label>
+
+  <div class="lyHead">Aide</div>
+  <button class="lyRow" id="btnFeedback"><span>Suggérer une idée ou signaler un bug</span><i>›</i></button>
+  <div class="lyVer" id="lyVer"></div>
 </div>
 </div>
 
@@ -541,6 +553,15 @@
   <div class="lyHead2">Quiz de la route</div>
   <div id="pQuiz"></div>
   <button class="btn sec" id="pClose" style="margin-top:16px">Reprendre la route</button>
+</div></div>
+
+<div id="fbBox" class="overlay"><div class="card">
+  <h2>Ton avis compte</h2>
+  <p class="lead">Une idée, un bug, une remarque ? On lit tout. Pour ta sécurité, écris-le à l'arrêt.</p>
+  <div class="seg" id="fbKind"><button data-k="idee" class="sel">Idée</button><button data-k="bug">Bug</button><button data-k="autre">Autre</button></div>
+  <div class="field"><textarea id="fbText" maxlength="2000" rows="5" placeholder="Ex. : ajouter les radars de feu rouge, le bouton X est trop petit…"></textarea></div>
+  <button class="btn pri" id="fbSend">Envoyer</button>
+  <button class="btn sec" id="fbClose">Annuler</button>
 </div></div>
 
 <div id="shareBox" class="overlay"><div class="card">
@@ -1782,6 +1803,28 @@
       });
     });
   })();
+  // ---------- Suggestions ----------
+  (function () {
+    var kind = 'idee';
+    $('lyVer').textContent = 'KapMap · version ' + BUILD;
+    [].forEach.call(document.querySelectorAll('#fbKind button'), function (b) {
+      b.onclick = function () { kind = b.getAttribute('data-k'); [].forEach.call(document.querySelectorAll('#fbKind button'), function (x) { x.classList.toggle('sel', x === b); }); };
+    });
+    $('btnFeedback').onclick = function () {
+      if ((lastSpeed || 0) > 5) { toast('Disponible à l\'arrêt'); return; }
+      $('lyClose').onclick(); $('fbText').value = ''; $('fbBox').classList.add('show'); setTimeout(function () { $('fbText').focus(); }, 200);
+    };
+    $('fbClose').onclick = function () { $('fbBox').classList.remove('show'); };
+    $('fbSend').onclick = function () {
+      var t = $('fbText').value.trim();
+      if (t.length < 3) { toast('Écris quelques mots'); return; }
+      var btn = this; btn.disabled = true; btn.textContent = 'Envoi…';
+      apiJSON('POST', '/feedback', { kind: kind, text: t, version: BUILD })
+        .then(function () { $('fbBox').classList.remove('show'); toast('Merci ! Message bien reçu'); })
+        .catch(function (e) { toast((e && e.message) || 'Envoi impossible, réessaie'); })
+        .then(function () { btn.disabled = false; btn.textContent = 'Envoyer'; });
+    };
+  })();
   window.KapMapDebug = { launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
   $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
@@ -2061,7 +2104,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794444757';
+  var BUILD = '1794472997';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2255,7 +2298,7 @@
 
   // ================= Mode pause (contenus utilisables seulement à l'arrêt complet) =================
   var LINKS = [['YouTube', 'https://www.youtube.com'], ['Twitch', 'https://www.twitch.tv'], ['Prime Video', 'https://www.primevideo.com'], ['Netflix', 'https://www.netflix.com'],
-    ['Disney+', 'https://www.disneyplus.com'], ['myCANAL', 'https://www.canalplus.com']];
+    ['Disney+', 'https://www.disneyplus.com'], ['myCANAL', 'https://www.canalplus.com'], ['Kick', 'https://kick.com']];
   // Icône officielle de chaque service, chargée depuis le service d'icônes de Google (lettre de secours si indisponible)
   var ALT_HOST = { 'open.spotify.com': 'www.spotify.com', 'www.netflix.com': 'about.netflix.com' };
   function iconCandidates(host) {

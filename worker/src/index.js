@@ -441,6 +441,22 @@ export default {
       }
 
       // ----- Titres de l'actualité (flux RSS public, titres + liens uniquement) -----
+      // ----- Suggestions et signalements de bugs envoyés depuis l'appli -----
+      if (request.method === 'POST' && url.pathname === '/feedback') {
+        let body; try { body = await request.json(); } catch (e) { return json({ error: 'Requête invalide' }, 400); }
+        const kind = ['idee', 'bug', 'autre'].includes(body.kind) ? body.kind : 'autre';
+        const text = String(body.text || '').trim().slice(0, 2000);
+        if (text.length < 3) return json({ error: 'Message trop court' }, 400);
+        await env.DB.prepare('CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, text TEXT, user_id INTEGER, pseudo TEXT, ua TEXT, version TEXT, created_at INTEGER, ip_hash TEXT)').run();
+        const now = Date.now(), who = await ipHash(request);
+        const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM feedback WHERE ip_hash = ?1 AND created_at > ?2').bind(who, now - 3600000).first();
+        if (recent && recent.n >= 5) return json({ error: 'Trop de messages, réessaie plus tard' }, 429);
+        const me = await currentUser(request, env);
+        await env.DB.prepare('INSERT INTO feedback (kind, text, user_id, pseudo, ua, version, created_at, ip_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
+          .bind(kind, text, me ? me.id : null, me ? me.pseudo : null, String(request.headers.get('User-Agent') || '').slice(0, 200), String(body.version || '').slice(0, 20), now, who).run();
+        return json({ ok: true });
+      }
+
       if (request.method === 'GET' && url.pathname === '/news') {
         const r = await fetch('https://www.francetvinfo.fr/titres.rss', { cf: { cacheTtl: 900, cacheEverything: true } });
         if (!r.ok) return json({ items: [] });
