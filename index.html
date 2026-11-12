@@ -699,20 +699,21 @@
             'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8], 'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0] } }, firstSymbolId());
       }
     } catch (e) {}
-    if (theme === 'dark' && !satOn) brightenNight();
-    addSatellite();
-    applyRelief();
-    // Après un changement de style, on remet nos calques
-    zonesBuilt = false; refreshZonesLayer();
-    if (scItems) addScLayers();
-    if (chItems) addChLayers();
-    if (irveIndex) addIrveLayers();
-    addPoiLayers();
-    if (routeGeo) addRouteLayers();
-    if (altGeo) addAltLayers();
-    if (rtGeo) addRouteTrafficLayer();
-    addTrafficLayer();
-    pending.splice(0).forEach(function (f) { f(); });
+    try { if (theme === 'dark' && !satOn) brightenNight(); } catch (e) {}
+    try { addSatellite(); } catch (e) {}
+    try { applyRelief(); } catch (e) {}
+    // Après un changement de style, on remet nos calques (chaque étape isolée : une erreur n'empêche jamais les autres)
+    function safe(f) { try { f(); } catch (e) { if (window.console) console.warn('KapMap calque', e); } }
+    safe(function () { zonesBuilt = false; refreshZonesLayer(); });
+    safe(function () { if (scItems) addScLayers(); });
+    safe(function () { if (chItems) addChLayers(); });
+    safe(function () { if (irveIndex) addIrveLayers(); });
+    safe(addPoiLayers);
+    safe(function () { if (routeGeo) addRouteLayers(); });
+    safe(function () { if (altGeo) addAltLayers(); });
+    safe(function () { if (rtGeo) addRouteTrafficLayer(); });
+    safe(addTrafficLayer);
+    pending.splice(0).forEach(safe);
   });
   // Relief : ombrage des montagnes + terrain 3D (données d'altitude ouvertes Mapzen / AWS Terrain Tiles)
   var reliefOn = true;   // relief des montagnes toujours affiché
@@ -2208,7 +2209,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794510370';
+  var BUILD = '1794519788';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
