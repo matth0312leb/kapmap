@@ -797,7 +797,44 @@
     var z = kmh > 100 ? 16 : kmh > 70 ? 16.6 : kmh > 40 ? 17.2 : 17.6;   // plus on roule vite, plus on voit loin
     var north = orient === 'north';
     map.easeTo({ center: [lon, lat], bearing: north ? 0 : (heading !== null ? heading : map.getBearing()), pitch: north ? 0 : 50,
-      zoom: north ? z - 0.6 : z, offset: [0, north ? 0 : Math.round(h * 0.16)], duration: instant ? 0 : 950, easing: function (t) { return t; }, essential: true });
+      zoom: north ? z - 0.6 : z, offset: [0, north ? 0 : Math.round(h * 0.16)], duration: instant ? 0 : fixDur, easing: function (t) { return t; }, essential: true });
+  }
+
+  // ---------- Animation fluide entre deux positions GPS ----------
+  var fixDur = 950, lastFixAt = 0, carShown = null, carAnim = null, routeShown = 0, routeAnim = null;
+  function angleLerp(a, b, k) { var d = ((b - a + 540) % 360) - 180; return (a + d * k + 360) % 360; }
+  function glideCar(lon, lat, h) {
+    var from = carShown || { lon: lon, lat: lat, h: h || 0 };
+    if (typeof performance === 'undefined') { carMarker.setLngLat([lon, lat]); if (h !== null) carMarker.setRotation(h); carShown = { lon: lon, lat: lat, h: h || 0 }; return; }
+    // grand saut (recentrage, tunnel, simulateur) : on se place directement
+    if (dist(from.lat, from.lon, lat, lon) > 400) { carShown = { lon: lon, lat: lat, h: h !== null ? h : from.h }; carMarker.setLngLat([lon, lat]); if (h !== null) carMarker.setRotation(h); carAnim = null; return; }
+    carAnim = { f: { lon: from.lon, lat: from.lat, h: from.h }, t: { lon: lon, lat: lat, h: h !== null ? h : from.h }, t0: performance.now(), d: fixDur };
+    tick();
+  }
+  function glideRoute(frac) {
+    if (Math.abs(frac - routeShown) * (nav ? nav.total : 0) > 400 || frac < routeShown) { routeShown = frac; routeAnim = null; setRouteProgress(frac); return; }
+    routeAnim = { f: routeShown, t: frac, t0: performance.now(), d: fixDur };
+    tick();
+  }
+  var raf = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : function (f) { return setTimeout(function () { f(Date.now()); }, 16); };
+  var ticking = false;
+  function tick() {
+    if (ticking) return; ticking = true;
+    raf(function step(ts) {
+      var now = performance.now(), busy = false;
+      if (carAnim) {
+        var k = Math.min(1, (now - carAnim.t0) / carAnim.d), a = carAnim;
+        carShown = { lon: a.f.lon + (a.t.lon - a.f.lon) * k, lat: a.f.lat + (a.t.lat - a.f.lat) * k, h: angleLerp(a.f.h, a.t.h, k) };
+        carMarker.setLngLat([carShown.lon, carShown.lat]); carMarker.setRotation(carShown.h);
+        if (k >= 1) carAnim = null; else busy = true;
+      }
+      if (routeAnim) {
+        var k2 = Math.min(1, (now - routeAnim.t0) / routeAnim.d);
+        routeShown = routeAnim.f + (routeAnim.t - routeAnim.f) * k2; setRouteProgress(routeShown);
+        if (k2 >= 1) routeAnim = null; else busy = true;
+      }
+      if (busy) raf(step); else ticking = false;
+    });
   }
 
   var carEl = document.createElement('div');
@@ -1530,7 +1567,8 @@
   var ROUTE_COL = ['#3d8bff', '#1a6ef0'], routeProg = -1, lastRouteFrac = 0;
   function setRouteProgress(frac) {
     lastRouteFrac = frac = Math.max(0, Math.min(1, frac || 0));
-    if (!map.getLayer('route-line') || Math.abs(frac - routeProg) < 0.0008) return;
+    var minStep = nav && nav.total > 0 ? 1.5 / nav.total : 0.0008;
+    if (!map.getLayer('route-line') || Math.abs(frac - routeProg) < minStep) return;
     routeProg = frac;
     var col = ROUTE_COL[theme === 'light' ? 1 : 0];
     try {
@@ -1544,7 +1582,7 @@
     } catch (e) {}
   }
   function setRoute(coords) {
-    lastRouteFrac = 0; routeProg = -1;
+    lastRouteFrac = 0; routeProg = -1; routeShown = 0; routeAnim = null;
     routeGeo = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } };
     whenReady(function () { if (map.getSource('route')) map.getSource('route').setData(routeGeo); else addRouteLayers(); });
   }
@@ -2022,7 +2060,7 @@
     var next = null;
     for (var k = 0; k < nav.steps.length; k++) { if (nav.cum[nav.steps[k].idx] > pos.along + 5 && nav.steps[k].type !== 'depart') { next = nav.steps[k]; break; } }
     var remaining = Math.max(0, nav.total - pos.along);
-    setRouteProgress(nav.total > 0 ? pos.along / nav.total : 0);
+    glideRoute(nav.total > 0 ? pos.along / nav.total : 0);
     if (!next) next = nav.steps[nav.steps.length - 1];
     var dNext = Math.max(0, nav.cum[next.idx] - pos.along);
     $('navIcon').innerHTML = maneuverIcon(next);
@@ -2148,7 +2186,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794474365';
+  var BUILD = '1794474712';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2536,9 +2574,11 @@
     $('speed').textContent = speed === null ? '–' : Math.round(speed);
     if (speed !== null) lastSpeed = speed;
 
-    if (!carMarker) carMarker = new maplibregl.Marker({ element: carEl, rotationAlignment: 'map', pitchAlignment: 'viewport' }).setLngLat([lon, lat]).addTo(map);
-    else carMarker.setLngLat([lon, lat]);
-    if (heading !== null) carMarker.setRotation(heading);
+    // Durée entre deux positions GPS : voiture, caméra et tracé glissent ensemble pendant ce temps (pas de saccades)
+    fixDur = lastFixAt ? Math.max(250, Math.min(1500, now - lastFixAt)) : 950; lastFixAt = now;
+    if (!carMarker) { carMarker = new maplibregl.Marker({ element: carEl, rotationAlignment: 'map', pitchAlignment: 'viewport' }).setLngLat([lon, lat]).addTo(map); carShown = { lon: lon, lat: lat, h: heading || 0 }; }
+    else glideCar(lon, lat, heading);
+    if (heading !== null && !carAnim) carMarker.setRotation(heading);
     autoRecenter(speed);
     if (follow) navTo(lat, lon, false);
     setStatus(demo ? 'Mode démo' : 'GPS actif · précision ' + Math.round(accuracy) + ' m', demo ? 'warn' : (accuracy <= 25 ? 'ok' : 'warn'));
