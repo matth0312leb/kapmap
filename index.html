@@ -441,6 +441,22 @@
   #nav.compact #navText { font-size:14px !important; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #nav.compact #navIcon svg { width:36px; height:36px; }
   #nav #navDist, #nav #navText { transition:font-size .25s; }
+  /* Zone de danger : bandeau vertical à gauche, qui se remplit au fil de la zone */
+  #zoneV { position:absolute; left:16px; top:calc(var(--zTop, 80px)); bottom:calc(100% - var(--speedTop, 600px) + 12px); max-height:380px; width:86px; z-index:520;
+    display:none; flex-direction:column; align-items:center; gap:10px; padding:14px 0 12px; border-radius:22px; box-sizing:border-box; color:#fff;
+    background:linear-gradient(180deg, rgba(150,14,30,.96), rgba(70,6,14,.96)); border:1px solid rgba(255,90,110,.55);
+    box-shadow:0 0 0 2px rgba(227,25,55,.35), 0 12px 40px rgba(227,25,55,.35); animation:kIn .25s ease-out; }
+  body.zoneOn #zoneV { display:flex; }
+  #zoneV .zvIco { width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.14); animation:pulse 1.2s infinite; }
+  #zoneV .zvTitle { font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; text-align:center; line-height:1.2; padding:0 6px; }
+  #zoneV .zvLim { width:46px; height:46px; border-radius:50%; background:#fff; color:#111; border:5px solid #e31937; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:17px; }
+  #zoneV .zvLim:empty { display:none; }
+  #zoneV .zvTrack { flex:1; min-height:40px; width:10px; border-radius:5px; background:rgba(255,255,255,.18); overflow:hidden; position:relative; }
+  #zoneV .zvTrack i { position:absolute; left:0; right:0; top:0; height:0; background:#fff; border-radius:5px; box-shadow:0 0 12px rgba(255,255,255,.7); transition:height .9s linear; }
+  #zoneV .zvLeft { text-align:center; line-height:1.1; } #zoneV .zvLeft b { font-size:16px; display:block; } #zoneV .zvLeft small { font-size:10px; opacity:.75; }
+  body.zoneOver #zoneV { animation:zvFlash .6s infinite alternate; }
+  @keyframes zvFlash { from { box-shadow:0 0 0 2px rgba(227,25,55,.35), 0 12px 40px rgba(227,25,55,.35); } to { box-shadow:0 0 0 4px #ff2340, 0 0 50px rgba(255,35,64,.8); } }
+  @media (max-width: 700px) { #zoneV { width:74px; left:10px; } }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -450,6 +466,13 @@
 <div id="map"></div>
 <div id="splash"><div><svg viewBox="0 0 64 64" width="84" height="84"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><b>KapMap</b><i></i></div></div>
 
+<div id="zoneV" aria-live="polite">
+  <div class="zvIco"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg></div>
+  <div class="zvTitle">Zone de danger</div>
+  <div class="zvLim" id="zvLim">80</div>
+  <div class="zvTrack"><i id="zvFill"></i></div>
+  <div class="zvLeft"><b id="zvRem">–</b><small>restants</small></div>
+</div>
 <div id="alert" class="panel off">
   <div id="alertIcon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg></div>
   <div style="flex:1;min-width:0">
@@ -1853,7 +1876,8 @@
     var bottomBox = $('bottom');
     function place() {
       document.body.style.setProperty('--toolsBottom', (toolsBox.offsetTop + toolsBox.offsetHeight) + 'px');
-      var sb = $('speedBox').getBoundingClientRect(); if (sb.width) document.body.style.setProperty('--speedR', Math.round(sb.right) + 'px');
+      var sb = $('speedBox').getBoundingClientRect(); if (sb.width) { document.body.style.setProperty('--speedR', Math.round(sb.right) + 'px'); document.body.style.setProperty('--speedTop', Math.round(sb.top) + 'px'); }
+      document.body.style.setProperty('--zTop', (document.body.classList.contains('navigating') && navBox.offsetHeight ? navBox.offsetTop + navBox.offsetHeight + 12 : 16) + 'px');
       // « Recentrer » toujours au-dessus de la barre du bas (recherche, résultats ou trajet), quelle que soit sa hauteur
       var bTop = bottomBox.getBoundingClientRect().top, h = window.innerHeight;
       document.body.style.setProperty('--bottomH', Math.max(16, h - bTop) + 'px');
@@ -2214,7 +2238,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794475317';
+  var BUILD = '1794509882';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2651,16 +2675,23 @@
       if (remaining <= 0 || dNow > active.L * 1.3) { active = null; }
       else {
         var vma = active.p[2];
-        setAlert('danger', 'Zone de danger', 'Fin de zone dans ' + (remaining >= 1000 ? (remaining / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(remaining / 10) * 10 + ' m'));
-        $('zoneFill').style.width = Math.min(100, active.done / active.L * 100) + '%';
+        // bandeau vertical à gauche (le bandeau du haut reste libre pour le guidage)
+        var remTxt = remaining >= 1000 ? (remaining / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(remaining / 10) * 10 + ' m';
+        document.body.classList.add('zoneOn');
+        $('alert').style.display = 'none';
+        $('zvRem').textContent = remTxt; $('zvLim').textContent = vma || '';
+        $('zvFill').style.height = Math.min(100, active.done / active.L * 100) + '%';
+        $('zoneFill').style.width = '0';
         $('limit').className = vma ? 'show' : ''; $('limit').textContent = vma || '–';
         var over = vma && speed !== null && speed > vma + 5;   // dans une zone : +5 km/h
         $('speed').className = over ? 'over' : '';
+        document.body.classList.toggle('zoneOver', !!over);
         if (over && now - lastOverBeep > 6000) { beep(1); lastOverBeep = now; }
         return;
       }
     }
     $('zoneFill').style.width = '0';
+    if (document.body.classList.contains('zoneOn')) { document.body.classList.remove('zoneOn', 'zoneOver'); $('zvFill').style.height = '0'; $('alert').style.display = ''; }
     showLimit(curLimit, speed);
     if (hz) { showHazard(hz); return; }
     if (nav && nav.workAhead) {
