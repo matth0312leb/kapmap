@@ -482,11 +482,11 @@
   .prTop small { color:var(--mut); font-size:12px; text-transform:uppercase; letter-spacing:.12em; } .prTop h2 { margin:0 !important; }
   .prList { list-style:none; padding:0; margin:10px 0 14px; display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; font-size:14px; }
   .prList li { padding-left:22px; position:relative; } .prList li::before { content:''; position:absolute; left:2px; top:5px; width:10px; height:10px; border-radius:50%; background:#e31937; box-shadow:0 0 10px #e31937; }
-  .prPlans { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
-  .prPlan { position:relative; font:inherit; color:var(--txt); text-align:left; padding:16px 14px 14px; border-radius:16px; cursor:pointer; background:rgba(127,127,127,.08); border:1px solid var(--line); transition:all .15s; }
-  .prPlan span { display:block; font-size:13px; color:var(--mut); } .prPlan b { display:block; font-size:20px; margin:4px 0 2px; } .prPlan small { font-size:12px; color:var(--mut); }
+  .prPlans { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+  .prPlan { position:relative; font:inherit; color:var(--txt); text-align:left; padding:16px 10px 12px; min-width:0; border-radius:16px; cursor:pointer; background:rgba(127,127,127,.08); border:1px solid var(--line); transition:all .15s; }
+  .prPlan span { display:block; font-size:13px; color:var(--mut); } .prPlan b { display:block; font-size:17px; white-space:nowrap; margin:4px 0 2px; } .prPlan small { font-size:12px; color:var(--mut); }
   .prPlan.sel { border-color:rgba(227,25,55,.8); box-shadow:0 0 0 1px rgba(227,25,55,.4), 0 10px 30px rgba(227,25,55,.25); background:rgba(227,25,55,.1); }
-  .prPlan em { position:absolute; top:-9px; right:10px; font-style:normal; font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:2px 8px; border-radius:999px; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); }
+  .prPlan em { position:absolute; top:-9px; right:8px; white-space:nowrap; font-style:normal; font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:2px 8px; border-radius:999px; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); }
   @media (max-width: 520px) { .prList { grid-template-columns:1fr; } }
   .pShort { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
   .pShort button { display:flex; align-items:center; gap:12px; text-align:left; font:inherit; color:#ececef; padding:14px; border-radius:16px; cursor:pointer;
@@ -613,7 +613,8 @@
   </ul>
   <div class="prPlans">
     <button class="prPlan" data-p="month"><span>Mensuel</span><b id="prMonth">Tarif à venir</b><small>Sans engagement</small></button>
-    <button class="prPlan best" data-p="life"><em>Le meilleur choix</em><span>À vie</span><b id="prLife">Tarif à venir</b><small>Un seul paiement</small></button>
+    <button class="prPlan best" data-p="year"><em>Populaire</em><span>Annuel</span><b id="prYear">Tarif à venir</b><small>Soit 2,50 €/mois</small></button>
+    <button class="prPlan" data-p="life"><em>Lancement</em><span>À vie</span><b id="prLife">Tarif à venir</b><small>Un seul paiement</small></button>
   </div>
   <button class="btn pri" id="prGo" disabled>Bientôt disponible</button>
   <button class="btn sec" id="prClose">Plus tard</button>
@@ -2166,11 +2167,12 @@
     apply(); setInterval(apply, 60000);
   })();
   // ---------- Écran Premium (paiement Stripe à brancher : PRICES et le lien de paiement) ----------
-  var PRICES = { month: '4,99 €/mois', life: '149 €', url: null };   // ex. { month: '2,99 €/mois', life: '39 €', url: 'https://buy.stripe.com/...' }
+  var PRICES = { month: '3,99 €', year: '29,99 €', life: '79 €', url: null };   // url : lien de paiement Stripe à brancher
   (function () {
-    var plan = 'life';
+    var plan = 'year';
     function sel() { [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.classList.toggle('sel', b.getAttribute('data-p') === plan); }); }
     if (PRICES.month) $('prMonth').textContent = PRICES.month;
+    if (PRICES.year) $('prYear').textContent = PRICES.year;
     if (PRICES.life) $('prLife').textContent = PRICES.life;
     if (PRICES.url) { $('prGo').disabled = false; $('prGo').textContent = 'Passer à Premium'; }
     [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.onclick = function () { plan = b.getAttribute('data-p'); sel(); }; });
@@ -2496,7 +2498,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794522394';
+  var BUILD = '1794522876';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
