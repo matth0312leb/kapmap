@@ -426,6 +426,14 @@
   #fbKind button.sel { background:linear-gradient(180deg,#ef2a47,#c8102e); color:#fff; border-color:transparent; box-shadow:0 6px 18px rgba(227,25,55,.35); }
   .field textarea { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:13px 14px; border-radius:12px; border:1px solid var(--line); background:rgba(127,127,127,.08); color:var(--txt); outline:none; resize:none; }
   .field textarea:focus { border-color:rgba(227,25,55,.7); box-shadow:0 0 0 3px rgba(227,25,55,.18); }
+  .overlay .card { max-height:calc(100% - 24px); overflow-y:auto; }
+  #statusPill.quiet { display:none !important; }
+  /* Compteur compact : vitesse + petit panneau de limitation */
+  #speedBox { padding:8px 12px !important; gap:10px !important; border-radius:16px; }
+  #speed { font-size:34px !important; }
+  #speedUnit { font-size:11px !important; }
+  #limit { width:40px !important; height:40px !important; border-width:4px !important; font-size:16px !important; }
+  @media (max-width: 700px) { #speed { font-size:30px !important; } #limit { width:36px !important; height:36px !important; font-size:15px !important; } }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -1825,6 +1833,16 @@
         .then(function () { btn.disabled = false; btn.textContent = 'Envoyer'; });
     };
   })();
+  // Clavier à l'écran : toucher en dehors d'un champ le ferme, et le champ actif reste visible au-dessus du clavier
+  document.addEventListener('pointerdown', function (e) {
+    var a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && !/^(INPUT|TEXTAREA|BUTTON|LABEL)$/.test(e.target.tagName) && e.target !== a) a.blur();
+  }, true);
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!/^(INPUT|TEXTAREA)$/.test(t.tagName) || !t.closest('.card')) return;
+    setTimeout(function () { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) {} }, 300);
+  });
   window.KapMapDebug = { launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
   $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
@@ -2104,7 +2122,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794472997';
+  var BUILD = '1794474154';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2234,6 +2252,7 @@
       $('fSwitch').onclick = function () { accountView(reg ? 'login' : 'register'); };
       $('fCancel').onclick = closeAccount;
       $('fGo').onclick = function () {
+        try { document.activeElement && document.activeElement.blur(); } catch (e) {}   // ferme le clavier
         var pseudo = $('fPseudo').value.trim(), pin = $('fPin').value, err = $('fErr');
         err.textContent = '';
         if (!/^[A-Za-z0-9_.-]{3,20}$/.test(pseudo)) { err.textContent = 'Pseudo : 3 à 20 caractères (lettres, chiffres, . _ -)'; return; }
@@ -2248,7 +2267,17 @@
           })
           .catch(function (e) { err.textContent = e.message; btn.disabled = false; btn.textContent = reg ? 'Créer mon compte' : 'Me connecter'; });
       };
-      setTimeout(function () { try { $('fPseudo').focus(); } catch (e) {} }, 50);
+      // Touche Entrée du clavier (Tesla, téléphone, PC) : champ suivant, puis connexion sur le dernier champ
+      var order = ['fPseudo', 'fName', 'fPin', 'fPin2'].filter(function (id) { return $(id); });
+      order.forEach(function (id, k) {
+        $(id).setAttribute('enterkeyhint', k === order.length - 1 ? 'go' : 'next');
+        $(id).addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' && e.keyCode !== 13) return;
+          e.preventDefault();
+          if (k < order.length - 1 && !$(order[k + 1]).value) $(order[k + 1]).focus();
+          else { this.blur(); $('fGo').click(); }
+        });
+      });
     }
     $('account').classList.add('show');
   }
@@ -2428,7 +2457,7 @@
   };
 
   // ================= Affichage =================
-  function setStatus(txt, cls) { $('statusTxt').textContent = txt; $('dot').className = 'dot ' + (cls || ''); }
+  function setStatus(txt, cls) { $('statusTxt').textContent = txt; $('dot').className = 'dot ' + (cls || ''); $('statusPill').classList.toggle('quiet', cls === 'ok' || /^Choisis/.test(txt)); }
   function setAlert(mode, title, sub) {
     $('alert').className = 'panel ' + mode; $('alertTitle').textContent = title; $('alertSub').textContent = sub;
     $('alert').style.display = (nav && (mode === '' || mode === 'off')) ? 'none' : '';
