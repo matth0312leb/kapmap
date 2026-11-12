@@ -2513,7 +2513,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794523492';
+  var BUILD = '1794523723';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2721,6 +2721,10 @@
   // après l'écran de bienvenue / connexion : demander la position
   var _showWelcome = showWelcome;
   showWelcome = function (on) { _showWelcome(on); if (!on) hasLocPermission(function (ok) { if (!ok) showLocGate(); }); };
+  // Aperçu direct d'un écran : ?show=welcome ou ?show=premium
+  (function () { var sh = (location.search.match(/[?&]show=(\w+)/) || [])[1];
+    if (sh === 'welcome') setTimeout(function () { _showWelcome(true); }, 600);
+    if (sh === 'premium') setTimeout(function () { $('premium').classList.add('show'); }, 600); })();
   var _closeAccount = closeAccount;
   closeAccount = function () { _closeAccount(); hasLocPermission(function (ok) { if (!ok && (localStorage.getItem('vigie-welcomed') || token)) showLocGate(); }); };
 
