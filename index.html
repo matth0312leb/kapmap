@@ -429,7 +429,7 @@
   <label class="sw2">Zones de danger<input type="checkbox" id="lyZones" checked></label>
   <label class="sw2">Dangers et accidents<input type="checkbox" id="lyHz" checked></label>
   <label class="sw2">Trafic sur toutes les routes <small id="trafficNote"></small><input type="checkbox" id="lyTraffic"></label>
-  <label class="sw2">Lieux autour de moi<input type="checkbox" id="lyPoi"></label>
+  <label class="sw2">Restos, cafés, toilettes, courses<input type="checkbox" id="lyPoi"></label>
 
   <div class="lyHead">Itinéraire</div>
   <label class="sw2">Éviter les péages<input type="checkbox" id="prefToll"></label>
@@ -1124,7 +1124,7 @@
   $('lyZones').onchange = refreshZonesLayer;
   $('lySc').onchange = function () { setVis(['sc-circle', 'sc-label'], this.checked); try { localStorage.setItem('vigie-sc', this.checked ? '1' : '0'); } catch (e) {} if (netOn) saveNetworks(); };
   try { if (localStorage.getItem('vigie-sc') === '0') $('lySc').checked = false; } catch (e) {}
-  $('lyPoi').onchange = function () { setVis(['poi-circle', 'poi-label'], this.checked); if (this.checked) { poiLastKey = ''; if (map.getZoom() < 14) toast('Zoome sur la carte pour voir les lieux'); autoPoi(); } };
+  $('lyPoi').onchange = function () { setVis(['poi-circle', 'poi-label'], this.checked); if (this.checked) { poiLastKey = ''; poiAnnounce = true; loadPoi(); } };
   $('btnLayers').onclick = function () {
     var open = $('layers').classList.toggle('show'); this.classList.toggle('on', open);
     document.body.classList.toggle('layers-open', open);
@@ -1134,16 +1134,16 @@
   map.on('click', function () { if ($('layers').classList.contains('show')) { $('layers').classList.remove('show'); $('btnLayers').classList.remove('on'); document.body.classList.remove('layers-open'); } });
 
   var POI = {
-    restaurant: ['#3a3a3a', 'Restaurant'], fast_food: ['#3a3a3a', 'Restauration rapide'], cafe: ['#3a3a3a', 'Café'],
-    toilets: ['#6b6b6b', 'Toilettes'], fuel: ['#6b6b6b', 'Station-service'], supermarket: ['#3a3a3a', 'Supermarché'], charging_station: ['#6b6b6b', 'Borne de recharge']
+    restaurant: ['#f97316', 'Restaurant'], fast_food: ['#fb923c', 'Restauration rapide'], cafe: ['#c08457', 'Café'],
+    toilets: ['#38bdf8', 'Toilettes'], fuel: ['#a1a1aa', 'Station-service'], supermarket: ['#22c55e', 'Supermarché']
   };
   var poiFC = null, poiClickBound = false;
   function addPoiLayers() {
     if (!poiFC || map.getSource('poi')) return;
     var light = theme === 'light';
     map.addSource('poi', { type: 'geojson', data: poiFC });
-    map.addLayer({ id: 'poi-circle', type: 'circle', source: 'poi', paint: { 'circle-color': ['get', 'color'], 'circle-radius': 7, 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 } });
-    map.addLayer({ id: 'poi-label', type: 'symbol', source: 'poi', minzoom: 15, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-max-width': 10 },
+    map.addLayer({ id: 'poi-circle', type: 'circle', source: 'poi', paint: { 'circle-color': ['get', 'color'], 'circle-radius': 8, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
+    map.addLayer({ id: 'poi-label', type: 'symbol', source: 'poi', minzoom: 14, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-max-width': 10 },
       paint: { 'text-color': light ? '#1f2328' : '#e5e7eb', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
     if (!poiClickBound) {
       poiClickBound = true;
@@ -1155,10 +1155,10 @@
     setVis(['poi-circle', 'poi-label'], $('lyPoi').checked);
   }
   // Chargement automatique des lieux de la zone affichée (case « Lieux autour de moi »)
-  var poiTimer = null, poiLastKey = '';
+  var poiTimer = null, poiLastKey = '', poiAnnounce = false;
   function autoPoi() {
     clearTimeout(poiTimer);
-    if (!$('lyPoi').checked || map.getZoom() < 14) return;
+    if (!$('lyPoi').checked) return;
     poiTimer = setTimeout(function () {
       var c = map.getCenter(), key = c.lat.toFixed(2) + ',' + c.lng.toFixed(2);
       if (key === poiLastKey) return;
@@ -1166,14 +1166,19 @@
     }, 1200);
   }
   map.on('moveend', autoPoi);
+  // Restaurants, cafés, toilettes, stations et supermarchés dans un rayon d'environ 3 km autour du centre de la carte (OpenStreetMap)
+  var OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
   function loadPoi() {
-    var btn = { classList: { add: function () {}, remove: function () {} } };
-    var b = map.getBounds(), bbox = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].map(function (v) { return v.toFixed(4); }).join(',');
-    var q = '[out:json][timeout:20];(node["amenity"~"^(restaurant|fast_food|cafe|toilets|fuel|charging_station)$"](' + bbox + ');node["shop"="supermarket"](' + bbox + '););out body 300;';
-    btn.classList.add('on'); setStatus('Recherche des lieux…', 'warn');
-    fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
+    var c = map.getCenter(), around = '(around:3000,' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ')';
+    poiLastKey = c.lat.toFixed(2) + ',' + c.lng.toFixed(2);
+    var q = '[out:json][timeout:20];(node["amenity"~"^(restaurant|fast_food|cafe|toilets|fuel)$"]' + around + ';node["shop"="supermarket"]' + around + ';);out body 300;';
+    if (poiAnnounce) toast('Recherche des lieux autour…');
+    function tryAt(k) {
+      return fetch(OVERPASS[k], { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .catch(function (e) { if (k + 1 < OVERPASS.length) return tryAt(k + 1); throw e; });
+    }
+    tryAt(0).then(function (d) {
         var feats = [];
         (d.elements || []).forEach(function (e) {
           var t = e.tags || {}, kind = t.shop === 'supermarket' ? 'supermarket' : t.amenity, def = POI[kind];
@@ -1182,11 +1187,12 @@
         });
         poiFC = { type: 'FeatureCollection', features: feats };
         if (map.getSource('poi')) map.getSource('poi').setData(poiFC); else addPoiLayers();
-        setStatus(feats.length + ' lieux trouvés', 'ok');
+        if (poiAnnounce) toast(feats.length ? feats.length + ' lieux trouvés : restos, cafés, toilettes, stations, courses' : 'Aucun lieu trouvé par ici');
+        poiAnnounce = false;
       })
-      .catch(function () { setStatus('Lieux indisponibles pour le moment', 'err'); })
-      .then(function () { btn.classList.remove('on'); });
-  };
+      .catch(function () { if (poiAnnounce) toast('Lieux indisponibles pour le moment, réessaie dans un instant'); poiAnnounce = false; poiLastKey = ''; });
+  }
+
 
   // ================= Signalements de dangers (tous pays) =================
   var API = 'https://test-gps-tesla1.matth0312.workers.dev';
@@ -2005,7 +2011,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794443377';
+  var BUILD = '1794443421';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
