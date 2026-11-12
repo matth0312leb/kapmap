@@ -151,9 +151,9 @@
   .dot { width:10px; height:10px; border-radius:50%; background:var(--mut); flex:none; }
   .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); } .dot.err { background:var(--err); }
 
-  .car { width:64px; height:64px; display:flex; align-items:center; justify-content:center; }
+  .car { width:76px; height:76px; display:flex; align-items:center; justify-content:center; }
   .car svg { width:52px; height:52px; filter:drop-shadow(0 3px 8px rgba(0,0,0,.6)); }
-  .car svg.carimg { width:29px; height:58px; filter:none; }
+  .car svg.carimg { width:40px; height:72px; filter:none; }
   .sc { width:30px; height:30px; border-radius:50%; background:var(--acc); border:2px solid #fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.5); }
   .sc svg { width:16px; height:16px; }
   .poi { width:26px; height:26px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.5); font-weight:800; color:#fff; }
@@ -746,50 +746,59 @@
     function m(v) { return Math.round(v + (t - v) * k); }
     return 'rgb(' + m(r) + ',' + m(g) + ',' + m(bl) + ')';
   }
-  // Voiture vue de dessus, ombrée pour donner du volume ; posée à plat sur la carte, elle suit l'inclinaison 3D
+  // Voiture en 3D vue de trois quarts arrière (comme l'écran Tesla) : carrosserie avec épaisseur, toit vitré, feux, ombre
   function carSvg(car, size) {
     var c = car.color, id = 'cv' + (++carUid), dark = ['#111111', '#1f4fa3', '#b3121f', '#6b6e73'].indexOf(c) >= 0;
-    var D = { '3': [14.5, 70, 22, 54, 0], 'S': [15, 76, 23, 57, 0], 'Y': [16, 71, 19, 60, 1], 'X': [17, 75, 19, 63, 1] }[car.model] || [14.5, 70, 22, 54, 0];
-    var hw = D[0], L = D[1], y0 = (80 - L) / 2, gs = y0 + D[2] - 8, ge = y0 + D[3] - 8, hatch = D[4], cx = 20, gw = hw * 0.8;
+    var M = { '3': [15, 58, 0], 'S': [15.5, 62, 0], 'Y': [16.5, 58, 1], 'X': [17.5, 62, 1] }[car.model] || [15, 58, 0];
+    var hw = M[0], L = M[1], suv = M[2], cx = 25, top = 12, bot = top + L;
+    var fw = hw * 0.80;                     // l'avant paraît plus étroit (perspective)
     function f(v) { return Math.round(v * 100) / 100; }
-    function P(pts) { return pts.map(function (q) { return typeof q === 'string' ? q : f(q); }).join(' '); }
-    var body = P(['M', cx - hw * .78, y0 + 5, 'C', cx - hw * .45, y0 - .6, cx + hw * .45, y0 - .6, cx + hw * .78, y0 + 5,
-      'C', cx + hw, y0 + 9, cx + hw, y0 + 14, cx + hw, y0 + 18, 'L', cx + hw * .94, y0 + L * .52, 'L', cx + hw, y0 + L - 18,
-      'C', cx + hw, y0 + L - 8, cx + hw * .9, y0 + L - 2, cx + hw * .7, y0 + L - .8,
-      'C', cx + hw * .4, y0 + L + .3, cx - hw * .4, y0 + L + .3, cx - hw * .7, y0 + L - .8,
-      'C', cx - hw * .9, y0 + L - 2, cx - hw, y0 + L - 8, cx - hw, y0 + L - 18, 'L', cx - hw * .94, y0 + L * .52, 'L', cx - hw, y0 + 18,
-      'C', cx - hw, y0 + 14, cx - hw, y0 + 9, cx - hw * .78, y0 + 5, 'Z']);
-    var rr = hatch ? 3 : 6;
-    var glass = P(['M', cx - gw * .82, gs, 'C', cx - gw * .35, gs - 3, cx + gw * .35, gs - 3, cx + gw * .82, gs,
-      'L', cx + gw, gs + 9, 'L', cx + gw * .97, ge - rr, 'C', cx + gw * .9, ge, cx + gw * .5, ge + .8, cx, ge + .8,
-      'C', cx - gw * .5, ge + .8, cx - gw * .9, ge, cx - gw * .97, ge - rr, 'L', cx - gw, gs + 9, 'Z']);
-    var wheel = function (y) { return '<rect x="' + f(cx - hw - .9) + '" y="' + f(y) + '" width="' + f(2 * hw + 1.8) + '" height="10" rx="2.5" fill="#0a0a0a"/>'; };
-    var lights = '<path d="' + P(['M', cx - hw * .82, y0 + 6.2, 'Q', cx - hw * .6, y0 + 2.6, cx - hw * .28, y0 + 2.4]) + ' M' + P([cx + hw * .82, y0 + 6.2, 'Q', cx + hw * .6, y0 + 2.6, cx + hw * .28, y0 + 2.4]) + '" stroke="#fff" stroke-width="1.1" stroke-linecap="round" fill="none" opacity=".9"/>' +
-      '<path d="' + (hatch ? P(['M', cx - hw * .8, y0 + L - 2.3, 'Q', cx, y0 + L + .2, cx + hw * .8, y0 + L - 2.3])
-        : P(['M', cx - hw * .85, y0 + L - 3, 'L', cx - hw * .45, y0 + L - 1.2]) + ' M' + P([cx + hw * .85, y0 + L - 3, 'L', cx + hw * .45, y0 + L - 1.2])) +
-      '" stroke="#e31937" stroke-width="1.2" stroke-linecap="round" fill="none"/>';
-    var h = Math.round(size), w = Math.round(size / 2);
-    return '<svg class="carimg" viewBox="0 0 40 80" width="' + w + '" height="' + h + '">' +
+    function P(a) { return a.map(function (q) { return typeof q === 'string' ? q : f(q); }).join(' '); }
+    function w(y) { return fw + (hw - fw) * (y - top) / L; }   // demi-largeur à la hauteur y
+    var body = P(['M', cx - fw * .75, top + 2, 'C', cx - fw * .4, top - 1.2, cx + fw * .4, top - 1.2, cx + fw * .75, top + 2,
+      'C', cx + fw, top + 5, cx + w(top + 12), top + 9, cx + w(top + 14), top + 15, 'L', cx + w(bot - 14) * .97, top + L * .55, 'L', cx + w(bot - 12), bot - 12,
+      'C', cx + hw, bot - 5, cx + hw * .92, bot - 1, cx + hw * .7, bot, 'L', cx - hw * .7, bot,
+      'C', cx - hw * .92, bot - 1, cx - hw, bot - 5, cx - w(bot - 12), bot - 12, 'L', cx - w(bot - 14) * .97, top + L * .55, 'L', cx - w(top + 14), top + 15,
+      'C', cx - w(top + 12), top + 9, cx - fw, top + 5, cx - fw * .75, top + 2, 'Z']);
+    var gs = top + (suv ? 13 : 15), ge = bot - (suv ? 9 : 13), gw1 = w(gs) * .78, gw2 = w(ge) * .8;
+    var glass = P(['M', cx - gw1 * .85, gs, 'C', cx - gw1 * .3, gs - 2.6, cx + gw1 * .3, gs - 2.6, cx + gw1 * .85, gs, 'L', cx + gw2, ge - 4,
+      'C', cx + gw2 * .9, ge + .6, cx + gw2 * .4, ge + 1.2, cx, ge + 1.2, 'C', cx - gw2 * .4, ge + 1.2, cx - gw2 * .9, ge + .6, cx - gw2, ge - 4, 'Z']);
+    var wsEnd = gs + (ge - gs) * .3;   // pare-brise (plus clair)
+    var ws = P(['M', cx - gw1 * .85, gs, 'C', cx - gw1 * .3, gs - 2.6, cx + gw1 * .3, gs - 2.6, cx + gw1 * .85, gs, 'L', cx + w(wsEnd) * .8, wsEnd, 'L', cx - w(wsEnd) * .8, wsEnd, 'Z']);
+    var rear = P(['M', cx - hw * .9, bot - 6, 'Q', cx, bot - 3.5, cx + hw * .9, bot - 6, 'L', cx + hw * .72, bot + 3.2, 'Q', cx, bot + 4.6, cx - hw * .72, bot + 3.2, 'Z']);
+    var wheel = function (y, k) { var x = w(y) * k; return '<rect x="' + f(cx - x - 1.4) + '" y="' + f(y) + '" width="' + f(2 * x + 2.8) + '" height="11" rx="3" fill="#050505"/>'; };
+    var h = Math.round(size), wd = Math.round(size * 50 / 90);
+    return '<svg class="carimg" viewBox="0 0 50 90" width="' + wd + '" height="' + h + '">' +
       '<defs>' +
-      '<linearGradient id="' + id + 'b" x1="0" x2="1"><stop offset="0" stop-color="' + shade(c, -.45) + '"/><stop offset=".17" stop-color="' + c + '"/><stop offset=".5" stop-color="' + shade(c, dark ? .22 : .5) + '"/><stop offset=".83" stop-color="' + c + '"/><stop offset="1" stop-color="' + shade(c, -.45) + '"/></linearGradient>' +
-      '<radialGradient id="' + id + 'h" cx=".5" cy=".12" r=".55"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
-      '<linearGradient id="' + id + 'g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b424b"/><stop offset=".35" stop-color="#14171b"/><stop offset=".8" stop-color="#0b0d10"/><stop offset="1" stop-color="#262b31"/></linearGradient>' +
-      '<filter id="' + id + 's" x="-50%" y="-20%" width="200%" height="140%"><feGaussianBlur stdDeviation="2.2"/></filter>' +
+      '<linearGradient id="' + id + 'b" x1="0" x2="1"><stop offset="0" stop-color="' + shade(c, -.55) + '"/><stop offset=".14" stop-color="' + shade(c, -.1) + '"/><stop offset=".5" stop-color="' + shade(c, dark ? .25 : .45) + '"/><stop offset=".86" stop-color="' + shade(c, -.1) + '"/><stop offset="1" stop-color="' + shade(c, -.55) + '"/></linearGradient>' +
+      '<linearGradient id="' + id + 'v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>' +
+      '<linearGradient id="' + id + 'g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a535e"/><stop offset=".3" stop-color="#171a1f"/><stop offset=".85" stop-color="#090b0d"/><stop offset="1" stop-color="#2a3038"/></linearGradient>' +
+      '<linearGradient id="' + id + 'r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + shade(c, -.25) + '"/><stop offset="1" stop-color="' + shade(c, -.7) + '"/></linearGradient>' +
+      '<filter id="' + id + 's" x="-60%" y="-30%" width="220%" height="160%"><feGaussianBlur stdDeviation="2.6"/></filter>' +
+      '<filter id="' + id + 'l" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="1.2"/></filter>' +
       '</defs>' +
-      '<ellipse cx="20" cy="42" rx="' + f(hw + 2.5) + '" ry="' + f(L / 2 + 1) + '" fill="#000" opacity=".45" filter="url(#' + id + 's)"/>' +
-      wheel(y0 + 11) + wheel(y0 + L - 22) +
-      '<path d="' + body + '" fill="url(#' + id + 'b)" stroke="' + (dark ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.35)') + '" stroke-width=".6"/>' +
-      '<path d="' + body + '" fill="url(#' + id + 'h)"/>' +
-      '<ellipse cx="' + f(cx - hw - 1.3) + '" cy="' + f(gs + 2.5) + '" rx="2" ry="1.1" fill="' + shade(c, -.25) + '"/>' +
-      '<ellipse cx="' + f(cx + hw + 1.3) + '" cy="' + f(gs + 2.5) + '" rx="2" ry="1.1" fill="' + shade(c, -.25) + '"/>' +
+      '<ellipse cx="25" cy="' + f(bot - L / 2 + 5) + '" rx="' + f(hw + 4) + '" ry="' + f(L / 2 + 4) + '" fill="#000" opacity=".55" filter="url(#' + id + 's)"/>' +
+      wheel(top + 9, 1) + wheel(bot - 19, 1) +
+      // épaisseur de la carrosserie (côtés et arrière visibles)
+      '<path d="' + body + '" transform="translate(0 2.6)" fill="' + shade(c, -.6) + '"/>' +
+      '<path d="' + rear + '" fill="url(#' + id + 'r)"/>' +
+      '<path d="' + body + '" fill="url(#' + id + 'b)" stroke="' + (dark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.35)') + '" stroke-width=".5"/>' +
+      '<path d="' + body + '" fill="url(#' + id + 'v)"/>' +
+      '<ellipse cx="' + f(cx - w(gs) - 1.2) + '" cy="' + f(gs + 2) + '" rx="2.2" ry="1.2" fill="' + shade(c, -.3) + '"/>' +
+      '<ellipse cx="' + f(cx + w(gs) + 1.2) + '" cy="' + f(gs + 2) + '" rx="2.2" ry="1.2" fill="' + shade(c, -.3) + '"/>' +
       '<path d="' + glass + '" fill="url(#' + id + 'g)"/>' +
-      '<path d="' + P(['M', cx - gw * .55, gs + 3, 'L', cx - gw * .2, gs + 1.4, 'L', cx - gw * .55, ge - 4, 'L', cx - gw * .75, ge - 5, 'Z']) + '" fill="#fff" opacity=".1"/>' +
-      lights +
+      '<path d="' + ws + '" fill="#8fa3b8" opacity=".22"/>' +
+      '<path d="' + P(['M', cx - gw1 * .5, gs + 2, 'L', cx - gw1 * .1, gs + 1, 'L', cx - gw2 * .45, ge - 5, 'L', cx - gw2 * .7, ge - 6, 'Z']) + '" fill="#fff" opacity=".13"/>' +
+      // phares
+      '<path d="' + P(['M', cx - fw * .78, top + 3.4, 'Q', cx - fw * .55, top + .4, cx - fw * .22, top + .3]) + ' M' + P([cx + fw * .78, top + 3.4, 'Q', cx + fw * .55, top + .4, cx + fw * .22, top + .3]) + '" stroke="#fff" stroke-width="1.2" stroke-linecap="round" fill="none"/>' +
+      // feux arrière avec halo rouge
+      '<path d="' + P(['M', cx - hw * .82, bot - 4.6, 'Q', cx, bot - 2.2, cx + hw * .82, bot - 4.6]) + '" stroke="#ff2340" stroke-width="2.2" stroke-linecap="round" fill="none" filter="url(#' + id + 'l)" opacity=".9"/>' +
+      '<path d="' + P(['M', cx - hw * .82, bot - 4.6, 'Q', cx, bot - 2.2, cx + hw * .82, bot - 4.6]) + '" stroke="#ff4d63" stroke-width="1" stroke-linecap="round" fill="none"/>' +
       '</svg>';
   }
   function drawCar() {
     var l = theme === 'light';
-    if (myCar) { carEl.innerHTML = carSvg(myCar, 58); return; }
+    if (myCar) { carEl.innerHTML = carSvg(myCar, 72); return; }
     carEl.innerHTML = '<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="' + (l ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.12)') + '"/><path d="M26 8l12 33-12-7-12 7z" fill="' + (l ? '#111' : '#fff') + '" stroke="' + (l ? '#fff' : '#111') + '" stroke-width="3" stroke-linejoin="round"/></svg>';
   }
   drawCar();
@@ -1996,7 +2005,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794443199';
+  var BUILD = '1794443377';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2370,7 +2379,7 @@
     $('speed').textContent = speed === null ? '–' : Math.round(speed);
     if (speed !== null) lastSpeed = speed;
 
-    if (!carMarker) carMarker = new maplibregl.Marker({ element: carEl, rotationAlignment: 'map', pitchAlignment: 'map' }).setLngLat([lon, lat]).addTo(map);
+    if (!carMarker) carMarker = new maplibregl.Marker({ element: carEl, rotationAlignment: 'map', pitchAlignment: 'viewport' }).setLngLat([lon, lat]).addTo(map);
     else carMarker.setLngLat([lon, lat]);
     if (heading !== null) carMarker.setRotation(heading);
     autoRecenter(speed);
