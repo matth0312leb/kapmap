@@ -577,6 +577,7 @@
   <div class="lyHead">Aide</div>
   <button class="lyRow" id="btnPremium"><span>KapMap Premium</span><i>›</i></button>
   <button class="lyRow" id="btnFeedback"><span>Suggérer une idée ou signaler un bug</span><i>›</i></button>
+  <a class="lyRow" href="legal.html" target="_blank" style="text-decoration:none;color:inherit"><span>Mentions légales et confidentialité</span><i>›</i></a>
   <div class="lyVer" id="lyVer"></div>
 </div>
 </div>
@@ -597,10 +598,15 @@
 </div>
 
 <div id="welcome" class="overlay"><div class="card">
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><svg viewBox="0 0 64 64" width="56" height="56" aria-label="KapMap"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><h2>Bienvenue sur KapMap</h2></div>
-  <p class="lead">La carte de conduite pensée pour ta Tesla.</p>
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><svg viewBox="0 0 64 64" width="56" height="56" aria-label="KapMap"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><h2>Ta Tesla mérite mieux qu'une simple carte</h2></div>
+  <p class="lead">Zones de danger, trafic en direct, prix des péages et toutes les bornes de recharge, sur ton grand écran.</p>
   <span class="betaPill" id="wBeta" style="display:none"></span>
-  <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alertes sonores en France, désactivées là où c'est interdit</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons sur ton trajet et heure d'arrivée réelle</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l7 19-7-4-7 4z"/></svg><p style="margin:0"><b>Navigation guidée</b><span>Instructions vocales, Domicile et Travail en 1 touche</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg><p style="margin:0"><b>Signalements</b><span>Accidents, travaux, objets… partagés par la communauté</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Superchargeurs</b><span>Tous les sites d'Europe et les lieux utiles autour</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg><p style="margin:0"><b>Commande vocale</b><span>« Maison », « Signaler un accident »…</span></p></div></div>
+  <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alerte sonore et compte à rebours avant chaque zone. Tu roules l'esprit tranquille.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h4M15 10v4"/></svg><p style="margin:0"><b>Prix des péages</b><span>Le vrai prix avant de partir, et le trajet sans péage en une touche.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons, accidents, travaux : ton heure d'arrivée réelle, recalculée en route.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Toutes les bornes de recharge</b><span>Superchargeurs Tesla et bornes publiques, ajoutés à ton trajet en une touche.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></svg><p style="margin:0"><b>Communauté</b><span>Signale en une touche, gagne des points et grimpe au classement.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M10 9l5 2-5 2z"/></svg><p style="margin:0"><b>Mode pause</b><span>Netflix, YouTube, quiz : la recharge passe toute seule.</span></p></div></div>
+  <button class="btn pri" id="wRegister">Créer mon compte gratuit</button>
+  <button class="btn sec" id="wLogin">J'ai déjà un compte</button>
+  <button class="btn link" id="wSkip">Continuer sans compte</button>
+  <p class="small">KapMap signale des zones de danger sans position précise, conformément à la réglementation française. Reste attentif à la route et respecte les limitations. <a href="legal.html" target="_blank" style="color:inherit">Mentions légales et confidentialité</a></p>
+</div></div>
   <button class="btn pri" id="wRegister">Créer mon compte</button>
   <button class="btn sec" id="wLogin">J'ai déjà un compte</button>
   <button class="btn link" id="wSkip">Continuer sans compte</button>
@@ -615,7 +621,7 @@
   <div class="betaNote" id="prBeta" style="display:none"></div>
   <ul class="prList">
     <li>Zones de danger et alertes de vitesse</li><li>Trafic en direct et heure d'arrivée réelle</li><li>Prix des péages et trajets sans péage</li>
-    <li>Arrêts Superchargeur sur le trajet</li><li>Mode pause : streaming, actus, quiz</li><li>Partage de trajet en direct</li>
+    <li>Superchargeurs et bornes publiques sur le trajet</li><li>Mode pause : streaming, actus, quiz</li><li>Partage de trajet en direct</li>
   </ul>
   <div class="prPlans">
     <button class="prPlan" data-p="month"><span>Mensuel</span><b id="prMonth">Tarif à venir</b><small>Sans engagement</small></button>
@@ -624,7 +630,7 @@
   </div>
   <button class="btn pri" id="prGo" disabled>Bientôt disponible</button>
   <button class="btn sec" id="prClose">Plus tard</button>
-  <p class="small">Paiement sécurisé. Tu pourras gérer ou résilier ton abonnement à tout moment depuis ton compte.</p>
+  <p class="small">Toutes les formules sont sans engagement : tu résilies quand tu veux, depuis ton compte. Paiement sécurisé.</p>
 </div></div>
 
 <div id="locGate" class="overlay"><div class="card">
@@ -2177,7 +2183,7 @@
   var BETA = { until: Date.parse('2027-01-15T23:59:59+01:00'), label: '15 janvier 2027', founderLife: '49 €' };
   var isBeta = Date.now() < BETA.until;
   if (isBeta) {
-    $('wBeta').textContent = 'Bêta gratuite jusqu\'au ' + BETA.label; $('wBeta').style.display = 'inline-block';
+    $('wBeta').textContent = 'Gratuit pendant la bêta, jusqu\'au ' + BETA.label + ' · sans carte bancaire'; $('wBeta').style.display = 'inline-block';
     $('prBeta').innerHTML = '<b>Bêta gratuite jusqu\'au ' + BETA.label + '</b> : tout est offert. Crée ton compte pendant la bêta pour devenir <b>Fondateur</b> : badge sur ton profil et accès à vie à ' + BETA.founderLife + ' au lieu de 79 €.';
     $('prBeta').style.display = 'block';
   }
@@ -2513,7 +2519,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794523723';
+  var BUILD = '1794524214';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2588,7 +2594,8 @@
         '<div class="swatches" id="pickColor">' + CAR_COLORS.map(function (c) { return '<button data-c="' + c[0] + '" title="' + c[1] + '" style="background:' + c[0] + '"></button>'; }).join('') + '</div>' +
         '<div id="carPreview"></div>' +
         '<button class="btn sec" id="aHome">Domicile = ma position actuelle</button><button class="btn sec" id="aWork">Travail = ma position actuelle</button>' +
-        '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>';
+        '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>' +
+        '<button class="btn link" id="aDelete" style="color:#ff5a72;font-size:13px">Supprimer mon compte</button>';
       $('aClose').onclick = closeAccount;
       $('aRank').onclick = function () { accountView('rank'); };
       apiJSON('GET', '/leaderboard?period=week').then(function (d) {
@@ -2612,6 +2619,13 @@
       [].forEach.call($('pickColor').children, function (b) { b.onclick = function () { car.color = b.getAttribute('data-c'); saveCar(); }; });
       refreshPick();
       $('aWork').onclick = function () { closeAccount(); saveHere('work'); };
+      $('aDelete').onclick = function () {
+        var bt = $('aDelete');
+        if (!bt.dataset.sure) { bt.dataset.sure = '1'; bt.textContent = 'Confirmer : tout supprimer définitivement'; return; }
+        bt.disabled = true;
+        apiJSON('DELETE', '/me').then(function () { setSession(null, null); closeAccount(); toast('Compte supprimé'); })
+          .catch(function () { bt.disabled = false; toast('Suppression impossible, réessaie'); });
+      };
       $('aLogout').onclick = function () { apiJSON('POST', '/auth/logout').catch(function () {}); setSession(null, null); closeAccount(); toast('Déconnecté'); };
     } else if (view === 'rank') {
       var period = c.getAttribute('data-period') || 'week';

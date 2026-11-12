@@ -16,7 +16,7 @@ const MAX_RADIUS_KM = 50;
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 const json = (data, status = 200) =>
@@ -151,6 +151,20 @@ export default {
       if (url.pathname === '/auth/logout' && request.method === 'POST') {
         const u = await currentUser(request, env);
         if (u) await env.DB.prepare('DELETE FROM sessions WHERE token = ?1').bind(u._token).run();
+        return json({ ok: true });
+      }
+      // Suppression du compte (droit à l'effacement) : compte, sessions et points ; les signalements restent anonymes
+      if (url.pathname === '/me' && request.method === 'DELETE') {
+        const u = await currentUser(request, env);
+        if (!u) return json({ error: 'Non connecté' }, 401);
+        const st = [
+          env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(u.id),
+          env.DB.prepare('DELETE FROM points_log WHERE user_id = ?1').bind(u.id),
+          env.DB.prepare('UPDATE reports SET user_id = NULL WHERE user_id = ?1').bind(u.id),
+          env.DB.prepare('DELETE FROM users WHERE id = ?1').bind(u.id),
+        ];
+        await env.DB.batch(st);
+        try { await env.DB.prepare('UPDATE feedback SET user_id = NULL, pseudo = NULL WHERE user_id = ?1').bind(u.id).run(); } catch (e) {}
         return json({ ok: true });
       }
       if (url.pathname === '/me' && request.method === 'GET') {
@@ -467,6 +481,7 @@ export default {
         const text = String(body.text || '').trim().slice(0, 2000);
         if (text.length < 3) return json({ error: 'Message trop court' }, 400);
         await env.DB.prepare('CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, text TEXT, user_id INTEGER, pseudo TEXT, ua TEXT, version TEXT, created_at INTEGER, ip_hash TEXT)').run();
+        await env.DB.prepare('DELETE FROM feedback WHERE created_at < ?1').bind(now - 2 * 365 * 86400000).run();
         const now = Date.now(), who = await ipHash(request);
         const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM feedback WHERE ip_hash = ?1 AND created_at > ?2').bind(who, now - 3600000).first();
         if (recent && recent.n >= 5) return json({ error: 'Trop de messages, réessaie plus tard' }, 429);
