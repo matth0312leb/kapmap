@@ -55,7 +55,7 @@
   /* Bandeau de guidage */
   #nav { top:16px; left:16px; right:96px; max-width:620px; padding:14px 20px; display:none; align-items:center; gap:18px; background:#0e0e0f; color:#fff; border:1px solid rgba(255,255,255,.12); }
   body.light #nav { background:#ffffff; color:#111; border-color:rgba(0,0,0,.08); }
-  body.light #navIcon svg path, body.light #navIcon svg circle { fill:#111; } body.light #navIcon svg[stroke] , body.light #navIcon svg [stroke] { stroke:#111; } body.light #navIcon text { fill:#111; }
+  body.light #navIcon svg path:not([fill="none"]), body.light #navIcon svg circle:not([fill="none"]) { fill:#111; } body.light #navIcon svg[stroke] , body.light #navIcon svg [stroke] { stroke:#111; } body.light #navIcon text { fill:#111; }
   #nav.show { display:flex; }
   #navIcon { width:64px; height:64px; flex:none; display:flex; align-items:center; justify-content:center; }
   #navIcon svg { width:60px; height:60px; }
@@ -435,6 +435,12 @@
   #speedUnit { font-size:11px !important; }
   #limit { width:40px !important; height:40px !important; border-width:4px !important; font-size:16px !important; }
   @media (max-width: 700px) { #speed { font-size:30px !important; } #limit { width:36px !important; height:36px !important; font-size:15px !important; } }
+  body.light #navIcon svg[fill="none"] path, body.light #navIcon svg[fill="none"] circle { fill:none !important; }
+  #nav.compact { padding-top:10px !important; padding-bottom:10px !important; right:auto !important; width:auto; max-width:min(380px, calc(100% - 120px)) !important; }
+  #nav.compact #navDist { font-size:24px !important; }
+  #nav.compact #navText { font-size:14px !important; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #nav.compact #navIcon svg { width:36px; height:36px; }
+  #nav #navDist, #nav #navText { transition:font-size .25s; }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -1654,7 +1660,7 @@
       var coords = route.points, cum = [0];
       for (var i = 1; i < coords.length; i++) cum.push(cum[i - 1] + dist(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]));
       var steps = route.instr.map(function (it) {
-        return { idx: Math.min(it.i, coords.length - 1), tt: it.m, msg: it.msg, exit: it.ex, type: /ARRIVE/.test(it.m) ? 'arrive' : it.m === 'DEPART' ? 'depart' : 'tt', said: {} };
+        return { idx: Math.min(it.i, coords.length - 1), tt: it.m, msg: it.msg, exit: it.ex, street: it.street || '', type: /ARRIVE/.test(it.m) ? 'arrive' : it.m === 'DEPART' ? 'depart' : 'tt', said: {} };
       });
       return { coords: coords, cum: cum, steps: steps, total: route.length, duration: route.travel, speed: route.speed || [], lanes: route.lanes || [],
         tt: { travel: route.travel, delay: route.delay, jams: route.jams || [], points: coords }, toll: !!route.toll, srcRoute: route };
@@ -2013,6 +2019,16 @@
   }
   // Instructions en français à partir du type de manœuvre
   var MOD = { 'left': 'à gauche', 'right': 'à droite', 'slight left': 'légèrement à gauche', 'slight right': 'légèrement à droite', 'sharp left': 'franchement à gauche', 'sharp right': 'franchement à droite', 'straight': 'tout droit', 'uturn': 'demi-tour' };
+  function shortInstruction(st) {
+    var ord = st.exit ? (st.exit === 1 ? '1re' : st.exit + 'e') + ' sortie' : '';
+    if (st.type === 'arrive') return 'Arrivée';
+    if (/ROUNDABOUT/.test(st.tt || '') || /roundabout|rotary/.test(st.type)) return 'Rond-point' + (ord ? ' · ' + ord : '');
+    var road = st.street || st.name || st.ref;
+    if (!road && st.msg) { var m = st.msg.match(/ sur (.+?)(?: en direction| vers|$)/); if (m) road = m[1]; }
+    if (road) return road.split('/')[0];
+    var full = instruction(st);
+    return full.length > 34 ? full.slice(0, 32).replace(/\s+\S*$/, '') + '…' : full;
+  }
   function instruction(st) {
     if (st.msg) return st.msg.replace(/la premier sortie/i, 'la première sortie');
     var road = st.name ? (/^(rue|route|avenue|chemin|boulevard|place|quai|allée|impasse|autoroute|voie|esplanade|cours)\b/i.test(st.name) ? ' sur ' + st.name : ' sur ' + st.name) : (st.ref ? ' sur ' + st.ref : '');
@@ -2074,7 +2090,10 @@
     nav.dNext = dNext; nav.nextIsArrive = next.type === 'arrive';
     $('navIcon').innerHTML = maneuverIcon(next);
     $('navDist').textContent = formatDist(dNext);
-    $('navText').textContent = instruction(next);
+    // Loin de la manœuvre : bandeau compact (distance + l'essentiel) ; détail complet à moins de 300 m
+    var compact = dNext > 300 && !isNaN(dNext);
+    $('nav').classList.toggle('compact', compact);
+    $('navText').textContent = compact ? shortInstruction(next) : instruction(next);
     // Indications de voies à l'approche de la manœuvre
     var lanesHtml = '';
     if (nav.lanes && dNext < 800) {
@@ -2195,7 +2214,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794475107';
+  var BUILD = '1794475317';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
