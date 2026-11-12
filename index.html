@@ -163,7 +163,7 @@
   .tbtn.rep { background:#f5f5f5; color:#111; }
   #sheet { left:50%; bottom:24px; transform:translateX(-50%); padding:18px; width:min(640px, calc(100% - 32px)); display:none; z-index:600; }
   #sheet.show { display:block; }
-  #sheet h3 { margin:0 0 4px; font-size:22px; }
+  #sheet h3 { margin:0 0 14px; font-size:22px; }
   #sheet p { margin:0 0 14px; color:var(--mut); font-size:14px; }
   #sheet .grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
   @media (max-width:560px) { #sheet .grid { grid-template-columns:repeat(3, 1fr); gap:8px; } }
@@ -472,7 +472,7 @@
     background:radial-gradient(120% 90% at 0% 0%, rgba(227,25,55,.22), transparent 60%), rgba(127,127,127,.08); border:1px solid rgba(227,25,55,.25); }
   .pHeroCar svg { width:54px !important; height:96px !important; filter:drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
   .pHeroTxt small { display:block; color:var(--mut); font-size:13px; } .pHeroTxt b { display:block; font-size:22px; margin:2px 0 6px; }
-  .betaNote { margin:0 0 12px; padding:10px 12px; border-radius:12px; font-size:13px; line-height:1.4; background:rgba(227,25,55,.1); border:1px solid rgba(227,25,55,.45); }
+  .betaNote { margin:12px 0; padding:10px 12px; border-radius:12px; font-size:13px; line-height:1.4; background:rgba(227,25,55,.1); border:1px solid rgba(227,25,55,.45); }
   .betaNote b { color:#ff5a72; }
   .betaPill { display:inline-block; margin:0 0 10px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; background:rgba(227,25,55,.14); border:1px solid rgba(227,25,55,.5); color:#ff6b80; }
   .pBadge.fd { margin-left:6px; color:#1a1300; background:linear-gradient(180deg,#f6d77a,#d4a52c); }
@@ -486,7 +486,7 @@
   .btn:disabled { opacity:.45; filter:saturate(.5); cursor:default; box-shadow:none !important; }
   .prTop { display:flex; align-items:center; gap:12px; } .prTop svg { border-radius:12px; box-shadow:0 0 30px rgba(227,25,55,.5); }
   .prTop small { color:var(--mut); font-size:12px; text-transform:uppercase; letter-spacing:.12em; } .prTop h2 { margin:0 !important; }
-  .prList { list-style:none; padding:0; margin:10px 0 14px; display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; font-size:14px; }
+  .prList { list-style:none; padding:0; margin:10px 0 14px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px 14px; font-size:14px; }
   .prList li { padding-left:22px; position:relative; } .prList li::before { content:''; position:absolute; left:2px; top:5px; width:10px; height:10px; border-radius:50%; background:#e31937; box-shadow:0 0 10px #e31937; }
   .prAgree { display:flex; gap:10px; align-items:flex-start; margin:0 0 12px; font-size:12.5px; line-height:1.4; color:var(--mut); cursor:pointer; }
   .prAgree input { flex:none; width:20px; height:20px; margin:1px 0 0; accent-color:#e31937; }
@@ -496,7 +496,7 @@
   .prPlan span { display:block; font-size:13px; color:var(--mut); } .prPlan b { display:block; font-size:17px; white-space:nowrap; margin:4px 0 2px; } .prPlan small { font-size:12px; color:var(--mut); }
   .prPlan.sel { border-color:rgba(227,25,55,.8); box-shadow:0 0 0 1px rgba(227,25,55,.4), 0 10px 30px rgba(227,25,55,.25); background:rgba(227,25,55,.1); }
   .prPlan em { position:absolute; top:-9px; right:8px; white-space:nowrap; font-style:normal; font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:2px 8px; border-radius:999px; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); }
-  @media (max-width: 520px) { .prList { grid-template-columns:1fr; } }
+  @media (max-width: 520px) { .prList { grid-template-columns:1fr 1fr; } }
   .pShort { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
   .pShort button { display:flex; align-items:center; gap:12px; text-align:left; font:inherit; color:#ececef; padding:14px; border-radius:16px; cursor:pointer;
     background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); transition:border-color .15s, box-shadow .15s; min-width:0; }
@@ -603,14 +603,14 @@
 </div>
 
 <div id="welcome" class="overlay"><div class="card">
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><svg viewBox="0 0 64 64" width="56" height="56" aria-label="KapMap"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><h2>Ta Tesla mérite mieux qu'une simple carte</h2></div>
-  <p class="lead">Zones de danger, trafic en direct, prix des péages et toutes les bornes de recharge, sur ton grand écran.</p>
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><svg viewBox="0 0 64 64" width="56" height="56" aria-label="KapMap"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><h2>KapMap</h2></div>
+  <p class="lead">La carte premium pour ta Tesla.</p>
   <span class="betaPill" id="wBeta" style="display:none"></span>
-  <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alerte sonore et compte à rebours avant chaque zone. Tu roules l'esprit tranquille.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h4M15 10v4"/></svg><p style="margin:0"><b>Prix des péages</b><span>Le vrai prix avant de partir, et le trajet sans péage en une touche.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons, accidents, travaux : ton heure d'arrivée réelle, recalculée en route.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Toutes les bornes de recharge</b><span>Superchargeurs Tesla et bornes publiques, ajoutés à ton trajet en une touche.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></svg><p style="margin:0"><b>Signalements en direct</b><span>Police, accidents, travaux : signalés par la communauté. Gagne des points en participant.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M10 9l5 2-5 2z"/></svg><p style="margin:0"><b>Mode pause</b><span>Netflix, YouTube, quiz : la recharge passe toute seule.</span></p></div></div>
+  <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alerte sonore à l'approche</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h4M15 10v4"/></svg><p style="margin:0"><b>Prix des péages</b><span>Le vrai prix, avant de partir</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Ton heure d'arrivée réelle</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Toutes les bornes</b><span>Superchargeurs inclus</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></svg><p style="margin:0"><b>Signalements en direct</b><span>Police, accidents, travaux</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M10 9l5 2-5 2z"/></svg><p style="margin:0"><b>Mode pause</b><span>Netflix, YouTube, quiz</span></p></div></div>
   <button class="btn pri" id="wRegister">Créer mon compte gratuit</button>
   <button class="btn sec" id="wLogin">J'ai déjà un compte</button>
   <button class="btn link" id="wSkip">Continuer sans compte</button>
-  <p class="small">KapMap signale des zones de danger sans position précise, conformément à la réglementation française. Reste attentif à la route et respecte les limitations. <a href="legal.html" target="_blank" style="color:inherit">Mentions légales et confidentialité</a></p>
+  <p class="small" style="text-align:center">Conforme à la réglementation française · <a href="legal.html" target="_blank" style="color:inherit">Mentions légales</a></p>
 </div></div>
   <button class="btn pri" id="wRegister">Créer mon compte</button>
   <button class="btn sec" id="wLogin">J'ai déjà un compte</button>
@@ -622,21 +622,20 @@
 
 <div id="premium" class="overlay"><div class="card">
   <div class="prTop"><svg viewBox="0 0 64 64" width="44" height="44"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><div><small>KapMap</small><h2>Premium</h2></div></div>
-  <p class="lead">Tout KapMap, sans limite, pour rouler l'esprit tranquille.</p>
   <div class="betaNote" id="prBeta" style="display:none"></div>
   <ul class="prList">
-    <li>Zones de danger et alertes de vitesse</li><li>Trafic en direct et heure d'arrivée réelle</li><li>Prix des péages et trajets sans péage</li>
-    <li>Superchargeurs et bornes publiques sur le trajet</li><li>Mode pause : streaming, actus, quiz</li><li>Partage de trajet en direct</li>
+    <li>Zones de danger</li><li>Trafic en direct</li><li>Prix des péages</li>
+    <li>Toutes les bornes</li><li>Mode pause</li><li>Partage de trajet</li>
   </ul>
   <div class="prPlans">
     <button class="prPlan" data-p="month"><span>Mensuel</span><b id="prMonth">Tarif à venir</b><small>Sans engagement</small></button>
-    <button class="prPlan best" data-p="year"><em>Populaire</em><span>Annuel</span><b id="prYear">Tarif à venir</b><small>Soit 2,99 €/mois</small></button>
-    <button class="prPlan" data-p="life"><em>Lancement</em><span>À vie</span><b id="prLife">Tarif à venir</b><small>Un seul paiement</small></button>
+    <button class="prPlan best" data-p="year"><em>Populaire</em><span>Annuel</span><b id="prYear">Tarif à venir</b><small>2,99 €/mois</small></button>
+    <button class="prPlan" data-p="life"><em>Lancement</em><span>À vie</span><b id="prLife">Tarif à venir</b><small>Paiement unique</small></button>
   </div>
-  <label class="prAgree"><input type="checkbox" id="prAgree"><span>Je demande l'accès immédiat à KapMap Premium et je renonce à mon droit de rétractation de 14 jours. J'ai lu les <a href="legal.html#cgu" target="_blank">conditions</a>.</span></label>
+  <label class="prAgree"><input type="checkbox" id="prAgree"><span>Accès immédiat : je renonce au délai de rétractation de 14 jours.</span></label>
   <button class="btn pri" id="prGo" disabled>Bientôt disponible</button>
   <button class="btn sec" id="prClose">Plus tard</button>
-  <p class="small">Sans engagement : tu résilies quand tu veux, l'accès reste actif jusqu'à la fin de la période payée. Paiements non remboursables. Paiement sécurisé.</p>
+  <p class="small" style="text-align:center">Sans engagement · Non remboursable · <a href="legal.html#cgu" target="_blank" style="color:inherit">Conditions</a></p>
 </div></div>
 
 <div id="locGate" class="overlay"><div class="card">
@@ -710,7 +709,6 @@
 
 <div id="sheet" class="panel">
   <h3>Signalements</h3>
-  <p>Placé à ta position actuelle. Idéalement, laisse un passager le faire.</p>
   <div class="grid" id="sheetGrid"></div>
   <button class="cancel" id="sheetCancel">Annuler</button>
 </div>
@@ -2195,8 +2193,8 @@
   var BETA = { until: Date.parse('2026-12-31T23:59:59+01:00'), label: '31 décembre 2026', founderLife: '49 €' };
   var isBeta = Date.now() < BETA.until;
   if (isBeta) {
-    $('wBeta').textContent = 'Gratuit pendant la bêta, jusqu\'au ' + BETA.label + ' · sans carte bancaire'; $('wBeta').style.display = 'inline-block';
-    $('prBeta').innerHTML = '<b>Bêta gratuite jusqu\'au ' + BETA.label + '</b> : tout est offert. Crée ton compte pendant la bêta pour devenir <b>Fondateur</b> : badge sur ton profil et accès à vie à ' + BETA.founderLife + ' au lieu de 79 €.';
+    $('wBeta').textContent = 'Gratuit jusqu\'au ' + BETA.label; $('wBeta').style.display = 'inline-block';
+    $('prBeta').innerHTML = '<b>Gratuit jusqu\'au ' + BETA.label + '</b> · Membres de la bêta : à vie à ' + BETA.founderLife;
     $('prBeta').style.display = 'block';
   }
   var PRICES = { month: '3,90 €', year: '35,90 €', life: '79 €', url: null };   // url : lien de paiement Stripe à brancher
@@ -2533,7 +2531,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794525694';
+  var BUILD = '1794525932';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
