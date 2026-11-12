@@ -2133,7 +2133,7 @@
     $('prClose').onclick = function () { $('premium').classList.remove('show'); };
     $('prGo').onclick = function () { if (PRICES.url) window.open(PRICES.url + (PRICES.url.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(me ? me.pseudo : '') + '&plan=' + plan, '_blank'); };
   })();
-  window.KapMapDebug = { launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
+  window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
   $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
   $('prefToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); if (pendingRoutes && pendingDest) startNav(pendingDest); };
@@ -2443,7 +2443,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794520516';
+  var BUILD = '1794520596';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
