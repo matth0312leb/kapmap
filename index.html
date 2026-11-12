@@ -632,7 +632,7 @@
   </div>
   <button class="btn pri" id="prGo" disabled>Bientôt disponible</button>
   <button class="btn sec" id="prClose">Plus tard</button>
-  <p class="small">Toutes les formules sont sans engagement : tu résilies quand tu veux, depuis ton compte. Paiement sécurisé.</p>
+  <p class="small">Sans engagement : tu résilies quand tu veux, l'accès reste actif jusqu'à la fin de la période payée. Paiements non remboursables. Paiement sécurisé.</p>
 </div></div>
 
 <div id="locGate" class="overlay"><div class="card">
@@ -2527,7 +2527,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794525351';
+  var BUILD = '1794525423';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
