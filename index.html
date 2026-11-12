@@ -1921,6 +1921,11 @@
     var pts = rt.points, cum = [0];
     for (var k = 1; k < pts.length; k++) cum.push(cum[k - 1] + dist(pts[k - 1][1], pts[k - 1][0], pts[k][1], pts[k][0]));
     var total = 0, exact = true;
+    // ordre d'apparition des autoroutes dans le guidage (A410, A41…)
+    var roadOrder = [];
+    (rt.instr || []).forEach(function (it) {
+      ((it.msg || '') + ' ' + (it.street || '') + ' ' + (it.roads || []).join(' ')).replace(/\bA\d{2,3}\b/g, function (r) { if (roadOrder.indexOf(r) < 0) roadOrder.push(r); return r; });
+    });
     function price(a, b) { if (!d || a === b || d.gates[a][0] !== d.gates[b][0]) return null; var p = d.pairs[a + ',' + b]; if (p === undefined) p = d.pairs[b + ',' + a]; return p === undefined ? null : p; }
     (rt.tollSecs || []).forEach(function (sec) {
       var s0 = sec[0], e0 = Math.min(sec[1], pts.length - 1);
@@ -1933,13 +1938,29 @@
         var mid = {};
         for (var q = s0; q <= e0; q += Math.max(1, Math.floor((e0 - s0) / 600))) {
           var gq = d.near(pts[q][1], pts[q][0], 400);
-          if (gq && (!mid[gq.i] || gq.m < mid[gq.i].m)) mid[gq.i] = { g: gq.i, at: cum[q], m: gq.m };
+          if (!gq) continue;
+          // toutes les gares quasi au même point que la plus proche (barrières jumelles)
+          d.gates.forEach(function (g, gi) {
+            var mm = Infinity;
+            g[2].forEach(function (p) { var m2 = dist(pts[q][1], pts[q][0], p[0], p[1]); if (m2 < mm) mm = m2; });
+            if (mm <= gq.m + 60 && (!mid[gi] || mm < mid[gi].m)) mid[gi] = { g: gi, at: cum[q], m: mm };
+          });
         }
         var midL = Object.keys(mid).map(function (k) { return mid[k]; }).sort(function (x, y) { return x.at - y.at; });
+        // Deux gares au même endroit (ex. barrières A410 et A41 à Saint-Martin-Bellevue) : on garde celle de l'autoroute
+        // citée en premier dans le guidage ; sinon la plus proche du trajet
+        function refRank(g) {
+          var refs = (d.gates[g][1].match(/\bA\d{2,3}\b/g) || []), best = Infinity;
+          refs.forEach(function (r) { var k = roadOrder.indexOf(r); if (k >= 0 && k < best) best = k; });
+          return best;
+        }
         var kept = [];
         midL.forEach(function (x) {
           var prev = kept[kept.length - 1];
-          if (prev && x.at - prev.at < 1500) { if (x.m < prev.m) kept[kept.length - 1] = x; }
+          if (prev && x.at - prev.at < 1500) {
+            var rx = refRank(x.g), rp = refRank(prev.g);
+            if (rx < rp || (rx === rp && x.m < prev.m)) kept[kept.length - 1] = x;
+          }
           else kept.push(x);
         });
         kept.forEach(function (x) { if (!seq.length || seq[seq.length - 1].g !== x.g) seq.push(x); });
@@ -2459,7 +2480,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794520720';
+  var BUILD = '1794521286';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
