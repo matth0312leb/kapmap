@@ -1561,11 +1561,21 @@
       if (d) {
         var g0 = d.near(pts[s0][1], pts[s0][0], 2500);
         if (g0) seq.push({ g: g0.i, at: cum[s0] });
-        // gares traversées le long de la section (barrières en pleine voie, échangeurs empruntés)
-        for (var q = s0; q <= e0; q += Math.max(1, Math.floor((e0 - s0) / 400))) {
-          var gq = d.near(pts[q][1], pts[q][0], 400);   // gares proches du trajet (les échangeurs non empruntés sont sautés plus bas)
-          if (gq && (!seq.length || seq[seq.length - 1].g !== gq.i)) seq.push({ g: gq.i, at: cum[q] });
+        // gares traversées le long de la section (barrières en pleine voie, échangeurs empruntés) :
+        // pour chaque gare, le point du trajet le plus proche ; si deux gares se suivent de près, on garde la plus proche du trajet
+        var mid = {};
+        for (var q = s0; q <= e0; q += Math.max(1, Math.floor((e0 - s0) / 600))) {
+          var gq = d.near(pts[q][1], pts[q][0], 400);
+          if (gq && (!mid[gq.i] || gq.m < mid[gq.i].m)) mid[gq.i] = { g: gq.i, at: cum[q], m: gq.m };
         }
+        var midL = Object.keys(mid).map(function (k) { return mid[k]; }).sort(function (x, y) { return x.at - y.at; });
+        var kept = [];
+        midL.forEach(function (x) {
+          var prev = kept[kept.length - 1];
+          if (prev && x.at - prev.at < 1500) { if (x.m < prev.m) kept[kept.length - 1] = x; }
+          else kept.push(x);
+        });
+        kept.forEach(function (x) { if (!seq.length || seq[seq.length - 1].g !== x.g) seq.push(x); });
         var g1 = d.near(pts[e0][1], pts[e0][0], 2500);
         if (g1 && (!seq.length || seq[seq.length - 1].g !== g1.i)) seq.push({ g: g1.i, at: cum[e0] });
       }
@@ -1586,13 +1596,13 @@
         var j = seq.length - 1, p = null;
         for (; j > i; j--) { p = price(seq[i].g, seq[j].g); if (p !== null) break; }
         if (p !== null && j > i) { total += p; i = j; continue; }
-        // barrière isolée en système ouvert : tarif fixe « Système Ouvert → barrière »
-        var so = d.so && d.so[d.gates[seq[i + 1].g][0]], ps = so !== undefined ? price(so, seq[i + 1].g) : null;
-        if (ps !== null) { total += ps; i++; continue; }
         // gare sans aucun tarif vers la suite (échangeur voisin détecté par erreur) : on l'ignore si la suite se calcule
         var laterHasPair = false;
         for (var a1 = i + 1; a1 < seq.length - 1 && !laterHasPair; a1++) for (var b1 = a1 + 1; b1 < seq.length; b1++) if (price(seq[a1].g, seq[b1].g) !== null) { laterHasPair = true; break; }
         if (laterHasPair) { i++; continue; }
+        // barrière isolée en système ouvert : tarif fixe « Système Ouvert → barrière »
+        var so = d.so && d.so[d.gates[seq[i + 1].g][0]], ps = so !== undefined ? price(so, seq[i + 1].g) : null;
+        if (ps !== null) { total += ps; i++; continue; }
         total += (seq[i + 1].at - seq[i].at) / 1000 * TOLL_EUR_KM; exact = false; i++;
       }
     });
@@ -1894,7 +1904,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794441270';
+  var BUILD = '1794441600';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
