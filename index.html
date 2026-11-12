@@ -202,7 +202,7 @@
   #nav { right:80px; max-width:520px; padding:10px 16px; gap:14px; }
   #navIcon { width:46px; height:46px; } #navIcon svg { width:42px; height:42px; }
   #navDist { font-size:26px; } #navText { font-size:15px; }
-  body.navigating #alert { top:96px; }
+  body.navigating #alert { top:calc(var(--navBottom, 96px) + 10px); }
   #bottom { width:min(480px, calc(100% - 32px)); padding:8px; }
   #q { font-size:16px; padding:11px 14px; border-radius:12px; }
   #btnMic { width:42px; height:42px; border-radius:12px; } #btnMic svg { width:20px; height:20px; }
@@ -308,7 +308,7 @@
     #nav { right:86px; padding:12px 14px; gap:12px; }
     #navIcon { width:48px; height:48px; } #navIcon svg { width:46px; height:46px; }
     #navDist { font-size:22px; } #navText { font-size:14px; }
-    body.navigating #alert { top:104px; }
+    body.navigating #alert { top:calc(var(--navBottom, 104px) + 10px); }
   }
 
   /* ================= Direction artistique KapMap : noir profond, verre, lueurs rouges ================= */
@@ -391,7 +391,8 @@
   #tripInfo b { display:block; font-weight:600; color:var(--txt); white-space:nowrap; }
   #tripInfo small { display:block; font-size:12px; color:var(--mut); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #tripInfo { min-width:0; overflow:hidden; }
-  @media (min-width: 701px) { body.navigating #bottom { width:min(560px, calc(100% - 32px)); } }
+  /* En navigation (Tesla, PC) : la barre du trajet démarre après le compteur, jamais dessous */
+  @media (min-width: 701px) { body.navigating #bottom { left:calc(var(--speedR, 150px) + 12px); transform:none; width:min(560px, calc(100% - var(--speedR, 150px) - 28px)); } }
   /* Thème jour : mêmes codes que la nuit (verre clair, accents rouges) */
   body.light .panel { background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(246,246,248,.98)); border:1px solid rgba(0,0,0,.06); box-shadow:0 12px 34px rgba(0,0,0,.18); }
   body.light .tbtn { background:rgba(0,0,0,.045); border:1px solid rgba(0,0,0,.05); color:#1f2328; }
@@ -1514,13 +1515,36 @@
   var nav = null, routeGeo = null;      // nav = { dest, coords, cum, steps, total, duration, idx, lastSpoken, offCount, lastReroute }
   function addRouteLayers() {
     if (!routeGeo || map.getSource('route')) return;
-    map.addSource('route', { type: 'geojson', data: routeGeo });
+    map.addSource('route', { type: 'geojson', data: routeGeo, lineMetrics: true });
     var before = firstSymbolId();
-    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': theme === 'light' ? '#ffffff' : '#000000', 'line-opacity': 0.7, 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 4, 16, 11] } }, before);
-    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': theme === 'light' ? '#111111' : '#f5f5f5', 'line-opacity': 0.75, 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2, 16, 6] } }, before);
+    // Trajet en surbrillance au-dessus des bâtiments ; la partie déjà parcourue s'efface au fil du trajet
+    map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': ROUTE_COL[theme === 'light' ? 1 : 0], 'line-opacity': theme === 'light' ? 0.18 : 0.3, 'line-blur': 6, 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 8, 14, 16, 18, 42] } }, before);
+    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': theme === 'light' ? '#0b3d91' : '#06224d', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 5, 14, 10, 18, 26] } }, before);
+    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': ROUTE_COL[theme === 'light' ? 1 : 0], 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 3, 14, 7, 18, 19] } }, before);
+    routeProg = -1; setRouteProgress(lastRouteFrac);
     if (map.getLayer('traffic')) map.moveLayer('traffic', firstSymbolId());
   }
+  var ROUTE_COL = ['#3d8bff', '#1a6ef0'], routeProg = -1, lastRouteFrac = 0;
+  function setRouteProgress(frac) {
+    lastRouteFrac = frac = Math.max(0, Math.min(1, frac || 0));
+    if (!map.getLayer('route-line') || Math.abs(frac - routeProg) < 0.0008) return;
+    routeProg = frac;
+    var col = ROUTE_COL[theme === 'light' ? 1 : 0];
+    try {
+      if (frac <= 0.0001) {
+        ['route-line', 'route-casing', 'route-glow'].forEach(function (id) { map.setPaintProperty(id, 'line-gradient', null); });
+        return;
+      }
+      map.setPaintProperty('route-line', 'line-gradient', ['step', ['line-progress'], 'rgba(0,0,0,0)', frac, col]);
+      map.setPaintProperty('route-casing', 'line-gradient', ['step', ['line-progress'], 'rgba(0,0,0,0)', frac, theme === 'light' ? '#0b3d91' : '#06224d']);
+      map.setPaintProperty('route-glow', 'line-gradient', ['step', ['line-progress'], 'rgba(0,0,0,0)', frac, col]);
+    } catch (e) {}
+  }
   function setRoute(coords) {
+    lastRouteFrac = 0; routeProg = -1;
     routeGeo = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } };
     whenReady(function () { if (map.getSource('route')) map.getSource('route').setData(routeGeo); else addRouteLayers(); });
   }
@@ -1556,7 +1580,7 @@
     rtGeo = null; routeTraffic = null;
     whenReady(function () { if (map.getLayer('route-traffic')) map.removeLayer('route-traffic'); if (map.getSource('route-traffic')) map.removeSource('route-traffic'); });
     routeGeo = null;
-    whenReady(function () { ['route-line', 'route-casing'].forEach(function (id) { if (map.getLayer(id)) map.removeLayer(id); }); if (map.getSource('route')) map.removeSource('route'); });
+    whenReady(function () { ['route-line', 'route-casing', 'route-glow'].forEach(function (id) { if (map.getLayer(id)) map.removeLayer(id); }); if (map.getSource('route')) map.removeSource('route'); });
   }
 
   // Préférences d'itinéraire (mémorisées)
@@ -1777,6 +1801,7 @@
     var bottomBox = $('bottom');
     function place() {
       document.body.style.setProperty('--toolsBottom', (toolsBox.offsetTop + toolsBox.offsetHeight) + 'px');
+      var sb = $('speedBox').getBoundingClientRect(); if (sb.width) document.body.style.setProperty('--speedR', Math.round(sb.right) + 'px');
       // « Recentrer » toujours au-dessus de la barre du bas (recherche, résultats ou trajet), quelle que soit sa hauteur
       var bTop = bottomBox.getBoundingClientRect().top, h = window.innerHeight;
       document.body.style.setProperty('--bottomH', Math.max(16, h - bTop) + 'px');
@@ -1784,7 +1809,7 @@
       var cTop = toolsBox.offsetTop + toolsBox.offsetHeight + 12;
       document.body.classList.toggle('compassHidden', bTop < cTop + 48 + 70);
       if (navBox.offsetHeight) document.body.style.setProperty('--navBottom', (navBox.offsetTop + navBox.offsetHeight) + 'px'); }
-    if (window.ResizeObserver) { var ro = new ResizeObserver(place); ro.observe(navBox); ro.observe(bottomBox); }
+    if (window.ResizeObserver) { var ro = new ResizeObserver(place); ro.observe(navBox); ro.observe(bottomBox); ro.observe($('speedBox')); }
     // états d'affichage : feuille de signalement ouverte, résultats de recherche affichés
     function states() {
       document.body.classList.toggle('sheet-open', $('sheet').classList.contains('show'));
@@ -1997,6 +2022,7 @@
     var next = null;
     for (var k = 0; k < nav.steps.length; k++) { if (nav.cum[nav.steps[k].idx] > pos.along + 5 && nav.steps[k].type !== 'depart') { next = nav.steps[k]; break; } }
     var remaining = Math.max(0, nav.total - pos.along);
+    setRouteProgress(nav.total > 0 ? pos.along / nav.total : 0);
     if (!next) next = nav.steps[nav.steps.length - 1];
     var dNext = Math.max(0, nav.cum[next.idx] - pos.along);
     $('navIcon').innerHTML = maneuverIcon(next);
@@ -2122,7 +2148,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794474154';
+  var BUILD = '1794474365';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
