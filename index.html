@@ -246,6 +246,7 @@
   #layers .lyTop button { width:34px; height:34px; border-radius:50%; border:0; background:rgba(127,127,127,.15); color:var(--txt); font-size:20px; line-height:1; cursor:pointer; }
   #layers .lySub { font-size:12px; color:var(--mut); margin:10px 2px 6px; }
   #layers .lyHead { border-top:1px solid var(--line); padding-top:14px; }
+  #layers .lyPane > .lyHead:first-child { border-top:0; padding-top:0; margin-top:14px; }
   #layers .lyTop + .lyHead { border-top:0; padding-top:0; }
   #navLanes { display:none; gap:6px; margin-top:8px; padding:5px 8px; background:rgba(127,127,127,.18); border-radius:8px; width:max-content; }
   label.chip2 { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:7px 10px; border-radius:999px; border:1px solid var(--line); cursor:pointer; }
@@ -423,9 +424,18 @@
   @keyframes spl { from { left:-40%; } to { left:100%; } }
   #layers .lyRow { display:flex; align-items:center; justify-content:space-between; width:100%; font:inherit; font-size:15px; text-align:left; color:var(--txt); background:transparent; border:0; padding:12px 2px; cursor:pointer; }
   #layers .lyRow i { font-style:normal; color:var(--red); font-size:22px; line-height:1; }
+  #layers .lyTabs { flex:1; margin-right:10px; gap:0; padding:3px; border-radius:12px; background:rgba(127,127,127,.14); border:1px solid var(--line); }
+  #layers .lyTabs button { flex:1; font:inherit; font-size:14px; font-weight:600; padding:7px 8px; border:0; border-radius:9px; background:transparent; color:var(--mut); cursor:pointer; transition:background .15s, color .15s; }
+  #layers .lyTabs button.sel { background:linear-gradient(180deg,#ef2a47,#c8102e); color:#fff; box-shadow:0 4px 14px rgba(227,25,55,.35); }
+  #layers .lyRow { display:flex; align-items:center; gap:12px; width:100%; padding:11px 2px; border:0; border-bottom:1px solid var(--line); background:none; color:var(--txt); font:inherit; font-size:15px; text-align:left; text-decoration:none; cursor:pointer; }
+  #layers .lyRow:last-of-type { border-bottom:0; }
+  #layers .lyRow span { flex:1; min-width:0; }
+  #layers .lyRow small { display:block; font-size:12px; color:var(--mut); margin-top:1px; }
+  #layers .lyRow i { font-style:normal; color:var(--mut); font-size:20px; }
+  #layers .lyIc { width:34px; height:34px; flex:none; border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(227,25,55,.12); color:#ff5a72; border:1px solid rgba(227,25,55,.3); }
   #layers .lyVer { font-size:11px; color:var(--mut); padding:6px 2px 4px; }
   #fbKind { margin-top:14px; }
-  #fbKind button { flex:1; font:inherit; font-size:15px; padding:10px 6px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
+  #fbKind button { flex:1; font:inherit; font-size:14px; padding:10px 4px; min-width:0; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
   #fbKind button.sel { background:linear-gradient(180deg,#ef2a47,#c8102e); color:#fff; border-color:transparent; box-shadow:0 6px 18px rgba(227,25,55,.35); }
   .field textarea { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:13px 14px; border-radius:12px; border:1px solid var(--line); background:rgba(127,127,127,.08); color:var(--txt); outline:none; resize:none; }
   .field textarea:focus { border-color:rgba(227,25,55,.7); box-shadow:0 0 0 3px rgba(227,25,55,.18); }
@@ -476,6 +486,21 @@
   .betaNote b { color:#ff5a72; }
   .betaPill { display:inline-block; margin:0 0 10px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; background:rgba(227,25,55,.14); border:1px solid rgba(227,25,55,.5); color:#ff6b80; }
   .pBadge.fd { margin-left:6px; color:#1a1300; background:linear-gradient(180deg,#f6d77a,#d4a52c); }
+  .pSub { padding:14px; border-radius:16px; margin-bottom:12px; background:rgba(127,127,127,.08); border:1px solid var(--line); }
+  .pSub.on { background:linear-gradient(135deg,rgba(227,25,55,.18),rgba(227,25,55,.04)); border-color:rgba(227,25,55,.5); }
+  .pSub.beta { background:linear-gradient(135deg,rgba(212,165,44,.16),rgba(212,165,44,.03)); border-color:rgba(212,165,44,.45); }
+  .pSubT { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .pSubT span { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--mut); font-weight:700; }
+  .pSubT b { font-size:16px; }
+  .pSub p { margin:6px 0 0; font-size:13.5px; color:var(--mut); line-height:1.4; }
+  .pSub .btn { margin:12px 0 0 !important; }
+  .pLvl { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; font-size:13px; color:var(--mut); margin-top:12px; }
+  .pLvl b { color:var(--txt); }
+  .pBar { height:6px; border-radius:3px; background:rgba(127,127,127,.2); margin-top:8px; overflow:hidden; }
+  .pBar i { display:block; height:100%; background:linear-gradient(90deg,#c8102e,#ff4560); box-shadow:0 0 10px rgba(227,25,55,.6); }
+  .pAddr { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .pAddr div { min-width:0; } .pAddr b { display:block; font-size:15px; } .pAddr span { display:block; font-size:13px; color:var(--mut); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pAddr button { flex:none; font:inherit; font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px; border:1px solid var(--line); background:rgba(127,127,127,.12); color:var(--txt); cursor:pointer; }
   .pBadge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:800; letter-spacing:.04em; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 0 12px rgba(227,25,55,.4); }
   .pStats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px; }
   .pStats div { text-align:center; padding:10px 4px; border-radius:12px; background:rgba(127,127,127,.08); }
@@ -488,6 +513,7 @@
   .prTop small { color:var(--mut); font-size:12px; text-transform:uppercase; letter-spacing:.12em; } .prTop h2 { margin:0 !important; }
   .prList { list-style:none; padding:0; margin:10px 0 14px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px 14px; font-size:14px; }
   .prList li { padding-left:22px; position:relative; } .prList li::before { content:''; position:absolute; left:2px; top:5px; width:10px; height:10px; border-radius:50%; background:#e31937; box-shadow:0 0 10px #e31937; }
+  .prTrust { display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap; text-align:center; }
   .prAgree { display:flex; gap:10px; align-items:flex-start; margin:0 0 12px; font-size:12.5px; line-height:1.4; color:var(--mut); cursor:pointer; }
   .prAgree input { flex:none; width:20px; height:20px; margin:1px 0 0; accent-color:#e31937; }
   .prAgree a { color:inherit; }
@@ -554,36 +580,39 @@
 <button id="btnRecenter"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg>Recentrer</button>
 
 <div id="layers" class="panel">
-  <div class="lyTop"><b>Réglages</b><button id="lyClose" title="Fermer">×</button></div>
+  <div class="lyTop"><div class="seg lyTabs" id="lyTabs"><button data-p="map" class="sel">Carte</button><button data-p="set">Paramètres</button></div><button id="lyClose" title="Fermer">×</button></div>
 
-  <div class="lyHead">Carte</div>
+  <div class="lyPane" data-p="map">
+  <div class="lyHead">Style</div>
   <div id="satRow" class="seg"><button data-s="0">Plan</button><button data-s="1">Satellite</button></div>
-  <div class="lySub">Couleurs</div>
-  <div id="themeRow" class="seg"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
+  <div id="themeRow" class="seg" style="margin-top:8px"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
   <input type="checkbox" id="optSat" hidden>
-  <label class="sw2">Écran atténué la nuit<input type="checkbox" id="optDim"></label>
 
-  <div class="lyHead">Afficher</div>
+  <div class="lyHead">Sur la carte</div>
   <label class="sw2">Zones de danger<input type="checkbox" id="lyZones" checked></label>
-  <label class="sw2">Dangers et accidents<input type="checkbox" id="lyHz" checked></label>
+  <label class="sw2">Signalements<input type="checkbox" id="lyHz" checked></label>
   <label class="sw2">Trafic sur toutes les routes <small id="trafficNote"></small><input type="checkbox" id="lyTraffic"></label>
-  <label class="sw2">Restos, cafés, toilettes, courses<input type="checkbox" id="lyPoi"></label>
+  <label class="sw2">Restaurants, cafés, toilettes<input type="checkbox" id="lyPoi"></label>
 
+  <div class="lyHead">Bornes de recharge</div>
+  <div id="netList"><label class="chip"><input type="checkbox" id="lySc" checked>Superchargeurs</label></div>
+  </div>
+
+  <div class="lyPane" data-p="set" hidden>
   <div class="lyHead">Itinéraire</div>
   <label class="sw2">Éviter les péages<input type="checkbox" id="prefToll"></label>
   <label class="sw2">Éviter les autoroutes<input type="checkbox" id="prefMoto"></label>
 
-  <div class="lyHead">Bornes de recharge</div>
-  <div id="netList"><label class="chip"><input type="checkbox" id="lySc" checked>Superchargeurs</label></div>
-
-  <div class="lyHead">Son</div>
+  <div class="lyHead">Son et écran</div>
   <label class="sw2">Annonces vocales<input type="checkbox" id="optVoice"></label>
+  <label class="sw2">Écran atténué la nuit<input type="checkbox" id="optDim"></label>
 
-  <div class="lyHead">Aide</div>
-  <button class="lyRow" id="btnPremium"><span>KapMap Premium</span><i>›</i></button>
-  <button class="lyRow" id="btnFeedback"><span>Suggérer une idée ou signaler un bug</span><i>›</i></button>
-  <a class="lyRow" href="legal.html" target="_blank" style="text-decoration:none;color:inherit"><span>Mentions légales et confidentialité</span><i>›</i></a>
+  <div class="lyHead">KapMap</div>
+  <button class="lyRow" id="btnPremium"><b class="lyIc"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></b><span>KapMap Premium</span><i>›</i></button>
+  <button class="lyRow" id="btnContact"><b class="lyIc"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg></b><span>Nous contacter<small>Question, idée, bug</small></span><i>›</i></button>
+  <a class="lyRow" href="legal.html" target="_blank"><b class="lyIc"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></b><span>Mentions légales et confidentialité</span><i>›</i></a>
   <div class="lyVer" id="lyVer"></div>
+  </div>
 </div>
 </div>
 
@@ -635,7 +664,7 @@
   <label class="prAgree"><input type="checkbox" id="prAgree"><span>Accès immédiat : je renonce au délai de rétractation de 14 jours.</span></label>
   <button class="btn pri" id="prGo" disabled>Bientôt disponible</button>
   <button class="btn sec" id="prClose">Plus tard</button>
-  <p class="small" style="text-align:center">Sans engagement · Non remboursable · <a href="legal.html#cgu" target="_blank" style="color:inherit">Conditions</a></p>
+  <p class="small prTrust"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>Paiement sécurisé par Stripe · Sans engagement · Non remboursable · <a href="legal.html#cgu" target="_blank" style="color:inherit">Conditions</a></p>
 </div></div>
 
 <div id="locGate" class="overlay"><div class="card">
@@ -683,10 +712,11 @@
 </div></div>
 
 <div id="fbBox" class="overlay"><div class="card">
-  <h2>Ton avis compte</h2>
-  <p class="lead">Une idée, un bug, une remarque ? On lit tout. Pour ta sécurité, écris-le à l'arrêt.</p>
-  <div class="seg" id="fbKind"><button data-k="idee" class="sel">Idée</button><button data-k="bug">Bug</button><button data-k="autre">Autre</button></div>
-  <div class="field"><textarea id="fbText" maxlength="2000" rows="5" placeholder="Ex. : ajouter les radars de feu rouge, le bouton X est trop petit…"></textarea></div>
+  <h2>Nous contacter</h2>
+  <p class="lead">On lit chaque message. Laisse ton e-mail si tu veux une réponse.</p>
+  <div class="seg" id="fbKind"><button data-k="question" class="sel">Question</button><button data-k="idee">Idée</button><button data-k="bug">Bug</button><button data-k="abonnement">Abonnement</button></div>
+  <div class="field"><textarea id="fbText" maxlength="2000" rows="5" placeholder="Ton message…"></textarea></div>
+  <div class="field"><input id="fbMail" type="email" maxlength="120" placeholder="Ton e-mail pour la réponse (facultatif)" autocomplete="email" enterkeyhint="send"></div>
   <button class="btn pri" id="fbSend">Envoyer</button>
   <button class="btn sec" id="fbClose">Annuler</button>
 </div></div>
@@ -1386,10 +1416,19 @@
   try { if (localStorage.getItem('vigie-sc') === '0') $('lySc').checked = false; } catch (e) {}
   $('lyPoi').onchange = function () { var on = this.checked; whenReady(function () { addPoiLayers(); setVis(['poi-circle', 'poi-label'], on); }); };
   $('btnLayers').onclick = function () {
+    $('lyVer').textContent = 'KapMap' + (isBeta ? ' bêta' : '') + ' · mise à jour du ' + new Date(Number(BUILD) * 1000).toLocaleDateString('fr-FR');
     var open = $('layers').classList.toggle('show'); this.classList.toggle('on', open);
     document.body.classList.toggle('layers-open', open);
   };
   // Fermer les calques en touchant la carte
+  // Onglets du panneau : Carte / Paramètres (le dernier choisi est mémorisé)
+  function lyTab(p) {
+    [].forEach.call(document.querySelectorAll('#lyTabs button'), function (b) { b.classList.toggle('sel', b.getAttribute('data-p') === p); });
+    [].forEach.call(document.querySelectorAll('#layers .lyPane'), function (x) { x.hidden = x.getAttribute('data-p') !== p; });
+    try { localStorage.setItem('vigie-lytab', p); } catch (e) {}
+  }
+  [].forEach.call(document.querySelectorAll('#lyTabs button'), function (b) { b.onclick = function () { lyTab(b.getAttribute('data-p')); }; });
+  try { lyTab(localStorage.getItem('vigie-lytab') || 'map'); } catch (e) { lyTab('map'); }
   $('lyClose').onclick = function () { $('layers').classList.remove('show'); $('btnLayers').classList.remove('on'); document.body.classList.remove('layers-open'); };
   map.on('click', function () { if ($('layers').classList.contains('show')) { $('layers').classList.remove('show'); $('btnLayers').classList.remove('on'); document.body.classList.remove('layers-open'); } });
 
@@ -2094,12 +2133,11 @@
   })();
   // ---------- Suggestions ----------
   (function () {
-    var kind = 'idee';
-    $('lyVer').textContent = 'KapMap · version ' + BUILD;
+    var kind = 'question';
     [].forEach.call(document.querySelectorAll('#fbKind button'), function (b) {
       b.onclick = function () { kind = b.getAttribute('data-k'); [].forEach.call(document.querySelectorAll('#fbKind button'), function (x) { x.classList.toggle('sel', x === b); }); };
     });
-    $('btnFeedback').onclick = function () {
+    $('btnContact').onclick = function () {
       if ((lastSpeed || 0) > 3) { $('lyClose').onclick(); toast('Pour ta sécurité, écris ton message à l\'arrêt'); return; }
       $('lyClose').onclick(); $('fbText').value = ''; $('fbBox').classList.add('show'); setTimeout(function () { $('fbText').focus(); }, 200);
     };
@@ -2108,8 +2146,8 @@
       var t = $('fbText').value.trim();
       if (t.length < 3) { toast('Écris quelques mots'); return; }
       var btn = this; btn.disabled = true; btn.textContent = 'Envoi…';
-      apiJSON('POST', '/feedback', { kind: kind, text: t, version: BUILD })
-        .then(function () { $('fbBox').classList.remove('show'); toast('Merci ! Message bien reçu'); })
+      apiJSON('POST', '/feedback', { kind: kind, text: t, email: $('fbMail').value.trim(), version: BUILD })
+        .then(function () { $('fbBox').classList.remove('show'); toast($('fbMail').value.trim() ? 'Message envoyé, on te répond par e-mail' : 'Merci, message bien reçu'); })
         .catch(function (e) { toast((e && e.message) || 'Envoi impossible, réessaie'); })
         .then(function () { btn.disabled = false; btn.textContent = 'Envoyer'; });
     };
@@ -2197,24 +2235,51 @@
     $('prBeta').innerHTML = '<b>Gratuit jusqu\'au ' + BETA.label + '</b> · Membres de la bêta : à vie à ' + BETA.founderLife;
     $('prBeta').style.display = 'block';
   }
-  var PRICES = { month: '3,90 €', year: '35,90 €', life: '79 €', url: null };   // url : lien de paiement Stripe à brancher
+  // Tarifs et liens de paiement Stripe (Payment Links). Mensuel et annuel : abonnements récurrents ; à vie : paiement unique.
+  // Prix à vie : 99 €. Offres ponctuelles possibles (lancement, Black Friday…) via `promo`, et 49 € pour les Fondateurs.
+  // Prix barré (strike: true) seulement si 99 € a réellement été pratiqué dans les 30 jours avant l'offre (règle française des prix barrés).
+  var PRICES = {
+    month: '3,90 €', year: '35,90 €', life: '99 €', lifeFounder: BETA.founderLife,
+    promo: { price: '79 €', label: 'Lancement', until: Date.parse('2027-01-31T23:59:59+01:00'), strike: false },
+    links: { month: null, year: null, life: null, lifePromo: null, lifeFounder: null },   // https://buy.stripe.com/...
+    portal: null                                                                         // lien du portail client Stripe
+  };
+  function isFounder() { return !!(me && (me.since || Date.now()) < BETA.until); }
+  function lifeOffer() {
+    if (isFounder()) return { price: PRICES.lifeFounder, link: PRICES.links.lifeFounder, tag: 'Fondateur' };
+    var pr = PRICES.promo; if (pr && Date.now() < pr.until) return { price: pr.price, link: PRICES.links.lifePromo, tag: pr.label, strike: pr.strike };
+    return { price: PRICES.life, link: PRICES.links.life, tag: '' };
+  }
+  function hasPremium() { return !!(me && me.planUntil && me.planUntil > Date.now()); }
   (function () {
     var plan = 'year';
-    function sel() { [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.classList.toggle('sel', b.getAttribute('data-p') === plan); }); }
-    if (PRICES.month) $('prMonth').textContent = PRICES.month;
-    if (PRICES.year) $('prYear').textContent = PRICES.year;
-    if (PRICES.life) $('prLife').textContent = PRICES.life;
-    if (isBeta) { $('prGo').textContent = 'Gratuit pendant la bêta'; document.querySelector('.prAgree').style.display = 'none'; }
-    else if (PRICES.url) { $('prGo').textContent = 'Passer à Premium'; $('prGo').disabled = !$('prAgree').checked; }
+    function link() { return plan === 'life' ? lifeOffer().link : PRICES.links[plan]; }
+    function sel() {
+      [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.classList.toggle('sel', b.getAttribute('data-p') === plan); });
+      if (!isBeta) { $('prGo').textContent = link() ? 'Continuer vers le paiement' : 'Bientôt disponible'; $('prGo').disabled = !link() || !$('prAgree').checked; }
+    }
+    function render() {
+      var lo = lifeOffer();
+      $('prMonth').textContent = PRICES.month; $('prYear').textContent = PRICES.year;
+      $('prLife').innerHTML = lo.price + (lo.strike ? ' <s>' + PRICES.life + '</s>' : '');
+      var tag = document.querySelector('.prPlan[data-p="life"] em'); tag.textContent = lo.tag; tag.style.display = lo.tag ? '' : 'none';
+      if (isBeta) { $('prGo').textContent = 'Gratuit pendant la bêta'; $('prGo').disabled = true; document.querySelector('.prAgree').style.display = 'none'; }
+      sel();
+    }
     // Paiement possible seulement après avoir coché la renonciation au délai de rétractation
-    $('prAgree').onchange = function () { if (!isBeta && PRICES.url) $('prGo').disabled = !this.checked; };
+    $('prAgree').onchange = sel;
     [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.onclick = function () { plan = b.getAttribute('data-p'); sel(); }; });
-    sel();
-    $('btnPremium').onclick = function () { $('lyClose').onclick(); $('premium').classList.add('show'); };
+    window.openPremium = function () { render(); $('premium').classList.add('show'); };
+    render();
+    $('btnPremium').onclick = function () { $('lyClose').onclick(); openPremium(); };
     $('prClose').onclick = function () { $('premium').classList.remove('show'); };
-    $('prGo').onclick = function () { if (PRICES.url && $('prAgree').checked) window.open(PRICES.url + (PRICES.url.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(me ? me.pseudo : '') + '&plan=' + plan, '_blank'); };
+    $('prGo').onclick = function () {
+      var u = link(); if (!u || !$('prAgree').checked) return;
+      if (!me) { $('premium').classList.remove('show'); toast('Crée ton compte pour activer Premium sur toutes tes connexions'); accountView('register'); return; }
+      window.open(u + (u.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(me.id), '_blank');
+    };
   })();
-  window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
+  window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); }, setMe: function (u) { me = u; } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
   $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
   $('prefToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); if (pendingRoutes && pendingDest) startNav(pendingDest); };
@@ -2531,7 +2596,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794525932';
+  var BUILD = '1794526949';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2592,22 +2657,39 @@
     if (view === 'me' && me) {
       var since = new Date(me.since || Date.now());
       var lv0 = levelOf(me.points || 0);
+      var fmtD = function (t) { return new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
+      var sub = (function () {
+        var names = { month: 'Premium mensuel', year: 'Premium annuel', life: 'Premium à vie' };
+        if (hasPremium()) {
+          if (me.plan === 'life') return { cls: 'on', t: names.life, d: 'Accès illimité, pour toujours.', btn: '' };
+          return { cls: 'on', t: names[me.plan] || 'Premium', d: (me.planRenews ? 'Renouvellement le ' : 'Se termine le ') + fmtD(me.planUntil),
+            btn: PRICES.portal ? '<button class="btn sec" id="aSubManage">Gérer mon abonnement</button>' : '' };
+        }
+        if (isBeta) return { cls: 'beta', t: 'Bêta gratuite', d: 'Tout est offert jusqu\'au ' + BETA.label + '.' + (isFounder() ? ' En tant que Fondateur, l\'accès à vie sera à ' + BETA.founderLife + '.' : ''),
+          btn: '<button class="btn sec" id="aSubGo">Voir les offres</button>' };
+        return { cls: '', t: 'Version gratuite', d: me.planUntil ? 'Ton abonnement s\'est terminé le ' + fmtD(me.planUntil) + '.' : 'Passe à Premium pour tout débloquer.',
+          btn: '<button class="btn pri" id="aSubGo">Passer à Premium</button>' };
+      })();
       c.innerHTML = '<div class="pHero"><div class="pHeroCar">' + carSvg(myCar || { model: '3', color: '#f2f2f2' }, 96) + '</div><div class="pHeroTxt"><small>' + esc(hello()) + '</small><b>' + esc(me.pseudo) + '</b>' +
-        '<span class="pBadge">' + esc(lv0.name) + '</span>' + ((me.since || Date.now()) < BETA.until ? '<span class="pBadge fd">Fondateur</span>' : '') + '</div></div>' +
+        '<span class="pBadge">' + esc(lv0.name) + '</span>' + (isFounder() ? '<span class="pBadge fd">Fondateur</span>' : '') + '</div></div>' +
+        '<div class="pSub ' + sub.cls + '"><div class="pSubT"><span>Mon abonnement</span><b>' + sub.t + '</b></div><p>' + sub.d + '</p>' + sub.btn + '</div>' +
         '<div class="pStats"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b id="pWeekRank">–</b><span>rang semaine</span></div><div><b id="pWeekPts">–</b><span>pts semaine</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div></div>' +
         (function () { var lv = lv0;
-          return '<div class="stat"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div><div><b>' + since.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) + '</b><span>membre depuis</span></div></div>' +
-            '<div style="font-size:14px;margin-top:4px"><b>' + lv.name + '</b>' + (lv.next ? '<span class="m"> · encore ' + lv.toNext + ' points pour « ' + lv.next + ' »</span>' : '') + '</div>' +
-            '<div style="height:6px;border-radius:3px;background:rgba(127,127,127,.2);margin-top:6px;overflow:hidden"><i style="display:block;height:100%;width:' + lv.pct + '%;background:var(--acc)"></i></div>' +
+          return '<div class="pLvl"><span><b>' + lv.name + '</b>' + (lv.next ? ' · encore ' + lv.toNext + ' points pour « ' + lv.next + ' »' : '') + '</span><span>Membre depuis ' + since.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) + '</span></div>' +
+            '<div class="pBar"><i style="width:' + lv.pct + '%"></i></div>' +
             '<button class="btn sec" id="aRank" style="margin-top:12px">Voir le classement</button>'; })() +
-        '<p class="small">Domicile : ' + esc(homeAddr ? homeAddr.short : 'non défini') + '<br>Travail : ' + esc(workAddr ? workAddr.short : 'non défini') + '<br>Ces adresses suivent ton compte, sur la voiture comme sur ton téléphone.</p>' +
-        '<h3 style="margin:18px 0 0;font-size:16px">Ma voiture</h3>' +
+        '<div class="lyHead2">Mes adresses</div>' +
+        '<div class="pAddr"><div><b>Domicile</b><span>' + esc(homeAddr ? homeAddr.short : 'Non défini') + '</span></div><button id="aHome">Ici</button></div>' +
+        '<div class="pAddr"><div><b>Travail</b><span>' + esc(workAddr ? workAddr.short : 'Non défini') + '</span></div><button id="aWork">Ici</button></div>' +
+        '<p class="small">« Ici » enregistre ta position actuelle. Tes adresses suivent ton compte, sur la voiture comme sur ton téléphone.</p>' +
+        '<div class="lyHead2">Ma voiture</div>' +
         '<div class="carPick" id="pickModel">' + ['3', 'Y', 'S', 'X'].map(function (m) { return '<button data-m="' + m + '">Model ' + m + '</button>'; }).join('') + '</div>' +
         '<div class="swatches" id="pickColor">' + CAR_COLORS.map(function (c) { return '<button data-c="' + c[0] + '" title="' + c[1] + '" style="background:' + c[0] + '"></button>'; }).join('') + '</div>' +
         '<div id="carPreview"></div>' +
-        '<button class="btn sec" id="aHome">Domicile = ma position actuelle</button><button class="btn sec" id="aWork">Travail = ma position actuelle</button>' +
         '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>' +
         '<button class="btn link" id="aDelete" style="color:#ff5a72;font-size:13px">Supprimer mon compte</button>';
+      if ($('aSubGo')) $('aSubGo').onclick = function () { closeAccount(); openPremium(); };
+      if ($('aSubManage')) $('aSubManage').onclick = function () { window.open(PRICES.portal, '_blank'); };
       $('aClose').onclick = closeAccount;
       $('aRank').onclick = function () { accountView('rank'); };
       apiJSON('GET', '/leaderboard?period=week').then(function (d) {
@@ -2664,7 +2746,7 @@
     } else {
       var reg = view === 'register';
       c.innerHTML = '<h2>' + (reg ? 'Créer mon compte' : 'Connexion') + '</h2>' +
-        '<p class="lead">' + (reg ? 'Un pseudo et un code à 4 à 6 chiffres, c\'est tout.' : 'Ton pseudo et ton code.') + '</p>' +
+        '<p class="lead">' + (reg ? 'Un pseudo et un code de 4 à 6 chiffres, c\'est tout.' : 'Ton pseudo et ton code.') + '</p>' +
         '<div class="field"><label>Pseudo</label><input id="fPseudo" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="20" placeholder="ex. matthieu74"></div>' +
         (reg ? '<div class="field"><label>Prénom (facultatif)</label><input id="fName" maxlength="30" placeholder="ex. Matthieu"></div>' : '') +
         '<div class="field"><label>Code (4 à 6 chiffres)</label><input id="fPin" class="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="' + (reg ? 'new-password' : 'current-password') + '"></div>' +
@@ -2715,6 +2797,10 @@
   // Au démarrage : reprendre la session, ou accueillir au premier passage
   setTimeout(function () {
     if (token) apiJSON('GET', '/me').then(function (d) { setSession(token, d.user); }).catch(function (e) { if (/connect/i.test(e.message)) setSession(null, null); });
+    // Retour sur l'appli (après un paiement par exemple) : on recharge l'abonnement
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && token) apiJSON('GET', '/me').then(function (d) { setSession(token, d.user); }).catch(function () {});
+    });
     var welcomed = null; try { welcomed = localStorage.getItem('vigie-welcomed'); } catch (e) {}
     if (!token && !welcomed) showWelcome(true);
   }, 0);
@@ -2750,7 +2836,7 @@
   // Aperçu direct d'un écran : ?show=welcome ou ?show=premium
   (function () { var sh = (location.search.match(/[?&]show=(\w+)/) || [])[1];
     if (sh === 'welcome') setTimeout(function () { _showWelcome(true); }, 600);
-    if (sh === 'premium') setTimeout(function () { $('premium').classList.add('show'); }, 600); })();
+    if (sh === 'premium') setTimeout(function () { openPremium(); }, 600); })();
   var _closeAccount = closeAccount;
   closeAccount = function () { _closeAccount(); hasLocPermission(function (ok) { if (!ok && (localStorage.getItem('vigie-welcomed') || token)) showLocGate(); }); };
 

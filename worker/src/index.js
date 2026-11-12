@@ -46,7 +46,8 @@ function sameText(a, b) {
 }
 const WEAK_PINS = ['0000', '1111', '1234', '4321', '00000', '12345', '000000', '111111', '123456', '654321', '123123'];
 function publicUser(u) {
-  return { pseudo: u.pseudo, name: u.name || '', reports: u.reports_count || 0, points: u.points || 0, since: u.created_at,
+  return { id: u.id, plan: u.plan || null, planUntil: u.plan_until || null, planRenews: !!u.plan_renews,
+    pseudo: u.pseudo, name: u.name || '', reports: u.reports_count || 0, points: u.points || 0, since: u.created_at,
     home: u.home ? JSON.parse(u.home) : null, work: u.work ? JSON.parse(u.work) : null, car: u.car ? JSON.parse(u.car) : null };
 }
 async function currentUser(request, env) {
@@ -110,6 +111,39 @@ async function ttFetch(env, kind, u, opts) {
   return r;
 }
 
+// ----- Abonnements (colonnes ajoutées à la table users au premier besoin) -----
+let billingReady = false;
+async function ensureBilling(env) {
+  if (billingReady) return;
+  for (const col of ['plan TEXT', 'plan_until INTEGER', 'plan_renews INTEGER', 'stripe_customer TEXT', 'stripe_sub TEXT']) {
+    try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {}
+  }
+  billingReady = true;
+}
+// Vérifie la signature d'un événement Stripe (en-tête Stripe-Signature, HMAC-SHA256, 5 min de tolérance)
+async function stripeVerify(raw, header, secret) {
+  const parts = {}; (header || '').split(',').forEach(kv => { const i = kv.indexOf('='); if (i > 0) (parts[kv.slice(0, i)] = parts[kv.slice(0, i)] || []).push(kv.slice(i + 1)); });
+  const t = parts.t && parts.t[0]; if (!t || !parts.v1) return false;
+  if (Math.abs(Date.now() / 1000 - Number(t)) > 300) return false;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(t + '.' + raw));
+  const hex = [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
+  return parts.v1.some(v => sameText(v, hex));
+}
+async function stripeGet(env, path) {
+  if (!env.STRIPE_SECRET_KEY) return null;
+  const r = await fetch('https://api.stripe.com/v1/' + path, { headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY } });
+  return r.ok ? r.json() : null;
+}
+// Fin de période et formule d'un abonnement Stripe (champs à la racine ou dans items selon la version d'API)
+function subInfo(sub) {
+  const it = sub && sub.items && sub.items.data && sub.items.data[0];
+  const end = (sub && sub.current_period_end) || (it && it.current_period_end) || null;
+  const interval = it && it.price && it.price.recurring && it.price.recurring.interval;
+  return { until: end ? end * 1000 : null, plan: interval === 'year' ? 'year' : 'month',
+    renews: !(sub && (sub.cancel_at_period_end || sub.cancel_at)) && sub && sub.status !== 'canceled' };
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
@@ -169,7 +203,40 @@ export default {
         try { await env.DB.prepare('UPDATE feedback SET user_id = NULL, pseudo = NULL WHERE user_id = ?1').bind(u.id).run(); } catch (e) {}
         return json({ ok: true });
       }
+      // ----- Stripe : paiements et abonnements (mensuel / annuel récurrents, accès à vie en paiement unique) -----
+      if (request.method === 'POST' && url.pathname === '/stripe/webhook') {
+        if (!env.STRIPE_WEBHOOK_SECRET) return json({ error: 'Non configuré' }, 503);
+        const raw = await request.text();
+        if (!(await stripeVerify(raw, request.headers.get('Stripe-Signature'), env.STRIPE_WEBHOOK_SECRET))) return json({ error: 'Signature invalide' }, 400);
+        const ev = JSON.parse(raw), o = ev.data && ev.data.object || {};
+        await ensureBilling(env);
+        if (ev.type === 'checkout.session.completed') {
+          const uid = parseInt(o.client_reference_id || '', 10);
+          if (uid > 0) {
+            if (o.mode === 'payment') {
+              await env.DB.prepare('UPDATE users SET plan = ?2, plan_until = ?3, plan_renews = 0, stripe_customer = COALESCE(?4, stripe_customer) WHERE id = ?1')
+                .bind(uid, 'life', 4102444800000, o.customer || null).run();
+            } else if (o.mode === 'subscription') {
+              const sub = o.subscription ? await stripeGet(env, 'subscriptions/' + o.subscription) : null, si = subInfo(sub);
+              await env.DB.prepare('UPDATE users SET plan = ?2, plan_until = ?3, plan_renews = ?4, stripe_customer = ?5, stripe_sub = ?6 WHERE id = ?1')
+                .bind(uid, sub ? si.plan : 'month', si.until || (now + 31 * 86400000), si.renews ? 1 : 0, o.customer || null, o.subscription || null).run();
+            }
+          }
+        } else if (ev.type === 'customer.subscription.updated' || ev.type === 'customer.subscription.deleted' || ev.type === 'customer.subscription.created') {
+          const si = subInfo(o);
+          const until = ev.type === 'customer.subscription.deleted' ? ((o.ended_at || o.canceled_at || now / 1000) * 1000) : si.until;
+          await env.DB.prepare('UPDATE users SET plan = ?2, plan_until = COALESCE(?3, plan_until), plan_renews = ?4, stripe_sub = ?5 WHERE stripe_customer = ?1 AND (plan IS NULL OR plan != \'life\')')
+            .bind(o.customer, si.plan, until, ev.type === 'customer.subscription.deleted' ? 0 : (si.renews ? 1 : 0), o.id).run();
+        } else if (ev.type === 'invoice.paid') {
+          const ln = o.lines && o.lines.data && o.lines.data[0];
+          const end = ln && ln.period && ln.period.end;
+          if (end && o.customer) await env.DB.prepare('UPDATE users SET plan_until = MAX(COALESCE(plan_until, 0), ?2) WHERE stripe_customer = ?1 AND (plan IS NULL OR plan != \'life\')').bind(o.customer, end * 1000).run();
+        }
+        return json({ received: true });
+      }
+
       if (url.pathname === '/me' && request.method === 'GET') {
+        await ensureBilling(env);
         const u = await currentUser(request, env);
         if (!u) return json({ error: 'Non connecté' }, 401);
         return json({ user: publicUser(u) });
@@ -491,17 +558,20 @@ export default {
       // ----- Suggestions et signalements de bugs envoyés depuis l'appli -----
       if (request.method === 'POST' && url.pathname === '/feedback') {
         let body; try { body = await request.json(); } catch (e) { return json({ error: 'Requête invalide' }, 400); }
-        const kind = ['idee', 'bug', 'autre'].includes(body.kind) ? body.kind : 'autre';
+        const kind = ['question', 'idee', 'bug', 'abonnement', 'autre'].includes(body.kind) ? body.kind : 'autre';
         const text = String(body.text || '').trim().slice(0, 2000);
         if (text.length < 3) return json({ error: 'Message trop court' }, 400);
+        let email = String(body.email || '').trim().slice(0, 120);
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ error: 'Adresse e-mail invalide' }, 400);
         await env.DB.prepare('CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, text TEXT, user_id INTEGER, pseudo TEXT, ua TEXT, version TEXT, created_at INTEGER, ip_hash TEXT)').run();
+        try { await env.DB.prepare('ALTER TABLE feedback ADD COLUMN email TEXT').run(); } catch (e) {}
         await env.DB.prepare('DELETE FROM feedback WHERE created_at < ?1').bind(now - 2 * 365 * 86400000).run();
-        const now = Date.now(), who = await ipHash(request);
+        const who = await ipHash(request);
         const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM feedback WHERE ip_hash = ?1 AND created_at > ?2').bind(who, now - 3600000).first();
         if (recent && recent.n >= 5) return json({ error: 'Trop de messages, réessaie plus tard' }, 429);
         const me = await currentUser(request, env);
-        await env.DB.prepare('INSERT INTO feedback (kind, text, user_id, pseudo, ua, version, created_at, ip_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
-          .bind(kind, text, me ? me.id : null, me ? me.pseudo : null, String(request.headers.get('User-Agent') || '').slice(0, 200), String(body.version || '').slice(0, 20), now, who).run();
+        await env.DB.prepare('INSERT INTO feedback (kind, text, user_id, pseudo, ua, version, created_at, ip_hash, email) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)')
+          .bind(kind, text, me ? me.id : null, me ? me.pseudo : null, String(request.headers.get('User-Agent') || '').slice(0, 200), String(body.version || '').slice(0, 20), now, who, email || null).run();
         return json({ ok: true });
       }
 
