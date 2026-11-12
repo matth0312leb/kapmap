@@ -707,7 +707,7 @@
     if (scItems) addScLayers();
     if (chItems) addChLayers();
     if (irveIndex) addIrveLayers();
-    if (poiFC) addPoiLayers();
+    addPoiLayers();
     if (routeGeo) addRouteLayers();
     if (altGeo) addAltLayers();
     if (rtGeo) addRouteTrafficLayer();
@@ -1263,7 +1263,7 @@
   $('lyZones').onchange = refreshZonesLayer;
   $('lySc').onchange = function () { setVis(['sc-circle', 'sc-label'], this.checked); try { localStorage.setItem('vigie-sc', this.checked ? '1' : '0'); } catch (e) {} if (netOn) saveNetworks(); };
   try { if (localStorage.getItem('vigie-sc') === '0') $('lySc').checked = false; } catch (e) {}
-  $('lyPoi').onchange = function () { setVis(['poi-circle', 'poi-label'], this.checked); if (this.checked) { poiLastKey = ''; poiAnnounce = true; loadPoi(); } };
+  $('lyPoi').onchange = function () { var on = this.checked; whenReady(function () { addPoiLayers(); setVis(['poi-circle', 'poi-label'], on); }); };
   $('btnLayers').onclick = function () {
     var open = $('layers').classList.toggle('show'); this.classList.toggle('on', open);
     document.body.classList.toggle('layers-open', open);
@@ -1277,59 +1277,31 @@
     toilets: ['#38bdf8', 'Toilettes'], fuel: ['#a1a1aa', 'Station-service'], supermarket: ['#22c55e', 'Supermarché']
   };
   var poiFC = null, poiClickBound = false;
+  // Restos, cafés, toilettes, stations et supermarchés : lus directement dans les tuiles de la carte (aucune requête, instantané)
+  var POI_CLASSES = ['restaurant', 'fast_food', 'cafe', 'bar', 'toilets', 'fuel', 'grocery', 'shop', 'bakery'];
   function addPoiLayers() {
-    if (!poiFC || map.getSource('poi')) return;
+    if (!map.getSource('openmaptiles') || map.getLayer('poi-circle')) return;
     var light = theme === 'light';
-    map.addSource('poi', { type: 'geojson', data: poiFC });
-    map.addLayer({ id: 'poi-circle', type: 'circle', source: 'poi', paint: { 'circle-color': ['get', 'color'], 'circle-radius': 8, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
-    map.addLayer({ id: 'poi-label', type: 'symbol', source: 'poi', minzoom: 14, layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-max-width': 10 },
+    var filt = ['all', ['in', ['get', 'class'], ['literal', POI_CLASSES]],
+      ['any', ['!=', ['get', 'class'], 'shop'], ['in', ['get', 'subclass'], ['literal', ['supermarket', 'convenience']]]]];
+    var col = ['match', ['get', 'class'], 'restaurant', '#f97316', 'fast_food', '#fb923c', 'cafe', '#c08457', 'bar', '#c084fc', 'bakery', '#eab308',
+      'toilets', '#38bdf8', 'fuel', '#a1a1aa', '#22c55e'];
+    map.addLayer({ id: 'poi-circle', type: 'circle', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 13, filter: filt,
+      paint: { 'circle-color': col, 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 4, 16, 7, 18, 9], 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.6 } });
+    map.addLayer({ id: 'poi-label', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 15, filter: filt,
+      layout: { 'text-field': ['coalesce', ['get', 'name:fr'], ['get', 'name']], 'text-font': ['Noto Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-max-width': 10, 'text-optional': true },
       paint: { 'text-color': light ? '#1f2328' : '#e5e7eb', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
     if (!poiClickBound) {
       poiClickBound = true;
+      var KIND = { restaurant: 'Restaurant', fast_food: 'Restauration rapide', cafe: 'Café', bar: 'Bar', bakery: 'Boulangerie', toilets: 'Toilettes', fuel: 'Station-service', grocery: 'Supermarché', shop: 'Supérette' };
       map.on('click', 'poi-circle', function (e) {
         var p = e.features[0].properties;
-        popup(e.features[0].geometry.coordinates, el('<b>' + esc(p.name) + '</b><br><span class="m">' + esc(p.kind) + (p.hours ? '<br>Horaires : ' + esc(p.hours) : '') + '</span>'));
+        popup(e.features[0].geometry.coordinates, el('<b>' + esc(p['name:fr'] || p.name || KIND[p.class] || 'Lieu') + '</b><br><span class="m">' + esc(KIND[p.class] || '') + '</span>'));
       });
     }
     setVis(['poi-circle', 'poi-label'], $('lyPoi').checked);
   }
-  // Chargement automatique des lieux de la zone affichée (case « Lieux autour de moi »)
-  var poiTimer = null, poiLastKey = '', poiAnnounce = false;
-  function autoPoi() {
-    clearTimeout(poiTimer);
-    if (!$('lyPoi').checked) return;
-    poiTimer = setTimeout(function () {
-      var c = map.getCenter(), key = c.lat.toFixed(2) + ',' + c.lng.toFixed(2);
-      if (key === poiLastKey) return;
-      poiLastKey = key; loadPoi();
-    }, 1200);
-  }
-  map.on('moveend', autoPoi);
-  // Restaurants, cafés, toilettes, stations et supermarchés dans un rayon d'environ 3 km autour du centre de la carte (OpenStreetMap)
-  var OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-  function loadPoi() {
-    var c = map.getCenter(), around = '(around:3000,' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ')';
-    poiLastKey = c.lat.toFixed(2) + ',' + c.lng.toFixed(2);
-    var q = '[out:json][timeout:20];(node["amenity"~"^(restaurant|fast_food|cafe|toilets|fuel)$"]' + around + ';node["shop"="supermarket"]' + around + ';);out body 300;';
-    function tryAt(k) {
-      return fetch(OVERPASS[k], { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
-        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .catch(function (e) { if (k + 1 < OVERPASS.length) return tryAt(k + 1); throw e; });
-    }
-    tryAt(0).then(function (d) {
-        var feats = [];
-        (d.elements || []).forEach(function (e) {
-          var t = e.tags || {}, kind = t.shop === 'supermarket' ? 'supermarket' : t.amenity, def = POI[kind];
-          if (!def) return;
-          feats.push({ type: 'Feature', properties: { name: t.name || t.brand || def[1], kind: def[1], color: def[0], hours: t.opening_hours || '' }, geometry: { type: 'Point', coordinates: [e.lon, e.lat] } });
-        });
-        poiFC = { type: 'FeatureCollection', features: feats };
-        if (map.getSource('poi')) map.getSource('poi').setData(poiFC); else addPoiLayers();
-        poiAnnounce = false;
-      })
-      .catch(function () { poiAnnounce = false; poiLastKey = ''; });
-  }
-
+  function autoPoi() {}
 
   // ================= Signalements de dangers (tous pays) =================
   var API = 'https://test-gps-tesla1.matth0312.workers.dev';
@@ -2236,7 +2208,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794510257';
+  var BUILD = '1794510370';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
