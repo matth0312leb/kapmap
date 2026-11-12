@@ -2174,7 +2174,7 @@
   })();
   // ---------- Écran Premium (paiement Stripe à brancher : PRICES et le lien de paiement) ----------
   // Bêta gratuite : tout est offert jusqu'à la date de fin ; les comptes créés pendant la bêta deviennent « Fondateurs »
-  var BETA = { until: Date.parse('2027-02-28T23:59:59+01:00'), label: '28 février 2027', founderLife: '49 €' };
+  var BETA = { until: Date.parse('2027-01-15T23:59:59+01:00'), label: '15 janvier 2027', founderLife: '49 €' };
   var isBeta = Date.now() < BETA.until;
   if (isBeta) {
     $('wBeta').textContent = 'Bêta gratuite jusqu\'au ' + BETA.label; $('wBeta').style.display = 'inline-block';
@@ -2513,7 +2513,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794523331';
+  var BUILD = '1794523492';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
