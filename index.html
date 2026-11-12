@@ -1311,7 +1311,6 @@
     var c = map.getCenter(), around = '(around:3000,' + c.lat.toFixed(5) + ',' + c.lng.toFixed(5) + ')';
     poiLastKey = c.lat.toFixed(2) + ',' + c.lng.toFixed(2);
     var q = '[out:json][timeout:20];(node["amenity"~"^(restaurant|fast_food|cafe|toilets|fuel)$"]' + around + ';node["shop"="supermarket"]' + around + ';);out body 300;';
-    if (poiAnnounce) toast('Recherche des lieux autour…');
     function tryAt(k) {
       return fetch(OVERPASS[k], { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
@@ -1326,7 +1325,7 @@
         });
         poiFC = { type: 'FeatureCollection', features: feats };
         if (map.getSource('poi')) map.getSource('poi').setData(poiFC); else addPoiLayers();
-        if (poiAnnounce) toast(feats.length ? feats.length + ' lieux trouvés : restos, cafés, toilettes, stations, courses' : 'Aucun lieu trouvé par ici');
+        if (poiAnnounce && !feats.length) toast('Aucun resto, café ou commerce par ici');
         poiAnnounce = false;
       })
       .catch(function () { if (poiAnnounce) toast('Lieux indisponibles pour le moment, réessaie dans un instant'); poiAnnounce = false; poiLastKey = ''; });
@@ -2238,7 +2237,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794510059';
+  var BUILD = '1794510127';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
