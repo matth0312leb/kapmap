@@ -94,6 +94,20 @@ function decodeEntities(t) {
 
 const validCoord = (lat, lon) => Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
 
+// ----- Compteur d'appels TomTom (quota gratuit : 2 500 requêtes/jour hors tuiles, 50 000 tuiles/jour) -----
+let usageReady = false;
+async function ttFetch(env, kind, u, opts) {
+  const r = await fetch(u, opts);
+  try {
+    if (r.headers.get('cf-cache-status') !== 'HIT' && env.DB) {
+      if (!usageReady) { await env.DB.prepare('CREATE TABLE IF NOT EXISTS usage (day TEXT, kind TEXT, n INTEGER, PRIMARY KEY (day, kind))').run(); usageReady = true; }
+      const day = new Date().toISOString().slice(0, 10);
+      await env.DB.prepare('INSERT INTO usage (day, kind, n) VALUES (?1, ?2, 1) ON CONFLICT(day, kind) DO UPDATE SET n = n + 1').bind(day, kind).run();
+    }
+  } catch (e) {}
+  return r;
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
@@ -269,7 +283,7 @@ export default {
         const [, style, z, x, y] = tm;
         if (+z < 6 || +z > 22) return new Response(null, { status: 204, headers: cors });
         const upstream = 'https://api.tomtom.com/traffic/map/4/tile/flow/' + style + '/' + z + '/' + x + '/' + y + '.png?tileSize=256&key=' + env.TOMTOM_KEY;
-        const r = await fetch(upstream, { cf: { cacheTtl: 60, cacheEverything: true } });
+        const r = await ttFetch(env, 'tile', upstream, { cf: { cacheTtl: 60, cacheEverything: true } });
         if (!r.ok) return new Response(null, { status: r.status, headers: cors });
         return new Response(r.body, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60', ...cors } });
       }
@@ -281,7 +295,7 @@ export default {
         const [, z, x, y] = tv;
         if (+z < 6 || +z > 22) return new Response(null, { status: 204, headers: cors });
         const upstream = 'https://api.tomtom.com/traffic/map/4/tile/flow/relative/' + z + '/' + x + '/' + y + '.pbf?key=' + env.TOMTOM_KEY;
-        const r = await fetch(upstream, { cf: { cacheTtl: 60, cacheEverything: true } });
+        const r = await ttFetch(env, 'tile', upstream, { cf: { cacheTtl: 60, cacheEverything: true } });
         if (!r.ok) return new Response(null, { status: r.status, headers: cors });
         return new Response(r.body, { headers: { 'Content-Type': 'application/x-protobuf', 'Cache-Control': 'public, max-age=60', ...cors } });
       }
@@ -303,7 +317,7 @@ export default {
         if (heading >= 0 && heading < 360) q += '&vehicleHeading=' + heading;
         if (via.length) q = q.replace(/maxAlternatives=\d/, 'maxAlternatives=0');
         const locs = [f].concat(via, [t]).map(v => v[0] + ',' + v[1]).join(':');
-        const r = await fetch('https://api.tomtom.com/routing/1/calculateRoute/' + locs + '/json?' + q + '&key=' + env.TOMTOM_KEY);
+        const r = await ttFetch(env, 'route', 'https://api.tomtom.com/routing/1/calculateRoute/' + locs + '/json?' + q + '&key=' + env.TOMTOM_KEY);
         if (!r.ok) return json({ error: 'Itinéraire indisponible' }, 502);
         const d = await r.json();
         const routes = (d.routes || []).map(rt => {
@@ -380,7 +394,7 @@ export default {
         const dLat = 0.3, dLon = 0.42;   // environ 65 km × 65 km
         const bbox = [lon - dLon, lat - dLat, lon + dLon, lat + dLat].map(v => v.toFixed(4)).join(',');
         const fields = '{incidents{geometry{type,coordinates},properties{id,iconCategory,magnitudeOfDelay,events{description},from,to,roadNumbers,startTime}}}';
-        const r = await fetch('https://api.tomtom.com/traffic/services/5/incidentDetails?bbox=' + bbox + '&fields=' + encodeURIComponent(fields) +
+        const r = await ttFetch(env, 'incidents', 'https://api.tomtom.com/traffic/services/5/incidentDetails?bbox=' + bbox + '&fields=' + encodeURIComponent(fields) +
           '&language=fr-FR&categoryFilter=1,2,3,4,5,10,11,14&timeValidityFilter=present&key=' + env.TOMTOM_KEY);
         if (!r.ok) return json({ error: 'Incidents indisponibles' }, 502);
         const d = await r.json();
@@ -403,7 +417,7 @@ export default {
         const lat = parseFloat(url.searchParams.get('lat')), lon = parseFloat(url.searchParams.get('lon'));
         const heading = parseInt(url.searchParams.get('heading') || '', 10);
         if (!validCoord(lat, lon)) return json({ error: 'Paramètres invalides' }, 400);
-        const r = await fetch('https://api.tomtom.com/search/2/reverseGeocode/' + lat.toFixed(5) + ',' + lon.toFixed(5) + '.json?returnSpeedLimit=true&radius=40' +
+        const r = await ttFetch(env, 'speedlimit', 'https://api.tomtom.com/search/2/reverseGeocode/' + lat.toFixed(5) + ',' + lon.toFixed(5) + '.json?returnSpeedLimit=true&radius=40' +
           (heading >= 0 && heading < 360 ? '&heading=' + heading : '') + '&key=' + env.TOMTOM_KEY, { cf: { cacheTtl: 3600, cacheEverything: true } });
         if (!r.ok) return json({ limit: null });
         const d = await r.json();
@@ -479,7 +493,7 @@ export default {
         if (!validCoord(f[0], f[1]) || !validCoord(t[0], t[1])) return json({ error: 'Paramètres invalides' }, 400);
         const tt = 'https://api.tomtom.com/routing/1/calculateRoute/' + f[0] + ',' + f[1] + ':' + t[0] + ',' + t[1] +
           '/json?traffic=true&sectionType=traffic&routeType=fastest&travelMode=car&key=' + env.TOMTOM_KEY;
-        const r = await fetch(tt);
+        const r = await ttFetch(env, 'route', tt);
         if (!r.ok) return json({ error: 'Trafic indisponible' }, 502);
         const d = await r.json();
         const route = d.routes && d.routes[0];
@@ -490,6 +504,16 @@ export default {
           s: s.startPointIndex, e: s.endPointIndex, cat: s.simpleCategory || 'JAM', delay: s.delayInSeconds || 0, mag: s.magnitudeOfDelay || 0
         }));
         return json({ travel: route.summary.travelTimeInSeconds, delay: route.summary.trafficDelayInSeconds || 0, length: route.summary.lengthInMeters, points: pts, jams });
+      }
+
+      // ----- Consommation TomTom (7 derniers jours) -----
+      if (request.method === 'GET' && url.pathname === '/usage') {
+        let rows = [];
+        try { rows = (await env.DB.prepare('SELECT day, kind, n FROM usage WHERE day >= ?1 ORDER BY day DESC').bind(new Date(now - 6 * 86400000).toISOString().slice(0, 10)).all()).results || []; } catch (e) {}
+        const days = {};
+        rows.forEach(r => { const d = days[r.day] || (days[r.day] = { day: r.day, appels: 0, tuiles: 0, detail: {} }); if (r.kind === 'tile') d.tuiles += r.n; else d.appels += r.n; d.detail[r.kind] = r.n; });
+        const list = Object.values(days).map(d => Object.assign(d, { quota_appels: Math.round(d.appels / 2500 * 100) + ' %', quota_tuiles: Math.round(d.tuiles / 50000 * 100) + ' %' }));
+        return json({ limite_gratuite: '2 500 appels + 50 000 tuiles par jour', jours: list });
       }
 
       if (url.pathname === '/') return json({ service: 'vigie-api', ok: true, traffic: !!env.TOMTOM_KEY });

@@ -470,6 +470,10 @@
     background:radial-gradient(120% 90% at 0% 0%, rgba(227,25,55,.22), transparent 60%), rgba(127,127,127,.08); border:1px solid rgba(227,25,55,.25); }
   .pHeroCar svg { width:54px !important; height:96px !important; filter:drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
   .pHeroTxt small { display:block; color:var(--mut); font-size:13px; } .pHeroTxt b { display:block; font-size:22px; margin:2px 0 6px; }
+  .betaNote { margin:0 0 12px; padding:10px 12px; border-radius:12px; font-size:13px; line-height:1.4; background:rgba(227,25,55,.1); border:1px solid rgba(227,25,55,.45); }
+  .betaNote b { color:#ff5a72; }
+  .betaPill { display:inline-block; margin:0 0 10px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; background:rgba(227,25,55,.14); border:1px solid rgba(227,25,55,.5); color:#ff6b80; }
+  .pBadge.fd { margin-left:6px; color:#1a1300; background:linear-gradient(180deg,#f6d77a,#d4a52c); }
   .pBadge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:800; letter-spacing:.04em; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 0 12px rgba(227,25,55,.4); }
   .pStats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px; }
   .pStats div { text-align:center; padding:10px 4px; border-radius:12px; background:rgba(127,127,127,.08); }
@@ -595,6 +599,7 @@
 <div id="welcome" class="overlay"><div class="card">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><svg viewBox="0 0 64 64" width="56" height="56" aria-label="KapMap"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><h2>Bienvenue sur KapMap</h2></div>
   <p class="lead">La carte de conduite pensée pour ta Tesla.</p>
+  <span class="betaPill" id="wBeta" style="display:none"></span>
   <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alertes sonores en France, désactivées là où c'est interdit</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons sur ton trajet et heure d'arrivée réelle</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l7 19-7-4-7 4z"/></svg><p style="margin:0"><b>Navigation guidée</b><span>Instructions vocales, Domicile et Travail en 1 touche</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg><p style="margin:0"><b>Signalements</b><span>Accidents, travaux, objets… partagés par la communauté</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Superchargeurs</b><span>Tous les sites d'Europe et les lieux utiles autour</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg><p style="margin:0"><b>Commande vocale</b><span>« Maison », « Signaler un accident »…</span></p></div></div>
   <button class="btn pri" id="wRegister">Créer mon compte</button>
   <button class="btn sec" id="wLogin">J'ai déjà un compte</button>
@@ -607,6 +612,7 @@
 <div id="premium" class="overlay"><div class="card">
   <div class="prTop"><svg viewBox="0 0 64 64" width="44" height="44"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><div><small>KapMap</small><h2>Premium</h2></div></div>
   <p class="lead">Tout KapMap, sans limite, pour rouler l'esprit tranquille.</p>
+  <div class="betaNote" id="prBeta" style="display:none"></div>
   <ul class="prList">
     <li>Zones de danger et alertes de vitesse</li><li>Trafic en direct et heure d'arrivée réelle</li><li>Prix des péages et trajets sans péage</li>
     <li>Arrêts Superchargeur sur le trajet</li><li>Mode pause : streaming, actus, quiz</li><li>Partage de trajet en direct</li>
@@ -2167,6 +2173,14 @@
     apply(); setInterval(apply, 60000);
   })();
   // ---------- Écran Premium (paiement Stripe à brancher : PRICES et le lien de paiement) ----------
+  // Bêta gratuite : tout est offert jusqu'à la date de fin ; les comptes créés pendant la bêta deviennent « Fondateurs »
+  var BETA = { until: Date.parse('2027-02-28T23:59:59+01:00'), label: '28 février 2027', founderLife: '49 €' };
+  var isBeta = Date.now() < BETA.until;
+  if (isBeta) {
+    $('wBeta').textContent = 'Bêta gratuite jusqu\'au ' + BETA.label; $('wBeta').style.display = 'inline-block';
+    $('prBeta').innerHTML = '<b>Bêta gratuite jusqu\'au ' + BETA.label + '</b> : tout est offert. Crée ton compte pendant la bêta pour devenir <b>Fondateur</b> : badge sur ton profil et accès à vie à ' + BETA.founderLife + ' au lieu de 79 €.';
+    $('prBeta').style.display = 'block';
+  }
   var PRICES = { month: '3,90 €', year: '35,90 €', life: '79 €', url: null };   // url : lien de paiement Stripe à brancher
   (function () {
     var plan = 'year';
@@ -2174,7 +2188,8 @@
     if (PRICES.month) $('prMonth').textContent = PRICES.month;
     if (PRICES.year) $('prYear').textContent = PRICES.year;
     if (PRICES.life) $('prLife').textContent = PRICES.life;
-    if (PRICES.url) { $('prGo').disabled = false; $('prGo').textContent = 'Passer à Premium'; }
+    if (isBeta) $('prGo').textContent = 'Gratuit pendant la bêta';
+    else if (PRICES.url) { $('prGo').disabled = false; $('prGo').textContent = 'Passer à Premium'; }
     [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.onclick = function () { plan = b.getAttribute('data-p'); sel(); }; });
     sel();
     $('btnPremium').onclick = function () { $('lyClose').onclick(); $('premium').classList.add('show'); };
@@ -2498,7 +2513,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794522934';
+  var BUILD = '1794523331';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2560,7 +2575,7 @@
       var since = new Date(me.since || Date.now());
       var lv0 = levelOf(me.points || 0);
       c.innerHTML = '<div class="pHero"><div class="pHeroCar">' + carSvg(myCar || { model: '3', color: '#f2f2f2' }, 96) + '</div><div class="pHeroTxt"><small>' + esc(hello()) + '</small><b>' + esc(me.pseudo) + '</b>' +
-        '<span class="pBadge">' + esc(lv0.name) + '</span></div></div>' +
+        '<span class="pBadge">' + esc(lv0.name) + '</span>' + ((me.since || Date.now()) < BETA.until ? '<span class="pBadge fd">Fondateur</span>' : '') + '</div></div>' +
         '<div class="pStats"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b id="pWeekRank">–</b><span>rang semaine</span></div><div><b id="pWeekPts">–</b><span>pts semaine</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div></div>' +
         (function () { var lv = lv0;
           return '<div class="stat"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div><div><b>' + since.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) + '</b><span>membre depuis</span></div></div>' +
