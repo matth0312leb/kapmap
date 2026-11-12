@@ -794,7 +794,15 @@
   function navTo(lat, lon, instant) {
     var h = map.getContainer().clientHeight;
     var kmh = lastSpeed || 0;
-    var z = kmh > 100 ? 16 : kmh > 70 ? 16.6 : kmh > 40 ? 17.2 : 17.6;   // plus on roule vite, plus on voit loin
+    // Zoom dynamique : vue large quand on roule, on se rapproche à l'approche d'un tournant, d'une sortie ou de l'arrivée
+    var z = kmh > 110 ? 14.7 : kmh > 80 ? 15.2 : kmh > 50 ? 15.8 : kmh > 20 ? 16.3 : 16.8;
+    if (nav && typeof nav.dNext === 'number') {
+      var dn = nav.dNext, zt = dn < 120 ? 17.4 : dn < 300 ? 17 : dn < 600 ? 16.5 : dn < 1000 ? 16 : 0;
+      if (zt > z) z = zt;
+    }
+    // changement progressif : jamais plus de 0,25 niveau de zoom d'un coup (pas d'effet yo-yo)
+    if (typeof navTo.z === 'number' && !instant) z = navTo.z + Math.max(-0.25, Math.min(0.25, z - navTo.z));
+    navTo.z = z;
     var north = orient === 'north';
     map.easeTo({ center: [lon, lat], bearing: north ? 0 : (heading !== null ? heading : map.getBearing()), pitch: north ? 0 : 50,
       zoom: north ? z - 0.6 : z, offset: [0, north ? 0 : Math.round(h * 0.16)], duration: instant ? 0 : fixDur, easing: function (t) { return t; }, essential: true });
@@ -2063,6 +2071,7 @@
     glideRoute(nav.total > 0 ? pos.along / nav.total : 0);
     if (!next) next = nav.steps[nav.steps.length - 1];
     var dNext = Math.max(0, nav.cum[next.idx] - pos.along);
+    nav.dNext = dNext; nav.nextIsArrive = next.type === 'arrive';
     $('navIcon').innerHTML = maneuverIcon(next);
     $('navDist').textContent = formatDist(dNext);
     $('navText').textContent = instruction(next);
@@ -2186,7 +2195,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794474712';
+  var BUILD = '1794474905';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
