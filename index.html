@@ -1685,11 +1685,11 @@
     var before = firstSymbolId();
     // Trajet en surbrillance au-dessus des bâtiments ; la partie déjà parcourue s'efface au fil du trajet
     map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ROUTE_COL[theme === 'light' ? 1 : 0], 'line-opacity': theme === 'light' ? 0.18 : 0.3, 'line-blur': 6, 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 8, 14, 16, 18, 42] } }, before);
+      paint: { 'line-color': ROUTE_COL[theme === 'light' ? 1 : 0], 'line-opacity': theme === 'light' ? 0.12 : 0.22, 'line-blur': 3, 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 8, 5, 14, 11, 16, 15, 18, 24] } }, before);
     map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': theme === 'light' ? '#0b3d91' : '#06224d', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 5, 14, 10, 18, 26] } }, before);
+      paint: { 'line-color': theme === 'light' ? '#0b3d91' : '#06224d', 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 8, 3.5, 14, 7.5, 16, 10.5, 18, 17] } }, before);
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ROUTE_COL[theme === 'light' ? 1 : 0], 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 3, 14, 7, 18, 19] } }, before);
+      paint: { 'line-color': ROUTE_COL[theme === 'light' ? 1 : 0], 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 8, 2.2, 14, 5, 16, 7.5, 18, 13] } }, before);
     routeProg = -1; setRouteProgress(lastRouteFrac);
     if (map.getLayer('traffic')) map.moveLayer('traffic', firstSymbolId());
   }
@@ -1706,9 +1706,9 @@
     }
     map.addSource('mano', { type: 'geojson', data: manoFC });
     map.addLayer({ id: 'mano-casing', type: 'line', source: 'mano', filter: ['==', ['geometry-type'], 'LineString'], layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#0b1b33', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 13, 7, 16, 14, 18, 30] } });
+      paint: { 'line-color': '#0b1b33', 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 13, 6, 16, 11, 18, 21] } });
     map.addLayer({ id: 'mano-line', type: 'line', source: 'mano', filter: ['==', ['geometry-type'], 'LineString'], layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#ffffff', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 13, 4, 16, 9, 18, 21] } });
+      paint: { 'line-color': '#ffffff', 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 13, 3.5, 16, 7, 18, 14] } });
     map.addLayer({ id: 'mano-head', type: 'symbol', source: 'mano', filter: ['==', ['geometry-type'], 'Point'],
       layout: { 'icon-image': 'mano-head', 'icon-rotate': ['get', 'rot'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true,
         'icon-size': ['interpolate', ['exponential', 1.6], ['zoom'], 13, 0.45, 16, 0.9, 18, 2] } });
@@ -1758,7 +1758,7 @@
       paint: { 'line-dasharray': ['case', ['==', ['get', 'cat'], 'ROAD_WORK'], ['literal', [1.2, 1]], ['literal', [1, 0]]],
         'line-color': ['case', ['==', ['get', 'cat'], 'ROAD_CLOSURE'], '#7a0b1c', '#e31937'],
         'line-opacity': ['case', ['>=', ['get', 'mag'], 3], 1, ['>=', ['get', 'mag'], 2], 0.9, 0.65],
-        'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3, 16, 9] } }, firstSymbolId());
+        'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 8, 2.2, 14, 5, 16, 7.5, 18, 13] } }, firstSymbolId());
   }
   function refreshRouteTraffic() {
     if (!nav) return;
@@ -2480,7 +2480,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794521286';
+  var BUILD = '1794521421';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
