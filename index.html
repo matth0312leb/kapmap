@@ -613,7 +613,7 @@
   </ul>
   <div class="prPlans">
     <button class="prPlan" data-p="month"><span>Mensuel</span><b id="prMonth">Tarif à venir</b><small>Sans engagement</small></button>
-    <button class="prPlan best" data-p="year"><em>Populaire</em><span>Annuel</span><b id="prYear">Tarif à venir</b><small>Soit 2,50 €/mois</small></button>
+    <button class="prPlan best" data-p="year"><em>Populaire</em><span>Annuel</span><b id="prYear">Tarif à venir</b><small>Soit 2,99 €/mois</small></button>
     <button class="prPlan" data-p="life"><em>Lancement</em><span>À vie</span><b id="prLife">Tarif à venir</b><small>Un seul paiement</small></button>
   </div>
   <button class="btn pri" id="prGo" disabled>Bientôt disponible</button>
@@ -2167,7 +2167,7 @@
     apply(); setInterval(apply, 60000);
   })();
   // ---------- Écran Premium (paiement Stripe à brancher : PRICES et le lien de paiement) ----------
-  var PRICES = { month: '3,99 €', year: '29,99 €', life: '79 €', url: null };   // url : lien de paiement Stripe à brancher
+  var PRICES = { month: '3,90 €', year: '35,90 €', life: '79,90 €', url: null };   // url : lien de paiement Stripe à brancher
   (function () {
     var plan = 'year';
     function sel() { [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.classList.toggle('sel', b.getAttribute('data-p') === plan); }); }
@@ -2498,7 +2498,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794522876';
+  var BUILD = '1794522907';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
