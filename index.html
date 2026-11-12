@@ -764,6 +764,14 @@
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
   var mapReady = false, pending = [];
   function whenReady(fn) { if (mapReady) fn(); else pending.push(fn); }
+  // juste au-dessus des routes (tracé, trafic) : sinon les routes de la carte recouvrent le trajet
+  function aboveRoadsId() {
+    var ls = map.getStyle().layers, last = -1;
+    for (var i = 0; i < ls.length; i++) if (ls[i].type === 'line' && /^(highway|road|bridge|tunnel|railway|transportation)/.test(ls[i].id)) last = i;
+    if (last < 0) return firstSymbolId();
+    for (var k = last + 1; k < ls.length; k++) if (!/^(route|traffic|mano)/.test(ls[k].id)) return ls[k].id;
+    return undefined;
+  }
   function firstSymbolId() { var ls = map.getStyle().layers; for (var i = 0; i < ls.length; i++) if (ls[i].type === 'symbol') return ls[i].id; return undefined; }
   function hideSplash() { var sp = $('splash'); if (sp && !sp.classList.contains('hide')) { sp.classList.add('hide'); setTimeout(function () { if (sp.parentNode) sp.parentNode.removeChild(sp); }, 600); } }
   setTimeout(hideSplash, 5000);   // au pire, on n'attend jamais plus de 5 s
@@ -1126,7 +1134,7 @@
         'line-opacity': ['case', ['==', ['get', 'road_closure'], true], 0.9,
           ['interpolate', ['linear'], ['to-number', ['get', 'traffic_level'], 1], 0, 0.95, 0.4, 0.85, 0.75, 0.35]],
         'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1.5, 12, 3, 16, 7]
-      } }, firstSymbolId());
+      } }, aboveRoadsId());
     setVis(['traffic'], $('lyTraffic').checked);
   }
   setTimeout(function () { fetch(API + '/').then(function (r) { return r.json(); }).then(function (d) { $('trafficNote').textContent = d.traffic ? '' : 'bientôt'; }).catch(function () {}); }, 0);
@@ -1682,7 +1690,7 @@
   function addRouteLayers() {
     if (!routeGeo || map.getSource('route')) return;
     map.addSource('route', { type: 'geojson', data: routeGeo, lineMetrics: true });
-    var before = firstSymbolId();
+    var before = aboveRoadsId();
     // Trajet en surbrillance au-dessus des bâtiments ; la partie déjà parcourue s'efface au fil du trajet
     map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': ROUTE_COL[theme === 'light' ? 1 : 0], 'line-opacity': theme === 'light' ? 0.12 : 0.22, 'line-blur': 3, 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 8, 5, 14, 11, 16, 15, 18, 24] } }, before);
@@ -1691,7 +1699,7 @@
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': ROUTE_COL[theme === 'light' ? 1 : 0], 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 8, 2.2, 14, 5, 16, 7.5, 18, 13] } }, before);
     routeProg = -1; setRouteProgress(lastRouteFrac);
-    if (map.getLayer('traffic')) map.moveLayer('traffic', firstSymbolId());
+    if (map.getLayer('traffic')) map.moveLayer('traffic', aboveRoadsId());
   }
   var ROUTE_COL = ['#3d8bff', '#1a6ef0'], routeProg = -1, lastRouteFrac = 0;
   // ---------- Flèche de manœuvre sur la carte ----------
@@ -1758,7 +1766,7 @@
       paint: { 'line-dasharray': ['case', ['==', ['get', 'cat'], 'ROAD_WORK'], ['literal', [1.2, 1]], ['literal', [1, 0]]],
         'line-color': ['case', ['==', ['get', 'cat'], 'ROAD_CLOSURE'], '#7a0b1c', '#e31937'],
         'line-opacity': ['case', ['>=', ['get', 'mag'], 3], 1, ['>=', ['get', 'mag'], 2], 0.9, 0.65],
-        'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 8, 2.2, 14, 5, 16, 7.5, 18, 13] } }, firstSymbolId());
+        'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 8, 2.2, 14, 5, 16, 7.5, 18, 13] } }, aboveRoadsId());
   }
   function refreshRouteTraffic() {
     if (!nav) return;
@@ -1844,7 +1852,7 @@
     map.addSource('alts', { type: 'geojson', data: altGeo });
     map.addLayer({ id: 'alts-line', type: 'line', source: 'alts', layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': ['case', ['get', 'sel'], theme === 'light' ? '#111111' : '#f5f5f5', '#8a8a8a'], 'line-opacity': ['case', ['get', 'sel'], 0.95, 0.55],
-        'line-width': ['case', ['get', 'sel'], 7, 5] } }, firstSymbolId());
+        'line-width': ['case', ['get', 'sel'], 7, 5] } }, aboveRoadsId());
   }
   function drawAlts() {
     altGeo = { type: 'FeatureCollection', features: (pendingRoutes || []).map(function (rt, i) {
@@ -2480,7 +2488,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794521421';
+  var BUILD = '1794521690';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
