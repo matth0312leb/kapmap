@@ -365,6 +365,27 @@
     font:inherit; font-size:15px; font-weight:700; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 8px 26px rgba(227,25,55,.45), inset 0 1px 0 rgba(255,255,255,.25); animation:kIn .2s ease-out; }
   body.free #btnRecenter { display:flex; }
   body.compassHidden #btnCompass { display:none; }
+  #chips button { min-width:0; overflow:hidden; } #chips small { min-width:0; flex-shrink:1; }
+  .rtag { display:inline-block; margin-left:6px; padding:2px 7px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:.04em; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 0 10px rgba(227,25,55,.35); vertical-align:2px; }
+  .res .go { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; color:#fff !important; box-shadow:0 6px 18px rgba(227,25,55,.35); }
+  /* Panneaux ouverts : on masque ce qui passerait dessous */
+  body.layers-open #bottom, body.layers-open #nav, body.layers-open #alert, body.layers-open #speedBox, body.layers-open #toast, body.layers-open #btnCompass, body.layers-open #btnRecenter { opacity:0 !important; visibility:hidden; pointer-events:none; }
+  body.sheet-open #bottom, body.sheet-open #speedBox, body.sheet-open #btnCompass, body.sheet-open #btnRecenter, body.sheet-open #statusPill { opacity:0 !important; visibility:hidden; pointer-events:none; }
+  @media (max-width: 700px) {
+    body.searching #speedBox, body.searching #statusPill { display:none; }
+    /* compteur toujours au-dessus de la barre du bas */
+    #speedBox { bottom:calc(var(--bottomH, 120px) + 12px) !important; }
+    body.navigating #btnRecenter { right:22px; }
+    /* résultats : seul le bouton « Y aller » reste, pour laisser la place au nom */
+    .res button[data-a] { display:none; }
+    /* barre du trajet : infos sur toute la largeur, boutons en dessous */
+    #trip { flex-wrap:wrap; row-gap:8px; }
+    #tripInfo { flex:1 1 60%; min-width:0; }
+    #trip button { flex:1 1 40%; }
+    body.sheet-open #tools { opacity:0; pointer-events:none; }
+  }
+  #results { max-height:min(46vh, calc(100vh - var(--toolsBottom, 400px) - 150px)) !important; min-height:0; }
+  @media (max-width: 700px) { #results { max-height:max(140px, calc(100vh - var(--toolsBottom, 400px) - 150px)) !important; } }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -1300,12 +1321,38 @@
     return { title: title, sub: sub, short: (a.name || a.street || a.city || 'Lieu'), lat: p.geometry.coordinates[1], lon: p.geometry.coordinates[0] };
   }
   var searchTimer = null, searchSeq = 0;
+  // Recherche d'adresses : trois sources interrogées en même temps, puis triées par pertinence et proximité
+  //  - Base Adresse Nationale (IGN) : toutes les adresses françaises avec numéro
+  //  - swisstopo : adresses et localités suisses
+  //  - Photon (OpenStreetMap) : lieux, commerces, et le reste du monde
+  function timed(p, ms) { return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('lent')); }, ms); })]); }
+  function getJSON(u) { return timed(fetch(u).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }), 4500); }
   function search(q, cb) {
-    var me = myPos(), seq = ++searchSeq;
-    fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&lang=fr&limit=6&lat=' + me.lat.toFixed(3) + '&lon=' + me.lon.toFixed(3))
-      .then(function (r) { return r.json(); })
-      .then(function (d) { if (seq === searchSeq) cb((d.features || []).map(placeLabel)); })
-      .catch(function () { if (seq === searchSeq) cb(null); });
+    var me = myPos(), seq = ++searchSeq, eq = encodeURIComponent(q);
+    var ban = getJSON('https://data.geopf.fr/geocodage/search?q=' + eq + '&limit=6&lat=' + me.lat.toFixed(3) + '&lon=' + me.lon.toFixed(3))
+      .then(function (d) { return (d.features || []).map(function (f) { var a = f.properties || {};
+        return { title: a.name || a.label, sub: [a.postcode, a.city, 'France'].filter(Boolean).join(', '), short: a.name || a.city || 'Lieu',
+          lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], r: (a.score || 0.5) + (a.type === 'housenumber' ? 0.05 : 0) }; }); })
+      .catch(function () { return []; });
+    var ch = getJSON('https://api3.geo.admin.ch/rest/services/api/SearchServer?searchText=' + eq + '&type=locations&sr=4326&limit=6')
+      .then(function (d) { return (d.results || []).map(function (x, i) { var a = x.attrs || {};
+        var lbl = String(a.label || '').replace(/<[^>]+>/g, '').trim(), m = lbl.match(/^(.*?)\s+(\d{4}\s+.+)$/);
+        return { title: m ? m[1] : lbl, sub: (m ? m[2] + ', ' : '') + 'Suisse', short: m ? m[1] : lbl, lat: a.lat, lon: a.lon, r: (a.origin === 'address' ? 0.82 : 0.7) - i * 0.04 }; })
+        .filter(function (x) { return typeof x.lat === 'number'; }); })
+      .catch(function () { return []; });
+    var ph = getJSON('https://photon.komoot.io/api/?q=' + eq + '&lang=fr&limit=6&lat=' + me.lat.toFixed(3) + '&lon=' + me.lon.toFixed(3))
+      .then(function (d) { return (d.features || []).map(function (f, i) { var p = placeLabel(f); p.r = 0.78 - i * 0.06; return p; }); })
+      .catch(function () { return null; });
+    Promise.all([ban, ch, ph]).then(function (res) {
+      if (seq !== searchSeq) return;
+      if (res[2] === null && !res[0].length && !res[1].length) { cb(null); return; }
+      var all = res[0].concat(res[1], res[2] || []);
+      all.forEach(function (p) { var km = dist(me.lat, me.lon, p.lat, p.lon) / 1000; p.score = p.r - Math.min(km, 1500) / 1500 * 0.35; });
+      all.sort(function (a, b) { return b.score - a.score; });
+      var out = [];
+      all.forEach(function (p) { if (out.length < 6 && !out.some(function (o) { return dist(o.lat, o.lon, p.lat, p.lon) < 80; })) out.push(p); });
+      cb(out);
+    });
   }
   function showResults(list) {
     var box = $('results'); box.innerHTML = '';
@@ -1438,9 +1485,9 @@
   try { routePrefs = Object.assign(routePrefs, JSON.parse(localStorage.getItem('vigie-route') || '{}')); } catch (e) {}
   function avoidParam() { var a = []; if (routePrefs.tolls) a.push('tollRoads'); if (routePrefs.motorways) a.push('motorways'); return a.join(','); }
   // Itinéraires TomTom : guidage en français, trafic, limitations, voies ; repli sur OSRM
-  function fetchRoutes(from, to, alts) {
+  function fetchRoutes(from, to, alts, avoidOverride) {
     var url = API + '/route?from=' + from.lat.toFixed(5) + ',' + from.lon.toFixed(5) + '&to=' + to.lat.toFixed(5) + ',' + to.lon.toFixed(5) +
-      '&alt=' + (alts || 0) + '&avoid=' + avoidParam() + (heading !== null ? '&heading=' + Math.round(heading) : '');
+      '&alt=' + (alts || 0) + '&avoid=' + (avoidOverride !== undefined ? avoidOverride : avoidParam()) + (heading !== null ? '&heading=' + Math.round(heading) : '');
     return fetch(url).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.routes || !d.routes.length) throw new Error('vide');
       return d.routes.map(function (rt) { rt.kind = 'tomtom'; return rt; });
@@ -1502,12 +1549,27 @@
   }
   function clearAlts() { altGeo = null; whenReady(function () { if (map.getLayer('alts-line')) map.removeLayer('alts-line'); if (map.getSource('alts')) map.removeSource('alts'); }); }
   function fmtDur(sec) { var m = Math.round(sec / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + ('0' + (m % 60)).slice(-2); }
+  // Étiquettes : le plus rapide, le moins cher (ou sans péage), le plus court
+  function routeTags(list) {
+    var tags = list.map(function () { return []; });
+    if (list.length < 2) return tags;
+    function t(r) { return r.kind === 'tomtom' ? r.travel : r.duration; }
+    function len(r) { return r.kind === 'tomtom' ? r.length : r.distance; }
+    function cost(r) { return !r.toll ? 0 : (typeof r.tollPrice === 'number' ? r.tollPrice : null); }
+    var iFast = 0, iShort = 0, iCheap = -1, cheap = Infinity, costs = list.map(cost);
+    list.forEach(function (r, i) { if (t(r) < t(list[iFast])) iFast = i; if (len(r) < len(list[iShort])) iShort = i; });
+    if (costs.every(function (c) { return c !== null; })) costs.forEach(function (c, i) { if (c < cheap - 0.01) { cheap = c; iCheap = i; } });
+    if (costs.some(function (c) { return c !== null && c > cheap + 0.01; }) && iCheap >= 0) tags[iCheap].push(cheap === 0 ? 'SANS PÉAGE' : 'LE MOINS CHER');
+    tags[iFast].unshift('LE PLUS RAPIDE');
+    if (iShort !== iFast && len(list[iShort]) < len(list[iFast]) * 0.97) tags[iShort].push('LE PLUS COURT');
+    return tags;
+  }
   function showRouteChoice() {
-    var box = $('results');
+    var box = $('results'), tags = routeTags(pendingRoutes || []);
     var opts = (pendingRoutes || []).map(function (rt, i) {
       var len = rt.kind === 'tomtom' ? rt.length : rt.distance, t = rt.kind === 'tomtom' ? rt.travel : rt.duration, dl = rt.kind === 'tomtom' ? rt.delay : 0;
-      var best = i === 0 ? ' <span style="color:var(--acc);font-size:12px;font-weight:700">LE PLUS RAPIDE</span>' : '';
       if (rt.toll) loadTollPrice(rt);
+      var best = (tags[i] || []).map(function (t) { return ' <span class="rtag">' + t + '</span>'; }).join('');
       return '<div class="res" data-i="' + i + '" style="cursor:pointer;' + (i === pendingSel ? 'background:rgba(127,127,127,.12);border-radius:10px' : '') + '"><div class="t"><b>' + fmtDur(t) + best + '</b><span>' + formatDist(len) +
         (dl >= 60 ? ' · dont ' + fmtDur(dl) + ' de bouchons' : '') + (rt.toll ? ' · ' + tollText(rt) : '') + '</span></div>' + (i === pendingSel ? '<button class="go">Démarrer</button>' : '') + '</div>';
     }).join('');
@@ -1644,6 +1706,16 @@
       document.body.classList.toggle('compassHidden', bTop < cTop + 48 + 70);
       if (navBox.offsetHeight) document.body.style.setProperty('--navBottom', (navBox.offsetTop + navBox.offsetHeight) + 'px'); }
     if (window.ResizeObserver) { var ro = new ResizeObserver(place); ro.observe(navBox); ro.observe(bottomBox); }
+    // états d'affichage : feuille de signalement ouverte, résultats de recherche affichés
+    function states() {
+      document.body.classList.toggle('sheet-open', $('sheet').classList.contains('show'));
+      document.body.classList.toggle('searching', $('results').children.length > 0 && !document.body.classList.contains('navigating'));
+      place();
+    }
+    if (window.MutationObserver) {
+      new MutationObserver(states).observe($('sheet'), { attributes: true, attributeFilter: ['class'] });
+      new MutationObserver(states).observe($('results'), { childList: true });
+    }
     window.addEventListener('resize', place);
     setInterval(place, 1000);
   })();
@@ -1664,7 +1736,20 @@
     if (!last && !resumed) toast('GPS pas encore actif : itinéraire calculé depuis le centre de la carte');
     setStatus('Calcul de l\'itinéraire…', 'warn');
     fetchRoutes(from, dest, resumed ? 0 : 2).then(function (list) {
-      if (resumed) { beginNav(dest, prepareRoute(list[0]), resumed, from); return; }
+      if (resumed) { beginNav(dest, prepareRoute(list[0]), resumed, from); return list; }
+      // Si tous les trajets ont un péage, on demande aussi le meilleur trajet sans péage (souvent le moins cher)
+      if (!routePrefs.tolls && list[0].kind === 'tomtom' && list.every(function (r) { return r.toll; })) {
+        var av = avoidParam() ? avoidParam() + ',tollRoads' : 'tollRoads';
+        return fetchRoutes(from, dest, 0, av).then(function (l2) {
+          var r2 = l2[0];
+          if (r2 && r2.kind === 'tomtom' && !r2.toll) { list = list.slice(0, 2).concat([r2]); }
+          return list;
+        }).catch(function () { return list; });
+      }
+      return list;
+    }).then(function (list) {
+      if (resumed || !list) return;
+      list.sort(function (a, b) { return (a.travel || a.duration) - (b.travel || b.duration); });
       pendingDest = dest; pendingRoutes = list; pendingSel = 0;
       if (destMarker) destMarker.remove();
       destMarker = new maplibregl.Marker({ color: '#e31937' }).setLngLat([dest.lon, dest.lat]).addTo(map);
@@ -1911,7 +1996,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794441945';
+  var BUILD = '1794442896';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
