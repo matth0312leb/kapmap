@@ -350,7 +350,7 @@
   .res { transition:background .15s; } .res:active { background:rgba(227,25,55,.1); }
   /* Vitesse, statut, message */
   #speed { text-shadow:0 0 18px rgba(255,255,255,.12); }
-  #toast { border-left:3px solid var(--red) !important; z-index:1500 !important; max-width:min(440px, calc(100% - 32px)); text-align:center; }
+  #toast { top:auto !important; bottom:calc(var(--bottomH, 120px) + 16px); border-left:3px solid var(--red) !important; z-index:1500 !important; max-width:min(440px, calc(100% - 32px)); text-align:center; }
   /* Réglages : états sélectionnés en rouge */
   #layers label.sw2 input:checked { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; box-shadow:0 0 12px rgba(227,25,55,.45); }
   #layers label.sw2 input:checked::after { background:#fff !important; }
@@ -457,6 +457,53 @@
   body.zoneOver #zoneV { animation:zvFlash .6s infinite alternate; }
   @keyframes zvFlash { from { box-shadow:0 0 0 2px rgba(227,25,55,.35), 0 12px 40px rgba(227,25,55,.35); } to { box-shadow:0 0 0 4px #ff2340, 0 0 50px rgba(255,35,64,.8); } }
   @media (max-width: 700px) { #zoneV { width:74px; left:10px; } }
+  #tripEta { transition:color .4s; } #tripEta.late1 { color:#f59e0b !important; } #tripEta.late2 { color:#ff3b4f !important; text-shadow:0 0 12px rgba(255,59,79,.45); }
+  #trip button#btnStop { background:rgba(127,127,127,.18); color:var(--txt); padding-left:12px !important; padding-right:12px !important; flex:none !important; }
+  body:not(.light) #trip button#btnStop { background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border:1px solid rgba(255,255,255,.1); }
+  .stopRow { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .stopRow div { flex:1; min-width:0; } .stopRow b { display:block; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .stopRow small { color:var(--mut); font-size:13px; } .stopRow .btn { width:auto !important; margin:0 !important; padding:10px 14px !important; flex:none; }
+  #stopList { max-height:50vh; overflow-y:auto; margin:6px 0 10px; }
+  #btnStop.on { color:#fff; background:rgba(227,25,55,.2) !important; border-color:rgba(227,25,55,.6) !important; }
+  #accountCard > .stat { display:none; }
+  .pHero { display:flex; align-items:center; gap:16px; padding:14px; border-radius:18px; margin-bottom:12px;
+    background:radial-gradient(120% 90% at 0% 0%, rgba(227,25,55,.22), transparent 60%), rgba(127,127,127,.08); border:1px solid rgba(227,25,55,.25); }
+  .pHeroCar svg { width:54px !important; height:96px !important; filter:drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
+  .pHeroTxt small { display:block; color:var(--mut); font-size:13px; } .pHeroTxt b { display:block; font-size:22px; margin:2px 0 6px; }
+  .pBadge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:800; letter-spacing:.04em; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 0 12px rgba(227,25,55,.4); }
+  .pStats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px; }
+  .pStats div { text-align:center; padding:10px 4px; border-radius:12px; background:rgba(127,127,127,.08); }
+  .pStats b { display:block; font-size:18px; } .pStats span { font-size:11px; color:var(--mut); }
+  #dimmer { position:fixed; inset:0; z-index:1400; pointer-events:none; background:#000; opacity:0; transition:opacity 1.5s; }
+  body.dimmed #dimmer { opacity:.32; }
+  body.dimmed #nav, body.dimmed #zoneV, body.dimmed #alert.danger { z-index:1450; }
+  .btn:disabled { opacity:.45; filter:saturate(.5); cursor:default; box-shadow:none !important; }
+  .prTop { display:flex; align-items:center; gap:12px; } .prTop svg { border-radius:12px; box-shadow:0 0 30px rgba(227,25,55,.5); }
+  .prTop small { color:var(--mut); font-size:12px; text-transform:uppercase; letter-spacing:.12em; } .prTop h2 { margin:0 !important; }
+  .prList { list-style:none; padding:0; margin:10px 0 14px; display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; font-size:14px; }
+  .prList li { padding-left:22px; position:relative; } .prList li::before { content:''; position:absolute; left:2px; top:5px; width:10px; height:10px; border-radius:50%; background:#e31937; box-shadow:0 0 10px #e31937; }
+  .prPlans { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .prPlan { position:relative; font:inherit; color:var(--txt); text-align:left; padding:16px 14px 14px; border-radius:16px; cursor:pointer; background:rgba(127,127,127,.08); border:1px solid var(--line); transition:all .15s; }
+  .prPlan span { display:block; font-size:13px; color:var(--mut); } .prPlan b { display:block; font-size:20px; margin:4px 0 2px; } .prPlan small { font-size:12px; color:var(--mut); }
+  .prPlan.sel { border-color:rgba(227,25,55,.8); box-shadow:0 0 0 1px rgba(227,25,55,.4), 0 10px 30px rgba(227,25,55,.25); background:rgba(227,25,55,.1); }
+  .prPlan em { position:absolute; top:-9px; right:10px; font-style:normal; font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:2px 8px; border-radius:999px; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); }
+  @media (max-width: 520px) { .prList { grid-template-columns:1fr; } }
+  .pShort { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+  .pShort button { display:flex; align-items:center; gap:12px; text-align:left; font:inherit; color:#ececef; padding:14px; border-radius:16px; cursor:pointer;
+    background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); transition:border-color .15s, box-shadow .15s; min-width:0; }
+  .pShort button svg { flex:none; color:#e31937; filter:drop-shadow(0 0 6px rgba(227,25,55,.5)); }
+  .pShort button span { min-width:0; } .pShort b { display:block; font-size:14px; } .pShort small { display:block; font-size:12px; color:#8a8a8f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pShort button:active, .pShort button:hover { border-color:rgba(227,25,55,.65); box-shadow:0 0 0 1px rgba(227,25,55,.3), 0 10px 30px rgba(227,25,55,.22); }
+  .pShort button:disabled { opacity:.4; }
+  #pause.locked .pShort button { pointer-events:none; opacity:.3; }
+  @media (max-width: 640px) { .pShort { grid-template-columns:1fr; } }
+  .qCats { display:flex; gap:6px; overflow-x:auto; margin:-2px 0 10px; padding-bottom:4px; scrollbar-width:none; }
+  .qCats button { flex:none; width:auto !important; margin:0 !important; padding:6px 11px !important; font-size:12px !important; border-radius:999px !important; }
+  .qCats button.on { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; border-color:transparent !important; color:#fff !important; }
+  .qMeta { display:flex; justify-content:space-between; font-size:11px; color:#8a8a8f; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+  #navSign { display:none; align-items:center; gap:8px; margin-top:8px; padding:6px 10px; border-radius:8px; background:#0f6b3a; color:#fff; font-size:14px; border:2px solid #fff; box-shadow:0 0 0 1px #0f6b3a; max-width:100%; }
+  #navSign b { background:#fff; color:#0f6b3a; border-radius:5px; padding:1px 7px; font-weight:800; white-space:nowrap; }
+  #navSign span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -464,6 +511,7 @@
 </head>
 <body>
 <div id="map"></div>
+<div id="dimmer"></div>
 <div id="splash"><div><svg viewBox="0 0 64 64" width="84" height="84"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><b>KapMap</b><i></i></div></div>
 
 <div id="zoneV" aria-live="polite">
@@ -503,6 +551,7 @@
   <div class="lySub">Couleurs</div>
   <div id="themeRow" class="seg"><button data-t="auto">Auto</button><button data-t="light">Jour</button><button data-t="dark">Nuit</button></div>
   <input type="checkbox" id="optSat" hidden>
+  <label class="sw2">Écran atténué la nuit<input type="checkbox" id="optDim"></label>
 
   <div class="lyHead">Afficher</div>
   <label class="sw2">Zones de danger<input type="checkbox" id="lyZones" checked></label>
@@ -521,12 +570,13 @@
   <label class="sw2">Annonces vocales<input type="checkbox" id="optVoice"></label>
 
   <div class="lyHead">Aide</div>
+  <button class="lyRow" id="btnPremium"><span>KapMap Premium</span><i>›</i></button>
   <button class="lyRow" id="btnFeedback"><span>Suggérer une idée ou signaler un bug</span><i>›</i></button>
   <div class="lyVer" id="lyVer"></div>
 </div>
 </div>
 
-<div id="nav" class="panel"><div id="navIcon"></div><div style="min-width:0"><div id="navDist"></div><div id="navText"></div><div id="navLanes"></div></div></div>
+<div id="nav" class="panel"><div id="navIcon"></div><div style="min-width:0"><div id="navDist"></div><div id="navText"></div><div id="navSign"></div><div id="navLanes"></div></div></div>
 
 <div id="bottom" class="panel">
   <div id="searchRow">
@@ -538,7 +588,7 @@
     <button id="goWork"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>Travail <small id="workLbl"></small></button>
   </div>
   <div id="results"></div>
-  <div id="trip"><div id="tripEta"></div><div id="tripInfo"></div><button id="shareTrip" style="background:rgba(127,127,127,.18);color:var(--txt)">Partager</button><button id="stopNav">Arrêter</button></div>
+  <div id="trip"><div id="tripEta"></div><div id="tripInfo"></div><button id="btnStop" title="Ajouter un arrêt recharge"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align:-3px;color:#e31937"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></button><button id="shareTrip" style="background:rgba(127,127,127,.18);color:var(--txt)">Partager</button><button id="stopNav">Arrêter</button></div>
 </div>
 
 <div id="welcome" class="overlay"><div class="card">
@@ -552,6 +602,22 @@
 </div></div>
 
 <div id="account" class="overlay"><div class="card" id="accountCard"></div></div>
+
+<div id="premium" class="overlay"><div class="card">
+  <div class="prTop"><svg viewBox="0 0 64 64" width="44" height="44"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><div><small>KapMap</small><h2>Premium</h2></div></div>
+  <p class="lead">Tout KapMap, sans limite, pour rouler l'esprit tranquille.</p>
+  <ul class="prList">
+    <li>Zones de danger et alertes de vitesse</li><li>Trafic en direct et heure d'arrivée réelle</li><li>Prix des péages et trajets sans péage</li>
+    <li>Arrêts Superchargeur sur le trajet</li><li>Mode pause : streaming, actus, quiz</li><li>Partage de trajet en direct</li>
+  </ul>
+  <div class="prPlans">
+    <button class="prPlan" data-p="month"><span>Mensuel</span><b id="prMonth">Tarif à venir</b><small>Sans engagement</small></button>
+    <button class="prPlan best" data-p="life"><em>Le meilleur choix</em><span>À vie</span><b id="prLife">Tarif à venir</b><small>Un seul paiement</small></button>
+  </div>
+  <button class="btn pri" id="prGo" disabled>Bientôt disponible</button>
+  <button class="btn sec" id="prClose">Plus tard</button>
+  <p class="small">Paiement sécurisé. Tu pourras gérer ou résilier ton abonnement à tout moment depuis ton compte.</p>
+</div></div>
 
 <div id="locGate" class="overlay"><div class="card">
   <h2>Avant de prendre la route</h2>
@@ -574,11 +640,15 @@
     </div>
   </div>
   <div id="pLock"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>En mouvement : tout s'active à l'arrêt complet.</div>
+  <div class="pShort">
+    <button id="pSc"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><span><b>Superchargeur le plus proche</b><small id="pScSub">…</small></span></button>
+    <button id="pHome"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/></svg><span><b>Rentrer à la maison</b><small id="pHomeSub">…</small></span></button>
+  </div>
   <div class="pTitle"><i></i>Regarder &amp; écouter</div>
   <div id="pLinks" class="pGrid"></div>
   <div class="pCols">
     <div class="pBox"><div class="pTitle"><i></i>Actualités</div><div id="pNews">Chargement…</div></div>
-    <div class="pBox"><div class="pTitle"><i></i>Quiz de la route</div><div id="pQuiz"></div></div>
+    <div class="pBox"><div class="pTitle"><i></i>Quiz</div><div id="pQuiz"></div></div>
   </div>
   <button id="pClose">Reprendre la route</button>
 </div></div>
@@ -600,6 +670,13 @@
   <div class="field"><textarea id="fbText" maxlength="2000" rows="5" placeholder="Ex. : ajouter les radars de feu rouge, le bouton X est trop petit…"></textarea></div>
   <button class="btn pri" id="fbSend">Envoyer</button>
   <button class="btn sec" id="fbClose">Annuler</button>
+</div></div>
+
+<div id="stopBox" class="overlay"><div class="card">
+  <h2>Recharger en route</h2>
+  <p class="lead">Superchargeurs le long de ton trajet, avec le temps ajouté par le détour.</p>
+  <div id="stopList"></div>
+  <button class="btn sec" id="stopClose">Fermer</button>
 </div></div>
 
 <div id="shareBox" class="overlay"><div class="card">
@@ -709,6 +786,7 @@
     safe(function () { if (chItems) addChLayers(); });
     safe(function () { if (irveIndex) addIrveLayers(); });
     safe(addPoiLayers);
+    safe(function () { addManoLayers(); map.getSource('mano').setData(manoFC); });
     safe(function () { if (routeGeo) addRouteLayers(); });
     safe(function () { if (altGeo) addAltLayers(); });
     safe(function () { if (rtGeo) addRouteTrafficLayer(); });
@@ -1280,6 +1358,30 @@
   var poiFC = null, poiClickBound = false;
   // Restos, cafés, toilettes, stations et supermarchés : lus directement dans les tuiles de la carte (aucune requête, instantané)
   var POI_CLASSES = ['restaurant', 'fast_food', 'cafe', 'bar', 'toilets', 'fuel', 'grocery', 'shop', 'bakery'];
+  var POI_ICON = {
+    restaurant: ['#f97316', 'M7 2v8a2 2 0 002 2v10h2V12a2 2 0 002-2V2h-1.5v6h-1V2h-1v6h-1V2zM17 2c-1.7 0-3 2-3 5v6h2v9h2V2z'],
+    fast_food: ['#fb923c', 'M4 10c0-4 4-6 8-6s8 2 8 6zM3 12h18v2H3zM4 16h16a3 3 0 01-3 3H7a3 3 0 01-3-3z'],
+    cafe: ['#a16207', 'M4 8h13v5a6 6 0 01-6 6h-1a6 6 0 01-6-6zM17 9h2a3 3 0 010 6h-2v-2h2a1 1 0 000-2h-2zM7 3h2v3H7zM11 3h2v3h-2z'],
+    bar: ['#9333ea', 'M5 3h14l-6 8v7h4v2H7v-2h4v-7z'],
+    bakery: ['#ca8a04', 'M3 13c0-4 4-7 9-7s9 3 9 7v5H3zM8 9v4M12 8v5M16 9v4'],
+    toilets: ['#0284c7', 'M6 2.5a2 2 0 110 4 2 2 0 010-4zM18 2.5a2 2 0 110 4 2 2 0 010-4zM4 8h4v6H7v7H5v-7H4zM16 8h4l2 7h-2v6h-4v-6h-2z'],
+    fuel: ['#52525b', 'M5 3h9v18H5zM7 5v5h5V5zM15 8l3 3v7a1 1 0 002 0v-8l-3-3-1 1z'],
+    grocery: ['#16a34a', 'M2 4h3.5l2.4 10.5h10.6L21 7H7M9.5 18.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM17 18.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z']
+  };
+  function poiIcons() {
+    if (!map.addImage) return;
+    Object.keys(POI_ICON).forEach(function (k) {
+      if (map.hasImage && map.hasImage('poi-' + k)) return;
+      var cv = document.createElement('canvas'); cv.width = cv.height = 56; var g = cv.getContext('2d');
+      g.beginPath(); g.arc(28, 28, 25, 0, Math.PI * 2); g.fillStyle = POI_ICON[k][0]; g.fill(); g.lineWidth = 3; g.strokeStyle = '#ffffff'; g.stroke();
+      g.save(); g.translate(14, 14); g.scale(28 / 24, 28 / 24);
+      var path = new Path2D(POI_ICON[k][1]);
+      if (k === 'grocery' || k === 'bakery') { g.lineWidth = 2; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#fff'; g.stroke(path); if (k === 'bakery') { g.fillStyle = 'rgba(255,255,255,.25)'; g.fill(path); } }
+      else { g.fillStyle = '#fff'; g.fill(path, 'evenodd'); }
+      g.restore();
+      try { map.addImage('poi-' + k, g.getImageData(0, 0, 56, 56), { pixelRatio: 2 }); } catch (e) {}
+    });
+  }
   function addPoiLayers() {
     if (!map.getSource('openmaptiles') || map.getLayer('poi-circle')) return;
     var light = theme === 'light';
@@ -1287,8 +1389,11 @@
       ['any', ['!=', ['get', 'class'], 'shop'], ['in', ['get', 'subclass'], ['literal', ['supermarket', 'convenience']]]]];
     var col = ['match', ['get', 'class'], 'restaurant', '#f97316', 'fast_food', '#fb923c', 'cafe', '#c08457', 'bar', '#c084fc', 'bakery', '#eab308',
       'toilets', '#38bdf8', 'fuel', '#a1a1aa', '#22c55e'];
-    map.addLayer({ id: 'poi-circle', type: 'circle', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 13, filter: filt,
-      paint: { 'circle-color': col, 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 4, 16, 7, 18, 9], 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.6 } });
+    poiIcons();
+    // pastille ronde de couleur avec pictogramme blanc (restaurant, café, toilettes…)
+    map.addLayer({ id: 'poi-circle', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 13, filter: filt,
+      layout: { 'icon-image': ['concat', 'poi-', ['match', ['get', 'class'], ['grocery', 'shop'], 'grocery', ['get', 'class']]],
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 13, 0.6, 16, 0.85, 18, 1], 'icon-allow-overlap': false, 'icon-padding': 2 } });
     map.addLayer({ id: 'poi-label', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 15, filter: filt,
       layout: { 'text-field': ['coalesce', ['get', 'name:fr'], ['get', 'name']], 'text-font': ['Noto Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-max-width': 10, 'text-optional': true },
       paint: { 'text-color': light ? '#1f2328' : '#e5e7eb', 'text-halo-color': light ? '#ffffff' : '#111111', 'text-halo-width': 1.5 } });
@@ -1573,6 +1678,40 @@
     if (map.getLayer('traffic')) map.moveLayer('traffic', firstSymbolId());
   }
   var ROUTE_COL = ['#3d8bff', '#1a6ef0'], routeProg = -1, lastRouteFrac = 0;
+  // ---------- Flèche de manœuvre sur la carte ----------
+  var manoKey = null, manoFC = { type: 'FeatureCollection', features: [] };
+  function addManoLayers() {
+    if (map.getSource('mano')) return;
+    if (!map.hasImage || !map.hasImage('mano-head')) {
+      var cv = document.createElement('canvas'); cv.width = cv.height = 64; var g = cv.getContext('2d');
+      g.beginPath(); g.moveTo(32, 6); g.lineTo(58, 52); g.lineTo(32, 42); g.lineTo(6, 52); g.closePath();
+      g.lineJoin = 'round'; g.lineWidth = 6; g.strokeStyle = '#0b1b33'; g.stroke(); g.fillStyle = '#ffffff'; g.fill();
+      try { map.addImage('mano-head', g.getImageData(0, 0, 64, 64), { pixelRatio: 2 }); } catch (e) {}
+    }
+    map.addSource('mano', { type: 'geojson', data: manoFC });
+    map.addLayer({ id: 'mano-casing', type: 'line', source: 'mano', filter: ['==', ['geometry-type'], 'LineString'], layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#0b1b33', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 13, 7, 16, 14, 18, 30] } });
+    map.addLayer({ id: 'mano-line', type: 'line', source: 'mano', filter: ['==', ['geometry-type'], 'LineString'], layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 13, 4, 16, 9, 18, 21] } });
+    map.addLayer({ id: 'mano-head', type: 'symbol', source: 'mano', filter: ['==', ['geometry-type'], 'Point'],
+      layout: { 'icon-image': 'mano-head', 'icon-rotate': ['get', 'rot'], 'icon-rotation-alignment': 'map', 'icon-pitch-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+        'icon-size': ['interpolate', ['exponential', 1.6], ['zoom'], 13, 0.45, 16, 0.9, 18, 2] } });
+  }
+  function setManeuverArrow(st) {
+    var key = st && nav ? nav.idx + ':' + st.idx : null;
+    if (key === manoKey) return; manoKey = key;
+    manoFC = { type: 'FeatureCollection', features: [] };
+    if (st && nav) {
+      var c = nav.coords, cum = nav.cum, at = cum[st.idx], line = [];
+      for (var i = 0; i < c.length; i++) if (cum[i] >= at - 45 && cum[i] <= at + 32) line.push(c[i]);
+      if (line.length >= 2) {
+        var a = line[line.length - 2], b = line[line.length - 1];
+        manoFC.features.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line } });
+        manoFC.features.push({ type: 'Feature', properties: { rot: bearing(a[1], a[0], b[1], b[0]) }, geometry: { type: 'Point', coordinates: b } });
+      }
+    }
+    whenReady(function () { try { addManoLayers(); map.getSource('mano').setData(manoFC); } catch (e) {} });
+  }
   function setRouteProgress(frac) {
     lastRouteFrac = frac = Math.max(0, Math.min(1, frac || 0));
     var minStep = nav && nav.total > 0 ? 1.5 / nav.total : 0.0008;
@@ -1634,8 +1773,9 @@
   try { routePrefs = Object.assign(routePrefs, JSON.parse(localStorage.getItem('vigie-route') || '{}')); } catch (e) {}
   function avoidParam() { var a = []; if (routePrefs.tolls) a.push('tollRoads'); if (routePrefs.motorways) a.push('motorways'); return a.join(','); }
   // Itinéraires TomTom : guidage en français, trafic, limitations, voies ; repli sur OSRM
-  function fetchRoutes(from, to, alts, avoidOverride) {
+  function fetchRoutes(from, to, alts, avoidOverride, via) {
     var url = API + '/route?from=' + from.lat.toFixed(5) + ',' + from.lon.toFixed(5) + '&to=' + to.lat.toFixed(5) + ',' + to.lon.toFixed(5) +
+      (via ? '&via=' + via.lat.toFixed(5) + ',' + via.lon.toFixed(5) : '') +
       '&alt=' + (alts || 0) + '&avoid=' + (avoidOverride !== undefined ? avoidOverride : avoidParam()) + (heading !== null ? '&heading=' + Math.round(heading) : '');
     return fetch(url).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.routes || !d.routes.length) throw new Error('vide');
@@ -1654,7 +1794,7 @@
       var coords = route.points, cum = [0];
       for (var i = 1; i < coords.length; i++) cum.push(cum[i - 1] + dist(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]));
       var steps = route.instr.map(function (it) {
-        return { idx: Math.min(it.i, coords.length - 1), tt: it.m, msg: it.msg, exit: it.ex, street: it.street || '', type: /ARRIVE/.test(it.m) ? 'arrive' : it.m === 'DEPART' ? 'depart' : 'tt', said: {} };
+        return { idx: Math.min(it.i, coords.length - 1), tt: it.m, msg: it.msg, exit: it.ex, street: it.street || '', hwExit: it.exit || '', sign: it.sign || '', roads: it.roads || [], type: /ARRIVE/.test(it.m) ? 'arrive' : it.m === 'DEPART' ? 'depart' : 'tt', said: {} };
       });
       return { coords: coords, cum: cum, steps: steps, total: route.length, duration: route.travel, speed: route.speed || [], lanes: route.lanes || [],
         tt: { travel: route.travel, delay: route.delay, jams: route.jams || [], points: coords }, toll: !!route.toll, srcRoute: route };
@@ -1915,6 +2055,84 @@
     if (!/^(INPUT|TEXTAREA)$/.test(t.tagName) || !t.closest('.card')) return;
     setTimeout(function () { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) {} }, 300);
   });
+  // ---------- Arrêt Superchargeur sur le trajet ----------
+  function stationsAlongRoute() {
+    if (!nav || !scItems || !last) return [];
+    var c = nav.coords, cum = nav.cum, here = nav.cum[nav.idx] || 0, out = [];
+    scItems.forEach(function (it) {
+      var best = null;
+      for (var i = nav.idx; i < c.length; i += 3) {
+        if (Math.abs(c[i][1] - it[0]) > 0.05 || Math.abs(c[i][0] - it[1]) > 0.07) continue;
+        var d = dist(it[0], it[1], c[i][1], c[i][0]);
+        if (d < 3000 && (!best || d < best.d)) best = { d: d, along: cum[i] };
+      }
+      if (best && best.along > here + 1500) out.push({ it: it, off: best.d, ahead: best.along - here });
+    });
+    out.sort(function (a, b) { return a.ahead - b.ahead; });
+    return out.slice(0, 6);
+  }
+  function remainingSecs() { return nav && nav.duration ? nav.duration * Math.max(0, 1 - (nav.cum[nav.idx] || 0) / nav.total) : 0; }
+  $('btnStop').onclick = function () {
+    if (!nav) return;
+    if (nav.via) {   // une étape est déjà prévue : on propose de la retirer
+      $('stopList').innerHTML = '<div class="stopRow"><div><b>' + esc(nav.via.name) + '</b><small>Étape recharge prévue</small></div><button class="btn sec" id="stopDel">Retirer</button></div>';
+      $('stopDel').onclick = function () { $('stopBox').classList.remove('show'); applyVia(null); };
+      $('stopBox').classList.add('show'); return;
+    }
+    var list = stationsAlongRoute();
+    if (!list.length) { $('stopList').innerHTML = '<p class="lead">Aucun Superchargeur à moins de 3 km de ton trajet.</p>'; $('stopBox').classList.add('show'); return; }
+    $('stopList').innerHTML = list.map(function (x, k) {
+      var it = x.it;
+      return '<div class="stopRow"><div><b>' + esc(it[2]) + '</b><small>dans ' + formatDist(x.ahead) + ' · ' + (it[3] ? it[3] + ' bornes' : '') + (it[4] ? ' · ' + it[4] + ' kW' : '') +
+        ' · <span id="det' + k + '">calcul…</span></small></div><button class="btn pri" data-k="' + k + '">Ajouter</button></div>';
+    }).join('');
+    $('stopBox').classList.add('show');
+    var rem = remainingSecs(), from = { lat: last.lat, lon: last.lon };
+    list.forEach(function (x, k) {
+      var via = { lat: x.it[0], lon: x.it[1] };
+      fetchRoutes(from, nav.dest, 0, undefined, via).then(function (l) {
+        var add = Math.max(0, Math.round(((l[0].travel || l[0].duration) - rem) / 60));
+        x.route = l[0]; var e = $('det' + k); if (e) e.textContent = add <= 1 ? 'sans détour' : '+' + add + ' min';
+      }).catch(function () { var e = $('det' + k); if (e) e.textContent = ''; });
+    });
+    [].forEach.call($('stopList').querySelectorAll('button[data-k]'), function (b) {
+      b.onclick = function () { var x = list[+b.getAttribute('data-k')]; $('stopBox').classList.remove('show'); applyVia({ lat: x.it[0], lon: x.it[1], name: x.it[2] }, x.route); };
+    });
+  };
+  $('stopClose').onclick = function () { $('stopBox').classList.remove('show'); };
+  function applyVia(via, route) {
+    if (!nav || !last) return;
+    var dest = nav.dest, keep0 = nav.eta0;
+    (route ? Promise.resolve(route) : fetchRoutes({ lat: last.lat, lon: last.lon }, dest, 0, undefined, via).then(function (l) { return l[0]; })).then(function (rt) {
+      if (!nav) return;
+      var n = prepareRoute(rt); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); n.via = via; n.eta0 = keep0;
+      nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic();
+      $('btnStop').classList.toggle('on', !!via);
+      toast(via ? 'Arrêt ajouté : ' + via.name : 'Arrêt retiré');
+    }).catch(function () { toast('Itinéraire indisponible, réessaie'); });
+  }
+  // Écran atténué la nuit (option) : un voile sombre sur tout, sauf le guidage et les alertes de danger
+  (function () {
+    var on = false; try { on = localStorage.getItem('vigie-dim') === '1'; } catch (e) {}
+    $('optDim').checked = on;
+    function apply() { var h = new Date().getHours(); document.body.classList.toggle('dimmed', $('optDim').checked && (h >= 22 || h < 6)); }
+    $('optDim').onchange = function () { try { localStorage.setItem('vigie-dim', this.checked ? '1' : '0'); } catch (e) {} apply(); };
+    apply(); setInterval(apply, 60000);
+  })();
+  // ---------- Écran Premium (paiement Stripe à brancher : PRICES et le lien de paiement) ----------
+  var PRICES = { month: null, life: null, url: null };   // ex. { month: '2,99 €/mois', life: '39 €', url: 'https://buy.stripe.com/...' }
+  (function () {
+    var plan = 'life';
+    function sel() { [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.classList.toggle('sel', b.getAttribute('data-p') === plan); }); }
+    if (PRICES.month) $('prMonth').textContent = PRICES.month;
+    if (PRICES.life) $('prLife').textContent = PRICES.life;
+    if (PRICES.url) { $('prGo').disabled = false; $('prGo').textContent = 'Passer à Premium'; }
+    [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.onclick = function () { plan = b.getAttribute('data-p'); sel(); }; });
+    sel();
+    $('btnPremium').onclick = function () { $('lyClose').onclick(); $('premium').classList.add('show'); };
+    $('prClose').onclick = function () { $('premium').classList.remove('show'); };
+    $('prGo').onclick = function () { if (PRICES.url) window.open(PRICES.url + (PRICES.url.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(me ? me.pseudo : '') + '&plan=' + plan, '_blank'); };
+  })();
   window.KapMapDebug = { launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
   $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
@@ -1983,7 +2201,8 @@
   $('q').addEventListener('focus', showRecents);
   function beginNav(dest, n, resumed, from) {
     if (!resumed) addRecent(dest);
-    nav = n; nav.dest = dest; nav.idx = 0; nav.offCount = 0; nav.lastReroute = Date.now();
+    var keepEta0 = nav && nav.dest && dest && nav.dest.lat === dest.lat && nav.dest.lon === dest.lon ? nav.eta0 : null;
+    nav = n; nav.dest = dest; nav.idx = 0; nav.eta0 = keepEta0; nav.offCount = 0; nav.lastReroute = Date.now();
     if (n.toll && n.srcRoute) { n.tollPrice = n.srcRoute.tollPrice; n.tollExact = n.srcRoute.tollExact; loadTollPrice(n.srcRoute); }
     setRoute(nav.coords);
     if (destMarker) destMarker.remove();
@@ -1998,7 +2217,7 @@
     if (watchId === null && !demoTimer) $('btnStart').onclick();
   }
   function stopNav(silent) {
-    nav = null; clearRoute(); if (destMarker) { destMarker.remove(); destMarker = null; }
+    nav = null; clearRoute(); setManeuverArrow(null); if (destMarker) { destMarker.remove(); destMarker = null; }
     try { localStorage.removeItem('vigie-nav'); } catch (e) {}
     document.body.classList.remove('navigating'); $('nav').classList.remove('show'); $('trip').classList.remove('show');
     $('alert').style.display = '';
@@ -2083,6 +2302,7 @@
     if (!next) next = nav.steps[nav.steps.length - 1];
     var dNext = Math.max(0, nav.cum[next.idx] - pos.along);
     nav.dNext = dNext; nav.nextIsArrive = next.type === 'arrive';
+    if (nav.via && dist(pos.lat || last.lat, pos.lon || last.lon, nav.via.lat, nav.via.lon) < 150) { speak('Arrivée au Superchargeur.'); beep(1); nav.via = null; $('btnStop').classList.remove('on'); }
     $('navIcon').innerHTML = maneuverIcon(next);
     $('navDist').textContent = formatDist(dNext);
     // Loin de la manœuvre : bandeau compact (distance + l'essentiel) ; détail complet à moins de 300 m
@@ -2101,6 +2321,14 @@
       }).join('');
     }
     $('navLanes').innerHTML = lanesHtml; $('navLanes').style.display = lanesHtml ? 'flex' : 'none';
+    // Panneau de sortie (autoroute, voie rapide) : numéro et direction, comme les vrais panneaux
+    var isExit = /EXIT|MOTORWAY|KEEP|TAKE_RAMP|BEAR/.test(next.tt || '') || /ramp|off ramp|fork/.test(next.type || '');
+    var signHtml = '';
+    if ((next.hwExit || next.sign) && isExit && dNext < 3000)
+      signHtml = (next.hwExit ? '<b>Sortie ' + esc(String(next.hwExit)) + '</b>' : '') + (next.sign ? '<span>' + esc(next.sign.replace(/\s*\/\s*/g, ' · ')) + '</span>' : '');
+    $('navSign').innerHTML = signHtml; $('navSign').style.display = signHtml ? 'flex' : 'none';
+    // Flèche de manœuvre dessinée sur la carte à l'approche (moins de 500 m)
+    setManeuverArrow(dNext < 500 && next.type !== 'arrive' && next.type !== 'depart' ? next : null);
     // Limitation du tronçon en cours
     nav.curLimit = null;
     (nav.speed || []).forEach(function (x) { if (x.s <= pos.idx && pos.idx <= x.e) nav.curLimit = x.v; });
@@ -2112,6 +2340,11 @@
     }
     var eta = new Date(Date.now() + secs * 1000);
     $('tripEta').textContent = ('0' + eta.getHours()).slice(-2) + ':' + ('0' + eta.getMinutes()).slice(-2);
+    // Couleur de l'heure d'arrivée : orange si on a pris plus de 3 min de retard depuis le départ, rouge au-delà de 10 min
+    if (!nav.eta0) nav.eta0 = eta.getTime();
+    var drift = (eta.getTime() - nav.eta0) / 60000;
+    $('tripEta').className = drift > 10 ? 'late2' : drift > 3 ? 'late1' : '';
+    $('tripEta').title = drift > 3 ? 'Arrivée prévue au départ : ' + new Date(nav.eta0).toTimeString().slice(0, 5) : '';
     var hz = countHazardsOnRoute(pos.idx);
     var late = routeTraffic && routeTraffic.delay >= 60 ? ' · <span style="color:var(--acc)">+' + Math.round(routeTraffic.delay / 60) + ' min</span>' : '';
     var extra = [];
@@ -2140,8 +2373,9 @@
     if (nav.offCount >= 3 && Date.now() - nav.lastReroute > 15000) {
       nav.lastReroute = Date.now(); nav.offCount = 0; setStatus('Nouvel itinéraire…', 'warn');
       var dest = nav.dest;
-      fetchRoute({ lat: lat, lon: lon }, dest).then(function (route) {
-        if (!nav) return; var n = prepareRoute(route); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
+      var keepVia = nav.via, keep0 = nav.eta0;
+      fetchRoutes({ lat: lat, lon: lon }, dest, 0, undefined, keepVia).then(function (l) { return l[0]; }).then(function (route) {
+        if (!nav) return; var n = prepareRoute(route); n.dest = dest; n.via = keepVia; n.eta0 = keep0; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
       }).catch(function () {});
     }
   }
@@ -2209,7 +2443,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794519788';
+  var BUILD = '1794520516';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2269,8 +2503,11 @@
     var c = $('accountCard');
     if (view === 'me' && me) {
       var since = new Date(me.since || Date.now());
-      c.innerHTML = '<h2>Salut ' + esc(hello()) + '</h2><p class="lead">Connecté en tant que <b>' + esc(me.pseudo) + '</b></p>' +
-        (function () { var lv = levelOf(me.points || 0);
+      var lv0 = levelOf(me.points || 0);
+      c.innerHTML = '<div class="pHero"><div class="pHeroCar">' + carSvg(myCar || { model: '3', color: '#f2f2f2' }, 96) + '</div><div class="pHeroTxt"><small>' + esc(hello()) + '</small><b>' + esc(me.pseudo) + '</b>' +
+        '<span class="pBadge">' + esc(lv0.name) + '</span></div></div>' +
+        '<div class="pStats"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b id="pWeekRank">–</b><span>rang semaine</span></div><div><b id="pWeekPts">–</b><span>pts semaine</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div></div>' +
+        (function () { var lv = lv0;
           return '<div class="stat"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div><div><b>' + since.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) + '</b><span>membre depuis</span></div></div>' +
             '<div style="font-size:14px;margin-top:4px"><b>' + lv.name + '</b>' + (lv.next ? '<span class="m"> · encore ' + lv.toNext + ' points pour « ' + lv.next + ' »</span>' : '') + '</div>' +
             '<div style="height:6px;border-radius:3px;background:rgba(127,127,127,.2);margin-top:6px;overflow:hidden"><i style="display:block;height:100%;width:' + lv.pct + '%;background:var(--acc)"></i></div>' +
@@ -2284,6 +2521,11 @@
         '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>';
       $('aClose').onclick = closeAccount;
       $('aRank').onclick = function () { accountView('rank'); };
+      apiJSON('GET', '/leaderboard?period=week').then(function (d) {
+        var m = d && d.mine; if (!m) return;
+        if ($('pWeekRank')) $('pWeekRank').textContent = m.rank ? m.rank + (m.rank === 1 ? 'er' : 'e') : '–';
+        if ($('pWeekPts')) $('pWeekPts').textContent = m.points != null ? m.points : '–';
+      }).catch(function () {});
       $('aHome').onclick = function () { closeAccount(); saveHere('home'); };
       var car = myCar || { model: '3', color: '#f2f2f2' };
       function refreshPick() {
@@ -2453,23 +2695,62 @@
     ['Une pastille « kWh » sur une borne indique :', ['l\'énergie facturée', 'la vitesse maximale', 'le temps de stationnement'], 0]
   ];
   var quizIdx = Math.floor(Math.random() * QUIZ.length), quizScore = 0, quizCount = 0;
+  // Quiz : 100 questions en 6 catégories (quiz.json), score, série en cours et meilleure série mémorisées
+  var quizData = null, quizCat = 'all', quizDeck = [], quizStreak = 0, quizBest = 0;
+  try { quizBest = +localStorage.getItem('vigie-qbest') || 0; quizCat = localStorage.getItem('vigie-qcat') || 'all'; } catch (e) {}
+  function quizLoad(cb) {
+    if (quizData) { cb(); return; }
+    fetch('quiz.json?v=' + BUILD).then(function (r) { return r.json(); }).then(function (d) { quizData = d; cb(); })
+      .catch(function () { quizData = { cats: {}, q: QUIZ.map(function (x) { return ['route', x[0], [x[1][x[2]]].concat(x[1].filter(function (_, i) { return i !== x[2]; }))]; }) }; cb(); });
+  }
+  function quizShuffle() {
+    quizDeck = quizData.q.filter(function (x) { return quizCat === 'all' || x[0] === quizCat; }).slice();
+    for (var i = quizDeck.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = quizDeck[i]; quizDeck[i] = quizDeck[j]; quizDeck[j] = t; }
+  }
   function renderQuiz() {
-    var q = QUIZ[quizIdx % QUIZ.length], order = [0, 1, 2].sort(function () { return Math.random() - 0.5; });
-    $('pQuiz').innerHTML = '<div class="q">' + esc(q[0]) + '</div>' + order.map(function (k) { return '<button data-k="' + k + '">' + esc(q[1][k]) + '</button>'; }).join('') +
-      '<div class="small" id="qScore">' + (quizCount ? 'Score : ' + quizScore + '/' + quizCount : '') + '</div>';
-    [].forEach.call($('pQuiz').querySelectorAll('button'), function (b) {
-      b.onclick = function () {
-        var ok = +b.getAttribute('data-k') === q[2]; quizCount++; if (ok) quizScore++;
-        [].forEach.call($('pQuiz').querySelectorAll('button'), function (x) { x.disabled = true; if (+x.getAttribute('data-k') === q[2]) x.classList.add('good'); });
-        if (!ok) b.classList.add('bad');
-        $('qScore').textContent = 'Score : ' + quizScore + '/' + quizCount;
-        setTimeout(function () { quizIdx++; renderQuiz(); }, 1800);
-      };
+    quizLoad(function () {
+      if (!quizDeck.length) quizShuffle();
+      var q = quizDeck.shift(), answers = q[2].map(function (t, i) { return { t: t, ok: i === 0 }; }).sort(function () { return Math.random() - 0.5; });
+      var cats = '<div class="qCats">' + [['all', 'Tout']].concat(Object.keys(quizData.cats).map(function (k) { return [k, quizData.cats[k]]; }))
+        .map(function (c) { return '<button data-c="' + c[0] + '"' + (c[0] === quizCat ? ' class="on"' : '') + '>' + esc(c[1]) + '</button>'; }).join('') + '</div>';
+      $('pQuiz').innerHTML = cats + '<div class="qMeta"><span>' + esc(quizData.cats[q[0]] || '') + '</span><span>Série ' + quizStreak + ' · Record ' + quizBest + '</span></div>' +
+        '<div class="q">' + esc(q[1]) + '</div>' + answers.map(function (a, k) { return '<button class="qa" data-k="' + k + '">' + esc(a.t) + '</button>'; }).join('') +
+        '<div class="small" id="qScore">' + (quizCount ? 'Score : ' + quizScore + '/' + quizCount : '') + '</div>';
+      [].forEach.call($('pQuiz').querySelectorAll('.qCats button'), function (b) {
+        b.onclick = function () { quizCat = b.getAttribute('data-c'); try { localStorage.setItem('vigie-qcat', quizCat); } catch (e) {} quizDeck = []; renderQuiz(); };
+      });
+      [].forEach.call($('pQuiz').querySelectorAll('button.qa'), function (b) {
+        b.onclick = function () {
+          var ok = answers[+b.getAttribute('data-k')].ok; quizCount++;
+          if (ok) { quizScore++; quizStreak++; if (quizStreak > quizBest) { quizBest = quizStreak; try { localStorage.setItem('vigie-qbest', quizBest); } catch (e) {} } } else quizStreak = 0;
+          [].forEach.call($('pQuiz').querySelectorAll('button.qa'), function (x) { x.disabled = true; if (answers[+x.getAttribute('data-k')].ok) x.classList.add('good'); });
+          if (!ok) b.classList.add('bad');
+          $('qScore').textContent = 'Score : ' + quizScore + '/' + quizCount + (ok && quizStreak >= 3 ? ' · ' + quizStreak + ' de suite !' : '');
+          setTimeout(renderQuiz, 1700);
+        };
+      });
     });
   }
   var WMO = { 0: 'Ciel dégagé', 1: 'Peu nuageux', 2: 'Partiellement nuageux', 3: 'Couvert', 45: 'Brouillard', 48: 'Brouillard givrant', 51: 'Bruine', 53: 'Bruine', 55: 'Bruine',
     61: 'Pluie faible', 63: 'Pluie', 65: 'Forte pluie', 71: 'Neige faible', 73: 'Neige', 75: 'Forte neige', 80: 'Averses', 81: 'Averses', 82: 'Fortes averses', 95: 'Orage' };
+  function nearestSc() {
+    if (!scItems || !last) return null;
+    var best = null;
+    scItems.forEach(function (it) { if (Math.abs(it[0] - last.lat) > 1.5 || Math.abs(it[1] - last.lon) > 2) return; var d = dist(last.lat, last.lon, it[0], it[1]); if (!best || d < best.d) best = { it: it, d: d }; });
+    return best;
+  }
+  function fillShortcuts() {
+    var sc = nearestSc();
+    $('pScSub').textContent = sc ? sc.it[2].replace(/, (France|Switzerland|Suisse)$/, '') + ' · ' + formatDist(sc.d) + (sc.it[3] ? ' · ' + sc.it[3] + ' bornes' : '') : 'Aucun à proximité';
+    $('pSc').disabled = !sc;
+    var home = null; try { home = JSON.parse(localStorage.getItem('vigie-home') || 'null'); } catch (e) {}
+    $('pHomeSub').textContent = home ? (home.short || home.title || 'Domicile') + (last ? ' · ' + formatDist(dist(last.lat, last.lon, home.lat, home.lon)) : '') : 'Domicile non enregistré';
+    $('pHome').disabled = !home;
+    $('pSc').onclick = function () { if (!sc) return; $('pause').classList.remove('show'); startNav({ lat: sc.it[0], lon: sc.it[1], title: 'Superchargeur ' + sc.it[2].replace(/, (France|Switzerland|Suisse)$/, ''), sub: sc.it[6] || '', short: 'Superchargeur' }); };
+    $('pHome').onclick = function () { if (!home) return; $('pause').classList.remove('show'); goSaved('home'); };
+  }
   function fillPause() {
+    fillShortcuts();
     var now = new Date();
     $('pClock').textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
     $('pDate').textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });

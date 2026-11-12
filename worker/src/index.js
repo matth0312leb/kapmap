@@ -295,11 +295,15 @@ export default {
         const avoid = (url.searchParams.get('avoid') || '').split(',').filter(a => ['tollRoads', 'motorways', 'ferries'].includes(a));
         const alts = Math.max(0, Math.min(2, parseInt(url.searchParams.get('alt') || '0', 10) || 0));
         const heading = parseInt(url.searchParams.get('heading') || '', 10);
+        // étapes facultatives (ex. arrêt Superchargeur) : via=lat,lon;lat,lon
+        const via = (url.searchParams.get('via') || '').split(';').filter(Boolean).slice(0, 3).map(v => v.split(',').map(Number)).filter(v => validCoord(v[0], v[1]));
         let q = 'traffic=true&routeType=fastest&travelMode=car&instructionsType=text&language=fr-FR' +
           '&sectionType=traffic&sectionType=speedLimit&sectionType=lanes&sectionType=tollRoad&maxAlternatives=' + alts;
         avoid.forEach(a => { q += '&avoid=' + a; });
         if (heading >= 0 && heading < 360) q += '&vehicleHeading=' + heading;
-        const r = await fetch('https://api.tomtom.com/routing/1/calculateRoute/' + f[0] + ',' + f[1] + ':' + t[0] + ',' + t[1] + '/json?' + q + '&key=' + env.TOMTOM_KEY);
+        if (via.length) q = q.replace(/maxAlternatives=\d/, 'maxAlternatives=0');
+        const locs = [f].concat(via, [t]).map(v => v[0] + ',' + v[1]).join(':');
+        const r = await fetch('https://api.tomtom.com/routing/1/calculateRoute/' + locs + '/json?' + q + '&key=' + env.TOMTOM_KEY);
         if (!r.ok) return json({ error: 'Itinéraire indisponible' }, 502);
         const d = await r.json();
         const routes = (d.routes || []).map(rt => {
@@ -311,7 +315,8 @@ export default {
             points: pts,
             instr: ((rt.guidance && rt.guidance.instructions) || []).map(i => ({
               i: i.pointIndex, off: i.routeOffsetInMeters, m: i.maneuver || '', msg: i.message || '', ex: i.roundaboutExitNumber || null,
-              street: i.street || '', exit: i.exitNumber || '' })),
+              street: i.street || '', exit: i.exitNumber || '', sign: i.signpostText || '', roads: (i.roadNumbers || []).slice(0, 2),
+              ang: typeof i.turnAngleInDecimalDegrees === 'number' ? i.turnAngleInDecimalDegrees : null })),
             speed: sec.filter(x => x.sectionType === 'SPEED_LIMIT').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
               v: x.maxSpeedLimitInKmh || x.maxSpeedLimitInKilometersPerHour || (x.speedRestrictions && x.speedRestrictions[0] && x.speedRestrictions[0].maxSpeedLimitInKilometersPerHour) || null })).filter(x => x.v),
             toll: sec.some(x => x.sectionType === 'TOLL_ROAD'),
