@@ -501,7 +501,10 @@
   .qCats button { flex:none; width:auto !important; margin:0 !important; padding:6px 11px !important; font-size:12px !important; border-radius:999px !important; }
   .qCats button.on { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; border-color:transparent !important; color:#fff !important; }
   .qMeta { display:flex; justify-content:space-between; font-size:11px; color:#8a8a8f; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
-  #navSign { display:none; width:max-content; margin-top:6px; padding:2px 8px; border-radius:6px; background:#1e4fa8; color:#fff; font-size:13px; font-weight:700; border:1.5px solid rgba(255,255,255,.85); white-space:nowrap; }
+  #navSign { display:none; align-items:center; gap:6px; width:max-content; max-width:100%; margin-top:6px; padding:2px 8px; border-radius:6px; background:#1e4fa8; color:#fff; font-size:13px; font-weight:600; border:1.5px solid rgba(255,255,255,.85); white-space:nowrap; }
+  #navSign b { font-weight:800; }
+  #navSign svg { flex:none; }
+  #navSign span { overflow:hidden; text-overflow:ellipsis; }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -2367,8 +2370,15 @@
     // Panneau de sortie (autoroute, voie rapide) : numéro et direction, comme les vrais panneaux
     var isExit = /EXIT|MOTORWAY|KEEP|TAKE_RAMP|BEAR/.test(next.tt || '') || /ramp|off ramp|fork/.test(next.type || '');
     var signHtml = '';
-    if (next.hwExit && isExit && dNext < 3000) signHtml = 'Sortie ' + esc(String(next.hwExit));
-    $('navSign').innerHTML = signHtml; $('navSign').style.display = signHtml ? 'block' : 'none';
+    if ((next.hwExit || next.sign) && isExit && dNext < 3000) {
+      // Cartouche bleu discret : numéro, flèche du côté de la sortie, 1 ou 2 premières villes
+      var towns = (next.sign || '').split(/\s*[\/,;]\s*/).map(function (t) { return t.replace(/^[A-Z]{1,2}\d{1,4}\s*/, '').trim(); }).map(function (t) { return t === t.toUpperCase() ? t.toLowerCase().replace(/(^|[\s\-'])(\S)/g, function (m, p1, c) { return p1 + c.toUpperCase(); }) : t; }).filter(Boolean), tw = towns.slice(0, 1);
+      if (towns[1] && (towns[0] + towns[1]).length <= 22) tw.push(towns[1]);
+      var left = /LEFT/.test(next.tt || '') || /left/.test(next.type || '');
+      var arr = '<svg viewBox="0 0 24 24" width="14" height="14" style="transform:rotate(' + (left ? -45 : 45) + 'deg)"><path d="M12 3l6 7h-4v11h-4V10H6z" fill="currentColor"/></svg>';
+      signHtml = (next.hwExit ? '<b>Sortie ' + esc(String(next.hwExit)) + '</b>' : '') + arr + (tw.length ? '<span>' + esc(tw.join(' · ')) + '</span>' : '');
+    }
+    $('navSign').innerHTML = signHtml; $('navSign').style.display = signHtml ? 'flex' : 'none';
     // Flèche de manœuvre : ~20 s avant le virage selon la vitesse (150 m en ville, ~700 m à 130 km/h)
     var arrowM = Math.max(150, Math.min(750, (lastSpeed || 0) / 3.6 * 20));
     setManeuverArrow(dNext < arrowM && next.type !== 'arrive' && next.type !== 'depart' ? next : null);
@@ -2486,7 +2496,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794521891';
+  var BUILD = '1794522394';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
