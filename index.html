@@ -501,9 +501,7 @@
   .qCats button { flex:none; width:auto !important; margin:0 !important; padding:6px 11px !important; font-size:12px !important; border-radius:999px !important; }
   .qCats button.on { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; border-color:transparent !important; color:#fff !important; }
   .qMeta { display:flex; justify-content:space-between; font-size:11px; color:#8a8a8f; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
-  #navSign { display:none; align-items:center; gap:8px; margin-top:8px; padding:6px 10px; border-radius:8px; background:#0f6b3a; color:#fff; font-size:14px; border:2px solid #fff; box-shadow:0 0 0 1px #0f6b3a; max-width:100%; }
-  #navSign b { background:#fff; color:#0f6b3a; border-radius:5px; padding:1px 7px; font-weight:800; white-space:nowrap; }
-  #navSign span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+  #navSign { display:none; width:max-content; margin-top:6px; padding:2px 8px; border-radius:6px; background:#1e4fa8; color:#fff; font-size:13px; font-weight:700; border:1.5px solid rgba(255,255,255,.85); white-space:nowrap; }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -2165,7 +2163,7 @@
     apply(); setInterval(apply, 60000);
   })();
   // ---------- Écran Premium (paiement Stripe à brancher : PRICES et le lien de paiement) ----------
-  var PRICES = { month: null, life: null, url: null };   // ex. { month: '2,99 €/mois', life: '39 €', url: 'https://buy.stripe.com/...' }
+  var PRICES = { month: '4,99 €/mois', life: '149 €', url: null };   // ex. { month: '2,99 €/mois', life: '39 €', url: 'https://buy.stripe.com/...' }
   (function () {
     var plan = 'life';
     function sel() { [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.classList.toggle('sel', b.getAttribute('data-p') === plan); }); }
@@ -2369,11 +2367,11 @@
     // Panneau de sortie (autoroute, voie rapide) : numéro et direction, comme les vrais panneaux
     var isExit = /EXIT|MOTORWAY|KEEP|TAKE_RAMP|BEAR/.test(next.tt || '') || /ramp|off ramp|fork/.test(next.type || '');
     var signHtml = '';
-    if ((next.hwExit || next.sign) && isExit && dNext < 3000)
-      signHtml = (next.hwExit ? '<b>Sortie ' + esc(String(next.hwExit)) + '</b>' : '') + (next.sign ? '<span>' + esc(next.sign.replace(/\s*\/\s*/g, ' · ')) + '</span>' : '');
-    $('navSign').innerHTML = signHtml; $('navSign').style.display = signHtml ? 'flex' : 'none';
-    // Flèche de manœuvre dessinée sur la carte à l'approche (moins de 500 m)
-    setManeuverArrow(dNext < 500 && next.type !== 'arrive' && next.type !== 'depart' ? next : null);
+    if (next.hwExit && isExit && dNext < 3000) signHtml = 'Sortie ' + esc(String(next.hwExit));
+    $('navSign').innerHTML = signHtml; $('navSign').style.display = signHtml ? 'block' : 'none';
+    // Flèche de manœuvre : ~20 s avant le virage selon la vitesse (150 m en ville, ~700 m à 130 km/h)
+    var arrowM = Math.max(150, Math.min(750, (lastSpeed || 0) / 3.6 * 20));
+    setManeuverArrow(dNext < arrowM && next.type !== 'arrive' && next.type !== 'depart' ? next : null);
     // Limitation du tronçon en cours
     nav.curLimit = null;
     (nav.speed || []).forEach(function (x) { if (x.s <= pos.idx && pos.idx <= x.e) nav.curLimit = x.v; });
@@ -2488,7 +2486,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794521690';
+  var BUILD = '1794521891';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
