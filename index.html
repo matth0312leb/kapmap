@@ -361,10 +361,10 @@
   #layers .lyHead::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--red); box-shadow:0 0 10px var(--red); }
   body:not(.light) #layers .lyTop button:active { box-shadow:0 0 16px rgba(227,25,55,.45); }
   #btnStart { display:none !important; }
-  #btnRecenter { position:absolute; right:22px; bottom:28px; z-index:560; display:none; align-items:center; gap:8px; padding:12px 18px; border:0; border-radius:999px; cursor:pointer;
+  #btnRecenter { position:absolute; right:22px; bottom:calc(var(--bottomH, 120px) + 12px); z-index:560; display:none; align-items:center; gap:8px; padding:12px 18px; border:0; border-radius:999px; cursor:pointer;
     font:inherit; font-size:15px; font-weight:700; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 8px 26px rgba(227,25,55,.45), inset 0 1px 0 rgba(255,255,255,.25); animation:kIn .2s ease-out; }
   body.free #btnRecenter { display:flex; }
-  body.navigating #btnRecenter { bottom:96px; }
+  body.compassHidden #btnCompass { display:none; }
   /* Signalement : tuiles avec lueur */
   #sheet .grid button { transition:border-color .15s, box-shadow .15s; }
   #sheet .grid button:active { border-color:rgba(227,25,55,.65) !important; box-shadow:0 0 18px rgba(227,25,55,.3); }
@@ -1633,10 +1633,17 @@
   // Le bandeau d'alerte se place toujours juste sous le bandeau de guidage, quelle que soit sa hauteur
   (function () {
     var navBox = $('nav'), toolsBox = $('tools');
+    var bottomBox = $('bottom');
     function place() {
       document.body.style.setProperty('--toolsBottom', (toolsBox.offsetTop + toolsBox.offsetHeight) + 'px');
+      // « Recentrer » toujours au-dessus de la barre du bas (recherche, résultats ou trajet), quelle que soit sa hauteur
+      var bTop = bottomBox.getBoundingClientRect().top, h = window.innerHeight;
+      document.body.style.setProperty('--bottomH', Math.max(16, h - bTop) + 'px');
+      // la boussole se cache si la barre du bas monte jusqu'à elle
+      var cTop = toolsBox.offsetTop + toolsBox.offsetHeight + 12;
+      document.body.classList.toggle('compassHidden', bTop < cTop + 48 + 70);
       if (navBox.offsetHeight) document.body.style.setProperty('--navBottom', (navBox.offsetTop + navBox.offsetHeight) + 'px'); }
-    if (window.ResizeObserver) new ResizeObserver(place).observe(navBox);
+    if (window.ResizeObserver) { var ro = new ResizeObserver(place); ro.observe(navBox); ro.observe(bottomBox); }
     window.addEventListener('resize', place);
     setInterval(place, 1000);
   })();
@@ -1904,7 +1911,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794441600';
+  var BUILD = '1794441945';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
