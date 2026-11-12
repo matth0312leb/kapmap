@@ -1734,6 +1734,19 @@
     window.addEventListener('resize', place);
     setInterval(place, 1000);
   })();
+  // Les choix « Afficher » sont mémorisés : on les retrouve à la prochaine ouverture
+  (function () {
+    var KEEP = ['lyZones', 'lyHz', 'lyTraffic', 'lyPoi'], saved = {};
+    try { saved = JSON.parse(localStorage.getItem('vigie-show') || '{}') || {}; } catch (e) {}
+    function save() { var o = {}; KEEP.forEach(function (id) { o[id] = $(id).checked; }); try { localStorage.setItem('vigie-show', JSON.stringify(o)); } catch (e) {} }
+    KEEP.forEach(function (id) { $(id).addEventListener('change', save); });
+    whenReady(function () {
+      KEEP.forEach(function (id) {
+        var el = $(id);
+        if (typeof saved[id] === 'boolean' && el.checked !== saved[id]) { el.checked = saved[id]; if (el.onchange) el.onchange.call(el); }
+      });
+    });
+  })();
   window.KapMapDebug = { launchRoute: function (i) { launchRoute(i || 0); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
   $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
@@ -2011,7 +2024,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794443421';
+  var BUILD = '1794443884';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2317,6 +2330,8 @@
 
   // ================= Son =================
   var soundOn = true, actx = null;
+  try { soundOn = localStorage.getItem('vigie-sound') !== '0'; } catch (e) {}
+  setTimeout(function () { $('btnSound').classList.toggle('on', soundOn); }, 0);
   function unlockAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { actx = null; } }
   function beep(times) {
     if (!soundOn || !actx) return;
@@ -2328,7 +2343,7 @@
     }
   }
   $('btnSound').onclick = function () {
-    unlockAudio(); soundOn = !soundOn; this.classList.toggle('on', soundOn);
+    unlockAudio(); soundOn = !soundOn; this.classList.toggle('on', soundOn); try { localStorage.setItem('vigie-sound', soundOn ? '1' : '0'); } catch (e) {}
     $('waves').style.display = soundOn ? '' : 'none'; if (soundOn) beep(1);
   };
 
