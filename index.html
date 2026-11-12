@@ -350,7 +350,7 @@
   .res { transition:background .15s; } .res:active { background:rgba(227,25,55,.1); }
   /* Vitesse, statut, message */
   #speed { text-shadow:0 0 18px rgba(255,255,255,.12); }
-  #toast { border-left:3px solid var(--red) !important; }
+  #toast { border-left:3px solid var(--red) !important; z-index:1500 !important; max-width:min(440px, calc(100% - 32px)); text-align:center; }
   /* Réglages : états sélectionnés en rouge */
   #layers label.sw2 input:checked { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; box-shadow:0 0 12px rgba(227,25,55,.45); }
   #layers label.sw2 input:checked::after { background:#fff !important; }
@@ -369,7 +369,7 @@
   .res .t span.rtag, .rtag { display:inline-block; margin-left:6px; padding:2px 7px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:.04em; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 0 10px rgba(227,25,55,.35); vertical-align:2px; }
   .res .go { background:linear-gradient(180deg,#ef2a47,#c8102e) !important; color:#fff !important; box-shadow:0 6px 18px rgba(227,25,55,.35); }
   /* Panneaux ouverts : on masque ce qui passerait dessous */
-  body.layers-open #bottom, body.layers-open #nav, body.layers-open #alert, body.layers-open #speedBox, body.layers-open #toast, body.layers-open #btnCompass, body.layers-open #btnRecenter { opacity:0 !important; visibility:hidden; pointer-events:none; }
+  body.layers-open #bottom, body.layers-open #nav, body.layers-open #alert, body.layers-open #speedBox, body.layers-open #btnCompass, body.layers-open #btnRecenter { opacity:0 !important; visibility:hidden; pointer-events:none; }
   body.sheet-open #bottom, body.sheet-open #speedBox, body.sheet-open #btnCompass, body.sheet-open #btnRecenter, body.sheet-open #statusPill { opacity:0 !important; visibility:hidden; pointer-events:none; }
   @media (max-width: 700px) {
     body.searching #speedBox, body.searching #statusPill { display:none; }
@@ -1920,7 +1920,7 @@
       b.onclick = function () { kind = b.getAttribute('data-k'); [].forEach.call(document.querySelectorAll('#fbKind button'), function (x) { x.classList.toggle('sel', x === b); }); };
     });
     $('btnFeedback').onclick = function () {
-      if ((lastSpeed || 0) > 5) { toast('Disponible à l\'arrêt'); return; }
+      if ((lastSpeed || 0) > 3) { $('lyClose').onclick(); toast('Pour ta sécurité, écris ton message à l\'arrêt'); return; }
       $('lyClose').onclick(); $('fbText').value = ''; $('fbBox').classList.add('show'); setTimeout(function () { $('fbText').focus(); }, 200);
     };
     $('fbClose').onclick = function () { $('fbBox').classList.remove('show'); };
@@ -2238,7 +2238,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794509882';
+  var BUILD = '1794510059';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2523,7 +2523,9 @@
     $('pLock').style.display = locked ? 'flex' : 'none';
     if (locked && speed > 15 && $('pause').classList.contains('show')) $('pause').classList.remove('show');
   }
-  $('btnPause').onclick = function () { fillPause(); pauseLockUpdate(lastSpeed || 0); $('pause').classList.add('show'); };
+  $('btnPause').onclick = function () {
+    if ((lastSpeed || 0) > 3) { toast('Le mode pause s\'utilise à l\'arrêt, une fois garé'); return; }
+    fillPause(); pauseLockUpdate(lastSpeed || 0); $('pause').classList.add('show'); };
   $('pClose').onclick = function () { $('pause').classList.remove('show'); };
   $('pX').onclick = function () { $('pause').classList.remove('show'); };
   $('pause').onclick = function (e) { if (e.target === this) this.classList.remove('show'); };   // toucher à côté ferme aussi
