@@ -2167,7 +2167,7 @@
     apply(); setInterval(apply, 60000);
   })();
   // ---------- Écran Premium (paiement Stripe à brancher : PRICES et le lien de paiement) ----------
-  var PRICES = { month: '3,90 €', year: '35,90 €', life: '79,90 €', url: null };   // url : lien de paiement Stripe à brancher
+  var PRICES = { month: '3,90 €', year: '35,90 €', life: '79 €', url: null };   // url : lien de paiement Stripe à brancher
   (function () {
     var plan = 'year';
     function sel() { [].forEach.call(document.querySelectorAll('.prPlan'), function (b) { b.classList.toggle('sel', b.getAttribute('data-p') === plan); }); }
@@ -2498,7 +2498,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794522907';
+  var BUILD = '1794522934';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
