@@ -178,6 +178,7 @@
   #btnCompass #compassN { position:absolute; top:3px; left:0; right:0; text-align:center; font-size:9px; font-weight:800; color:var(--acc); display:none; }
   #btnCompass.north #compassN { display:block; }
   .hz.tt { border-color:#9aa0a6 !important; }
+  .hz.pol { background:#1e5bd8 !important; box-shadow:0 0 0 3px rgba(30,91,216,.35), 0 2px 8px rgba(0,0,0,.5); }
   .hz { cursor:pointer; background:#111 !important; border-color:#fff !important; width:34px; height:34px; border-radius:50%; border:2px solid #fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.5); }
   .votes { display:flex; gap:8px; margin-top:10px; }
   .votes button { flex:1; font:inherit; font-size:14px; font-weight:600; padding:9px 10px; border-radius:10px; border:0; cursor:pointer; color:#fff; background:#2f3239; }
@@ -601,7 +602,7 @@
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px"><svg viewBox="0 0 64 64" width="56" height="56" aria-label="KapMap"><rect width="64" height="64" rx="16" fill="#e31937"/><path d="M32 12 L46 50 L32 42 L18 50 Z" fill="#fff"/></svg><h2>Ta Tesla mérite mieux qu'une simple carte</h2></div>
   <p class="lead">Zones de danger, trafic en direct, prix des péages et toutes les bornes de recharge, sur ton grand écran.</p>
   <span class="betaPill" id="wBeta" style="display:none"></span>
-  <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alerte sonore et compte à rebours avant chaque zone. Tu roules l'esprit tranquille.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h4M15 10v4"/></svg><p style="margin:0"><b>Prix des péages</b><span>Le vrai prix avant de partir, et le trajet sans péage en une touche.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons, accidents, travaux : ton heure d'arrivée réelle, recalculée en route.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Toutes les bornes de recharge</b><span>Superchargeurs Tesla et bornes publiques, ajoutés à ton trajet en une touche.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></svg><p style="margin:0"><b>Communauté</b><span>Signale en une touche, gagne des points et grimpe au classement.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M10 9l5 2-5 2z"/></svg><p style="margin:0"><b>Mode pause</b><span>Netflix, YouTube, quiz : la recharge passe toute seule.</span></p></div></div>
+  <div class="feat"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg><p style="margin:0"><b>Zones de danger</b><span>Alerte sonore et compte à rebours avant chaque zone. Tu roules l'esprit tranquille.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h4M15 10v4"/></svg><p style="margin:0"><b>Prix des péages</b><span>Le vrai prix avant de partir, et le trajet sans péage en une touche.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><p style="margin:0"><b>Trafic en direct</b><span>Bouchons, accidents, travaux : ton heure d'arrivée réelle, recalculée en route.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><p style="margin:0"><b>Toutes les bornes de recharge</b><span>Superchargeurs Tesla et bornes publiques, ajoutés à ton trajet en une touche.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/></svg><p style="margin:0"><b>Signalements en direct</b><span>Police, accidents, travaux : signalés par la communauté. Gagne des points en participant.</span></p></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M10 9l5 2-5 2z"/></svg><p style="margin:0"><b>Mode pause</b><span>Netflix, YouTube, quiz : la recharge passe toute seule.</span></p></div></div>
   <button class="btn pri" id="wRegister">Créer mon compte gratuit</button>
   <button class="btn sec" id="wLogin">J'ai déjà un compte</button>
   <button class="btn link" id="wSkip">Continuer sans compte</button>
@@ -1450,11 +1451,12 @@
   // ================= Signalements de dangers (tous pays) =================
   var API = 'https://test-gps-tesla1.matth0312.workers.dev';
   var HZ = {
-    accident: ['#111111', '!', 'Accident'], vehicule_arrete: ['#111111', 'V', 'Véhicule arrêté'], objet: ['#111111', 'O', 'Objet sur la route'],
+    accident: ['#111111', '!', 'Accident'], police: ['#1e5bd8', 'P', 'Police'], vehicule_arrete: ['#111111', 'V', 'Véhicule arrêté'], objet: ['#111111', 'O', 'Objet sur la route'],
     zone_danger: ['#e31937', '!', 'Zone de danger'], bouchon: ['#111111', 'B', 'Bouchon'], travaux: ['#111111', 'T', 'Travaux'], nid_de_poule: ['#111111', 'N', 'Nid de poule'], meteo: ['#111111', 'M', 'Météo dangereuse']
   };
   // Pictogrammes KapMap (dessins originaux, blancs sur pastille colorée)
   var HZ_SVG = {
+    police: '<path d="M4 9.5C4 7 7.6 5 12 5s8 2 8 4.5V11H4z" fill="#fff"/><path d="M3 11h18v2H3z" fill="#fff"/><circle cx="12" cy="8.2" r="1.3" fill="currentColor"/><path d="M6.5 14a5.5 5.5 0 0011 0" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>',
     accident: '<path d="M12 2l2.2 5.1 5.3-1.6-2.6 4.9 4.6 3-5.4 1.1.6 5.5-4.7-3-4.7 3 .6-5.5L2.5 13.4l4.6-3-2.6-4.9 5.3 1.6z" fill="#fff"/>',
     vehicule_arrete: '<path d="M5 15V11l2-4h10l2 4v4M4 15h16v3H4z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="18" r="1.6" fill="#fff"/><circle cx="16.5" cy="18" r="1.6" fill="#fff"/><path d="M12 3v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
     objet: '<path d="M4 9l8-4 8 4-8 4z" fill="#fff"/><path d="M4 9v7l8 4 8-4V9" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>',
@@ -1491,8 +1493,9 @@
     allHazards().forEach(function (h) {
       var def = HZ[h.type]; if (!def) return;
       if (h.type === 'zone_danger') return;   // dessinée en cercle flou, voir drawCommunityZones
+      if (h.type === 'police' && !allowedCache) return;   // France uniquement
       var d = document.createElement('div');
-      d.className = h.tt ? 'hz tt' : 'hz'; d.style.background = def[0]; d.innerHTML = hzIcon(h.type, def[0]);
+      d.className = (h.tt ? 'hz tt' : 'hz') + (h.type === 'police' ? ' pol' : ''); d.style.background = def[0]; d.innerHTML = hzIcon(h.type, def[0]);
       d.style.display = $('lyHz').checked ? '' : 'none';
       d.onclick = function (ev) {
         ev.stopPropagation();
@@ -1544,7 +1547,7 @@
     $('sheetGrid').appendChild(b);
   });
   function updateSheet() {
-    [].forEach.call($('sheetGrid').children, function (b) { if (b.getAttribute('data-t') === 'zone_danger') b.style.display = allowedCache ? '' : 'none'; });
+    [].forEach.call($('sheetGrid').children, function (b) { var t = b.getAttribute('data-t'); if (t === 'zone_danger' || t === 'police') b.style.display = allowedCache ? '' : 'none'; });
   }
   $('btnReport').onclick = function () { updateSheet(); $('sheet').classList.toggle('show'); };
   $('sheetCancel').onclick = function () { $('sheet').classList.remove('show'); };
@@ -1561,7 +1564,7 @@
     var best = null;
     allHazards().forEach(function (h) {
       if (!HZ[h.type]) return;
-      if (h.type === 'zone_danger' && !allowedCache) return;
+      if ((h.type === 'zone_danger' || h.type === 'police') && !allowedCache) return;
       var d = dist(lat, lon, h.lat, h.lon);
       if (d < 1500 && d > 15 && angleDiff(heading, bearing(lat, lon, h.lat, h.lon)) < 30 && (!best || d < best.d)) best = { h: h, d: d };
     });
@@ -1569,7 +1572,9 @@
   }
   var lastHzAlertId = null;
   function showHazard(hz) {
-    if (lastHzAlertId !== hz.h.id) { lastHzAlertId = hz.h.id; beep(1); setTimeout(function () { speak(HZ[hz.h.type][2] + ' signalé à ' + formatDist(hz.d)); }, 500); }
+    var isPol = hz.h.type === 'police';
+    if (lastHzAlertId !== hz.h.id) { lastHzAlertId = hz.h.id; beep(1); setTimeout(function () { speak((isPol ? 'Police signalée' : HZ[hz.h.type][2] + ' signalé') + ' à ' + formatDist(hz.d)); }, 500); }
+    if (isPol) { setAlert('hazard', 'Police signalée', 'À ' + (hz.d >= 1000 ? (hz.d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(hz.d / 10) * 10 + ' m') + ' devant toi · signalée par la communauté'); return; }
     if (hz.h.type === 'zone_danger') { setAlert('danger', 'Zone de danger signalée', 'Signalée par la communauté · ralentis et reste vigilant'); return; }
     setAlert('hazard', HZ[hz.h.type][2] + ' signalé', 'À ' + (hz.d >= 1000 ? (hz.d / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(hz.d / 10) * 10 + ' m') + ' devant toi');
   }
@@ -2481,7 +2486,7 @@
 
   // ================= Commande vocale =================
   var Rec = window.SpeechRecognition || window.webkitSpeechRecognition, rec = null;
-  var HZ_WORDS = { accident: 'accident', bouchon: 'bouchon', travaux: 'travaux', 'nid de poule': 'nid_de_poule', 'nid-de-poule': 'nid_de_poule', objet: 'objet', 'véhicule': 'vehicule_arrete', 'voiture arrêtée': 'vehicule_arrete', 'météo': 'meteo', verglas: 'meteo', brouillard: 'meteo' };
+  var HZ_WORDS = { police: 'police', gendarmerie: 'police', accident: 'accident', bouchon: 'bouchon', travaux: 'travaux', 'nid de poule': 'nid_de_poule', 'nid-de-poule': 'nid_de_poule', objet: 'objet', 'véhicule': 'vehicule_arrete', 'voiture arrêtée': 'vehicule_arrete', 'météo': 'meteo', verglas: 'meteo', brouillard: 'meteo' };
   function handleVoice(raw) {
     var t = raw.toLowerCase().trim(); toast('« ' + raw + ' »');
     if (/(arr[eê]te|stop|annule).*(navigation|guidage|itin[ée]raire)|^stop$/.test(t)) { if (nav) stopNav(false); return; }
@@ -2519,7 +2524,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794524214';
+  var BUILD = '1794525017';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2979,7 +2984,7 @@
 
     if (demo) allowedCache = true;
     else if (dataReady && now - lastBorderCheck > 3000) { allowedCache = alertsAllowed(lat, lon); lastBorderCheck = now; }
-    if (zonesAllowedNow !== allowedCache) { zonesAllowedNow = allowedCache; refreshZonesLayer(); drawCommunityZones(); updateSheet(); }
+    if (zonesAllowedNow !== allowedCache) { zonesAllowedNow = allowedCache; refreshZonesLayer(); drawCommunityZones(); updateSheet(); drawHazards(Date.now()); }
 
     if (!demo) loadHazards(lat, lon, false);
     if (nav) renderNav(lat, lon);

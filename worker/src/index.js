@@ -1,6 +1,7 @@
 // Vigie — API des signalements de dangers réels sur la route (Vigie).
-// Pas de texte libre et aucune catégorie « police » ou « contrôle » :
-// seuls des dangers matériels peuvent être signalés.
+// Pas de texte libre. La catégorie « police » (présence signalée par les conducteurs, France uniquement)
+// respecte l'article L130-11 du Code de la route : POLICE_ENABLED = '0' la coupe partout, et la table
+// police_block masque les signalements dans une zone et pour une durée données (suspension préfectorale).
 
 const TYPES = {
   accident: 60,          // durée de vie en minutes
@@ -10,6 +11,7 @@ const TYPES = {
   travaux: 24 * 60,
   nid_de_poule: 7 * 24 * 60,
   meteo: 6 * 60,
+  police: 60,            // France uniquement, masquable par zone (voir police_block)
   zone_danger: 60,       // France uniquement (affiché comme « zone de danger », sans précision)
 };
 const MAX_RADIUS_KM = 50;
@@ -224,7 +226,18 @@ export default {
           'SELECT id, lat, lon, type, created_at, expires_at, ok_votes, gone_votes FROM reports ' +
           'WHERE expires_at > ?1 AND lat BETWEEN ?2 AND ?3 AND lon BETWEEN ?4 AND ?5 ORDER BY created_at DESC LIMIT 300'
         ).bind(now, lat - dLat, lat + dLat, lon - dLon, lon + dLon).all();
-        return json({ now, reports: results });
+        let reports = results;
+        if (reports.some(x => x.type === 'police')) {
+          let blocks = [];
+          if (env.POLICE_ENABLED !== '0') {
+            try {
+              await env.DB.prepare('CREATE TABLE IF NOT EXISTS police_block (id INTEGER PRIMARY KEY AUTOINCREMENT, lat REAL, lon REAL, radius_m INTEGER, until INTEGER, note TEXT)').run();
+              blocks = (await env.DB.prepare('SELECT lat, lon, radius_m FROM police_block WHERE until > ?1').bind(now).all()).results || [];
+            } catch (e) {}
+          }
+          reports = reports.filter(x => x.type !== 'police' || (env.POLICE_ENABLED !== '0' && !blocks.some(b => hav([b.lon, b.lat], [x.lon, x.lat]) < b.radius_m)));
+        }
+        return json({ now, reports });
       }
 
       // Nouveau signalement
@@ -232,6 +245,7 @@ export default {
         const body = await request.json().catch(() => ({}));
         const lat = Number(body.lat), lon = Number(body.lon), type = String(body.type || '');
         if (!validCoord(lat, lon) || !TYPES[type]) return json({ error: 'Signalement invalide' }, 400);
+        if (type === 'police' && env.POLICE_ENABLED === '0') return json({ error: 'Signalement indisponible pour le moment' }, 403);
         const who = await ipHash(request);
         const recent = await env.DB.prepare(
           'SELECT COUNT(*) AS n, MAX(created_at) AS lastAt FROM reports WHERE ip_hash = ?1 AND created_at > ?2'
