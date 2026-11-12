@@ -2024,7 +2024,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794443884';
+  var BUILD = '1794443893';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2331,7 +2331,7 @@
   // ================= Son =================
   var soundOn = true, actx = null;
   try { soundOn = localStorage.getItem('vigie-sound') !== '0'; } catch (e) {}
-  setTimeout(function () { $('btnSound').classList.toggle('on', soundOn); }, 0);
+  setTimeout(function () { $('btnSound').classList.toggle('on', soundOn); $('waves').style.display = soundOn ? '' : 'none'; }, 0);
   function unlockAudio() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { actx = null; } }
   function beep(times) {
     if (!soundOn || !actx) return;
