@@ -1996,7 +1996,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794442896';
+  var BUILD = '1794443199';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2362,6 +2362,11 @@
     else if (now - last.t > 5000) { last.t = now; }
 
     var speed = (gpsSpeed !== null && !isNaN(gpsSpeed)) ? gpsSpeed * 3.6 : calcSpeed;
+    // À l'arrêt, le GPS « tremble » de quelques mètres : on affiche 0 tant que ça ne ressemble pas à un vrai déplacement
+    if (speed !== null) {
+      if ((gpsSpeed === null || isNaN(gpsSpeed)) && moved < Math.max(accuracy || 0, MIN_MOVE_M)) speed = 0;
+      if (speed < 4 || (accuracy > 30 && speed < 8)) speed = 0;
+    }
     $('speed').textContent = speed === null ? '–' : Math.round(speed);
     if (speed !== null) lastSpeed = speed;
 
