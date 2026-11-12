@@ -795,9 +795,9 @@
     var h = map.getContainer().clientHeight;
     var kmh = lastSpeed || 0;
     // Zoom dynamique : vue large quand on roule, on se rapproche à l'approche d'un tournant, d'une sortie ou de l'arrivée
-    var z = kmh > 110 ? 14.7 : kmh > 80 ? 15.2 : kmh > 50 ? 15.8 : kmh > 20 ? 16.3 : 16.8;
+    var z = kmh > 110 ? 13.6 : kmh > 80 ? 14.2 : kmh > 50 ? 14.8 : kmh > 20 ? 15.4 : 16.2;
     if (nav && typeof nav.dNext === 'number') {
-      var dn = nav.dNext, zt = dn < 120 ? 17.4 : dn < 300 ? 17 : dn < 600 ? 16.5 : dn < 1000 ? 16 : 0;
+      var dn = nav.dNext, zt = dn < 120 ? 17.2 : dn < 300 ? 16.6 : dn < 600 ? 16 : dn < 1000 ? 15.3 : 0;
       if (zt > z) z = zt;
     }
     // changement progressif : jamais plus de 0,25 niveau de zoom d'un coup (pas d'effet yo-yo)
@@ -2195,7 +2195,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794474905';
+  var BUILD = '1794475107';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
