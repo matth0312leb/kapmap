@@ -153,7 +153,8 @@ async function ttFetch(env, kind, u, opts) {
 }
 
 // ----- Parrainage -----
-// Filleul : 7 jours de Premium offerts, comptés à partir de la fin de la bêta s'il s'inscrit pendant la bêta.
+// Essai : après la bêta, chaque nouveau compte a 48 h de Premium, une seule fois par appareil (identifiant d'appareil
+// gardé par le navigateur) : recréer un compte sur la même voiture ne redonne pas d'essai.
 // Parrain : 1 mois offert pour chaque filleul qui paie pour la première fois (quelle que soit la formule), sans limite de filleuls.
 const BETA_END = Date.parse('2027-01-01T00:00:00+01:00');
 const DAY = 86400000;
@@ -234,7 +235,17 @@ export default {
           const godfather = await env.DB.prepare('SELECT id FROM users WHERE pseudo = ?1').bind(inv).first();
           if (godfather) {
             await env.DB.prepare('UPDATE users SET referred_by = ?2 WHERE id = ?1').bind(id, godfather.id).run();
-            await giveGift(env, id, 7, 'essai');
+          }
+        }
+        // Essai de 48 h (après la bêta), une fois par appareil
+        if (now >= BETA_END) {
+          const dev = String(b.device || '').replace(/[^a-f0-9]/g, '').slice(0, 40);
+          await ensureBilling(env);
+          await env.DB.prepare('CREATE TABLE IF NOT EXISTS trial_devices (device TEXT PRIMARY KEY, user_id INTEGER, at INTEGER)').run();
+          const used = dev.length >= 16 ? await env.DB.prepare('SELECT 1 FROM trial_devices WHERE device = ?1').bind(dev).first() : true;
+          if (!used) {
+            await env.DB.prepare('INSERT INTO trial_devices (device, user_id, at) VALUES (?1, ?2, ?3)').bind(dev, id, now).run();
+            await env.DB.prepare('UPDATE users SET gift_until = ?2, gift_kind = ?3 WHERE id = ?1').bind(id, now + 2 * DAY, 'essai').run();
           }
         }
         const token = await newSession(env, id);

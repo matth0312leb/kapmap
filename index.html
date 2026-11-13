@@ -2199,7 +2199,7 @@
       var u = inviteUrl();
       $('invQr').innerHTML = qrSvg(u);
       $('invLink').textContent = u.replace(/^https?:\/\//, '');
-      $('invLead').textContent = me ? 'Ton ami reçoit 7 jours de Premium offerts. Chaque ami qui s\'abonne te fait gagner 1 mois de Premium offert.' : 'Fais-leur scanner ce code ou envoie-leur le lien. Crée ton compte pour que tes invitations te rapportent du Premium offert.';
+      $('invLead').textContent = me ? 'Ton ami peut tester Premium 48 h. Chaque ami qui s\'abonne te fait gagner 1 mois de Premium offert.' : 'Fais-leur scanner ce code ou envoie-leur le lien. Crée ton compte pour que tes invitations te rapportent du Premium offert.';
       $('invShare').style.display = navigator.share ? '' : 'none';
       $('inviteBox').classList.add('show');
     };
@@ -2317,7 +2317,7 @@
     $('wBeta').textContent = 'Gratuit jusqu\'au ' + BETA.label; $('wBeta').style.display = 'inline-block';
     $('prBeta').innerHTML = '<b>Gratuit jusqu\'au ' + BETA.label + '</b> · Membres de la bêta : à vie à ' + BETA.founderLife;
     $('prBeta').style.display = 'block';
-  }
+  } else { $('prBeta').innerHTML = '<b>Nouveau compte : 48 h d\'essai gratuit</b> · sans carte bancaire'; $('prBeta').style.display = 'block'; }
   // Tarifs et liens de paiement Stripe (Payment Links). Mensuel et annuel : abonnements récurrents ; à vie : paiement unique.
   // Prix à vie : 99 €. Offres ponctuelles possibles (lancement, Black Friday…) via `promo`, et 49 € pour les Fondateurs.
   // Prix barré (strike: true) seulement si 99 € a réellement été pratiqué dans les 30 jours avant l'offre (règle française des prix barrés).
@@ -2690,7 +2690,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794591359';
+  var BUILD = '1794591759';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2754,7 +2754,7 @@
       var fmtD = function (t) { return new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
       var sub = (function () {
         var names = { month: 'Premium mensuel', year: 'Premium annuel', life: 'Premium à vie' };
-        if (!hasPaid() && hasGift() && !isBeta) return { cls: 'on', t: me.giftKind === 'parrainage' ? 'Premium offert' : 'Essai Premium',
+        if (!hasPaid() && hasGift() && !isBeta) return { cls: 'on', t: me.giftKind === 'parrainage' ? 'Premium offert' : 'Essai gratuit de 48 h',
           d: (me.giftKind === 'parrainage' ? 'Offert grâce à ton filleul, jusqu\'au ' : 'Offert jusqu\'au ') + fmtD(me.giftUntil) + '.', btn: '<button class="btn sec" id="aSubGo">Voir les offres</button>' };
         if (hasPaid()) {
           if (me.plan === 'life') return { cls: 'on', t: names.life, d: 'Accès illimité, pour toujours.', btn: '' };
@@ -2770,7 +2770,7 @@
         '<span class="pBadge">' + esc(lv0.name) + '</span>' + (isFounder() ? '<span class="pBadge fd">Fondateur</span>' : '') + '</div></div>' +
         '<div class="pSub ' + sub.cls + '"><div class="pSubT"><span>Mon abonnement</span><b>' + sub.t + '</b></div><p>' + sub.d + '</p>' + sub.btn + '</div>' +
         '<div class="pStats"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b id="pWeekRank">–</b><span>rang semaine</span></div><div><b id="pWeekPts">–</b><span>pts semaine</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div></div>' +
-        '<div class="pInv"><div><b>Inviter un ami</b><span>' + (me.invites ? me.invites + (me.invites > 1 ? ' amis inscrits' : ' ami inscrit') + ' grâce à toi' : '7 jours offerts pour ton ami, 1 mois pour toi s\'il s\'abonne') + '</span></div><button id="aInvite">Inviter</button></div>' +
+        '<div class="pInv"><div><b>Inviter un ami</b><span>' + (me.invites ? me.invites + (me.invites > 1 ? ' amis inscrits' : ' ami inscrit') + ' grâce à toi' : '1 mois offert pour chaque ami qui s\'abonne') + '</span></div><button id="aInvite">Inviter</button></div>' +
         (function () { var lv = lv0;
           return '<div class="pLvl"><span><b>' + lv.name + '</b>' + (lv.next ? ' · encore ' + lv.toNext + ' points pour « ' + lv.next + ' »' : '') + '</span><span>Membre depuis ' + since.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) + '</span></div>' +
             '<div class="pBar"><i style="width:' + lv.pct + '%"></i></div>' +
@@ -2864,7 +2864,7 @@
         if (!/^\d{4,6}$/.test(pin)) { err.textContent = 'Le code doit faire 4 à 6 chiffres'; return; }
         if (reg && pin !== $('fPin2').value) { err.textContent = 'Les deux codes ne sont pas identiques'; return; }
         var btn = this; btn.disabled = true; btn.textContent = '…';
-        apiJSON('POST', reg ? '/auth/register' : '/auth/login', reg ? { pseudo: pseudo, name: $('fName').value.trim(), pin: pin, invite: (function () { try { return localStorage.getItem('vigie-invite') || ''; } catch (e) { return ''; } })() } : { pseudo: pseudo, pin: pin })
+        apiJSON('POST', reg ? '/auth/register' : '/auth/login', reg ? { pseudo: pseudo, name: $('fName').value.trim(), pin: pin, device: deviceId(), invite: (function () { try { return localStorage.getItem('vigie-invite') || ''; } catch (e) { return ''; } })() } : { pseudo: pseudo, pin: pin })
           .then(function (d) {
             setSession(d.token, d.user); closeAccount(); showWelcome(false);
             try { localStorage.setItem('vigie-welcomed', '1'); } catch (e) {}
@@ -2931,10 +2931,18 @@
   // après l'écran de bienvenue / connexion : demander la position
   var _showWelcome = showWelcome;
   showWelcome = function (on) { _showWelcome(on); if (!on) hasLocPermission(function (ok) { if (!ok) showLocGate(); }); };
+  // Identifiant d'appareil (aléatoire, gardé par le navigateur) : un seul essai gratuit par voiture ou téléphone
+  function deviceId() {
+    try {
+      var d = localStorage.getItem('vigie-dev');
+      if (!d) { var a = new Uint8Array(16); crypto.getRandomValues(a); d = Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); localStorage.setItem('vigie-dev', d); }
+      return d;
+    } catch (e) { return ''; }
+  }
   // Lien d'invitation : ?invite=<pseudo du parrain>, gardé jusqu'à l'inscription
   (function () { var inv = (location.search.match(/[?&]invite=([A-Za-z0-9_.-]{3,20})/) || [])[1];
     try { if (inv) localStorage.setItem('vigie-invite', inv); inv = inv || localStorage.getItem('vigie-invite'); } catch (e) {}
-    if (inv && !me) { $('wInv').textContent = 'Invité par ' + inv + ' · 7 jours Premium offerts'; $('wInv').style.display = 'inline-block'; } })();
+    if (inv && !me) { $('wInv').textContent = 'Invité par ' + inv; $('wInv').style.display = 'inline-block'; } })();
   // Aperçu direct d'un écran : ?show=welcome ou ?show=premium
   (function () { var sh = (location.search.match(/[?&]show=(\w+)/) || [])[1];
     if (sh === 'welcome') setTimeout(function () { _showWelcome(true); }, 600);
