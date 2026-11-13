@@ -255,9 +255,12 @@ export default {
         if (env.DISCORD_WEBHOOK) {
           try {
             const total = await env.DB.prepare('SELECT COUNT(*) AS n FROM users').first();
-            await fetch(env.DISCORD_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            const dr = await fetch(env.DISCORD_WEBHOOK.trim(), { method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ content: 'Nouveau compte KapMap : **' + pseudo + '**' + (inv ? ' (invité par ' + inv + ')' : '') + ' · ' + (total ? total.n : '?') + ' comptes au total' }) });
-          } catch (e) {}
+            await env.DB.prepare("INSERT OR REPLACE INTO kv_state (k, v) VALUES ('discord_last_status', ?1)").bind(dr.status).run();
+          } catch (e) { try { await env.DB.prepare("INSERT OR REPLACE INTO kv_state (k, v) VALUES ('discord_last_status', -1)").run(); } catch (e2) {} }
+        } else {
+          try { await env.DB.prepare("INSERT OR REPLACE INTO kv_state (k, v) VALUES ('discord_last_status', 0)").run(); } catch (e) {}
         }
         return json({ token, user: publicUser(u) });
       }
