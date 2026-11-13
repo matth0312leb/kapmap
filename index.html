@@ -2079,6 +2079,8 @@
   var routePrefs = { tolls: false, motorways: false };
   try { routePrefs = Object.assign(routePrefs, JSON.parse(localStorage.getItem('vigie-route') || '{}')); } catch (e) {}
   function avoidParam() { var a = []; if (routePrefs.tolls) a.push('tollRoads'); if (routePrefs.motorways) a.push('motorways'); return a.join(','); }
+  // En roulant : on garde le choix fait au départ. Trajet sans péage choisi → les recalculs et les « plus rapide » restent sans péage.
+  function navAvoid() { var a = avoidParam(); if (nav && nav.srcRoute && !nav.toll && a.indexOf('tollRoads') < 0) a = a ? a + ',tollRoads' : 'tollRoads'; return a; }
   // Itinéraires TomTom : guidage en français, trafic, limitations, voies ; repli sur OSRM
   // Étapes : via = un point ou une liste (max 5) ; when = { mode: 'depart'|'arrive', at: Date } pour partir plus tard / arriver à l'heure
   function isoLocal(d) {
@@ -2517,7 +2519,7 @@
     var rem = remainingSecs(), from = { lat: last.lat, lon: last.lon };
     list.forEach(function (x, k) {
       var via = { lat: x.it[0], lon: x.it[1] };
-      fetchRoutes(from, nav.dest, 0, undefined, navVias(nav.stops, via, from)).then(function (l) {
+      fetchRoutes(from, nav.dest, 0, navAvoid(), navVias(nav.stops, via, from)).then(function (l) {
         var add = Math.max(0, Math.round(((l[0].travel || l[0].duration) - rem) / 60));
         x.route = l[0]; var e = $('det' + k); if (e) e.textContent = add <= 1 ? 'sans détour' : '+' + add + ' min';
       }).catch(function () { var e = $('det' + k); if (e) e.textContent = ''; });
@@ -2540,7 +2542,7 @@
   function applyNav(stops, sc, route, msg) {
     if (!nav || !last) return;
     var dest = nav.dest, keep0 = nav.eta0, here = { lat: last.lat, lon: last.lon };
-    (route ? Promise.resolve(route) : fetchRoutes(here, dest, 0, undefined, navVias(stops, sc, here)).then(function (l) { return l[0]; })).then(function (rt) {
+    (route ? Promise.resolve(route) : fetchRoutes(here, dest, 0, navAvoid(), navVias(stops, sc, here)).then(function (l) { return l[0]; })).then(function (rt) {
       if (!nav) return;
       var n = prepareRoute(rt); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); n.via = sc; n.stops = stops || []; n.eta0 = keep0;
       nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic();
@@ -2631,7 +2633,7 @@
     pts.push(c[c.length - 1]);
     var navRef = nav;
     fetch(API + '/better-route', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pts: pts, avoid: avoidParam(), heading: heading !== null && (lastSpeed || 0) > 8 ? Math.round(heading) : null }) })
+      body: JSON.stringify({ pts: pts, avoid: navAvoid(), heading: heading !== null && (lastSpeed || 0) > 8 ? Math.round(heading) : null }) })
       .then(function (r) { return r.json(); }).then(function (d) {
         if (nav !== navRef || !d || !d.better || !d.current) return;
         var gain = d.current - d.better.travel; if (gain < 180) return;
@@ -2982,7 +2984,7 @@
       try { ['route-line', 'route-casing', 'route-glow'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 0.25); }); } catch (e) {}
       var dest = nav.dest, navRef = nav;
       var keepVia = nav.via, keep0 = nav.eta0, keepStops = nav.stops || [];
-      fetchRoutes({ lat: lat, lon: lon }, dest, 0, undefined, navVias(keepStops, keepVia, { lat: lat, lon: lon })).then(function (l) { return l[0]; }).then(function (route) {
+      fetchRoutes({ lat: lat, lon: lon }, dest, 0, navAvoid(), navVias(keepStops, keepVia, { lat: lat, lon: lon })).then(function (l) { return l[0]; }).then(function (route) {
         try { ['route-line', 'route-casing', 'route-glow'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', id === 'route-glow' ? (theme === 'light' ? 0.12 : 0.22) : 1); }); } catch (e) {}
         if (!nav || nav !== navRef) return; var n = prepareRoute(route); n.dest = dest; n.via = keepVia; n.stops = keepStops; n.eta0 = keep0; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
       }).catch(function () { try { ['route-line', 'route-casing'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 1); }); } catch (e) {}
@@ -3055,7 +3057,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794611133';
+  var BUILD = '1794611353';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
