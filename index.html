@@ -609,7 +609,8 @@
   <div class="lyHead">Sur la carte</div>
   <label class="sw2">Zones de danger<input type="checkbox" id="lyZones" checked></label>
   <label class="sw2">Signalements<input type="checkbox" id="lyHz" checked></label>
-  <div class="sw2 lyFixed">Trafic en temps réel<small style="color:var(--mut);font-size:12px;margin-left:6px">sur ton trajet</small><span class="onPill">Toujours actif</span><input type="checkbox" id="lyTraffic" checked hidden></div>
+  <div class="sw2 lyFixed">Trafic en temps réel<small style="color:var(--mut);font-size:12px;margin-left:6px">sur ton trajet</small><span class="onPill">Toujours actif</span></div>
+  <label class="sw2">Trafic sur les routes autour<input type="checkbox" id="lyTraffic"></label>
   <label class="sw2">Restaurants, cafés, toilettes<input type="checkbox" id="lyPoi"></label>
 
   <div class="lyHead">Bornes de recharge</div>
@@ -1214,11 +1215,10 @@
 
   // ================= Trafic en direct (TomTom) =================
   // Les tuiles passent par notre serveur, qui garde la clé TomTom secrète
-  // Trafic en temps réel affiché uniquement sur le trajet (calque route-traffic) : plus de trafic sur toutes les routes,
-  // ce qui allège la carte et le quota TomTom
+  // Trafic sur toutes les routes : facultatif (le trafic sur le trajet, lui, est toujours affiché). Les tuiles ne sont
+  // téléchargées que si l'option est cochée, pour ménager le quota TomTom.
   function addTrafficLayer() {
-    return;
-    if (map.getSource('traffic')) return;
+    if (!$('lyTraffic').checked || map.getSource('traffic')) return;
     map.addSource('traffic', { type: 'vector', tiles: [API + '/trafficv/{z}/{x}/{y}.pbf'], minzoom: 6, maxzoom: 18, attribution: '&copy; TomTom' });
     // Seuls les ralentissements sont dessinés : rouge plein = bouchon, rouge léger = ralenti
     map.addLayer({ id: 'traffic', type: 'line', source: 'traffic', 'source-layer': 'Traffic flow', minzoom: 8,
@@ -1232,7 +1232,7 @@
       } }, aboveRoadsId());
     setVis(['traffic'], $('lyTraffic').checked);
   }
-  // Trafic en temps réel : toujours affiché, sur toutes les routes
+  $('lyTraffic').onchange = function () { if (this.checked) whenReady(addTrafficLayer); setVis(['traffic'], this.checked); };
 
   // ================= Calques =================
   var zonesBuilt = false, zonesAllowedNow = false;
@@ -2170,7 +2170,7 @@
   })();
   // Les choix « Afficher » sont mémorisés : on les retrouve à la prochaine ouverture
   (function () {
-    var KEEP = ['lyZones', 'lyHz', 'lyPoi'], saved = {};
+    var KEEP = ['lyZones', 'lyHz', 'lyTraffic', 'lyPoi'], saved = {};
     try { saved = JSON.parse(localStorage.getItem('vigie-show') || '{}') || {}; } catch (e) {}
     function save() { var o = {}; KEEP.forEach(function (id) { o[id] = $(id).checked; }); try { localStorage.setItem('vigie-show', JSON.stringify(o)); } catch (e) {} }
     KEEP.forEach(function (id) { $(id).addEventListener('change', save); });
@@ -2690,7 +2690,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794591759';
+  var BUILD = '1794591956';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
