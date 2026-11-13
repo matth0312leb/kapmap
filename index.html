@@ -424,6 +424,8 @@
   @keyframes spl { from { left:-40%; } to { left:100%; } }
   #layers .lyRow { display:flex; align-items:center; justify-content:space-between; width:100%; font:inherit; font-size:15px; text-align:left; color:var(--txt); background:transparent; border:0; padding:12px 2px; cursor:pointer; }
   #layers .lyRow i { font-style:normal; color:var(--red); font-size:22px; line-height:1; }
+  #layers div.lyFixed { display:flex; align-items:center; gap:12px; padding:9px 2px; font-size:15px; border-bottom:1px solid var(--line); cursor:default; }
+  .onPill { margin-left:auto; font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:999px; color:#3ecf7a; background:rgba(62,207,122,.12); border:1px solid rgba(62,207,122,.35); }
   #layers .lyTabs { flex:1; margin-right:10px; gap:0; padding:3px; border-radius:12px; background:rgba(127,127,127,.14); border:1px solid var(--line); }
   #layers .lyTabs button { flex:1; font:inherit; font-size:14px; font-weight:600; padding:7px 8px; border:0; border-radius:9px; background:transparent; color:var(--mut); cursor:pointer; transition:background .15s, color .15s; }
   #layers .lyTabs button.sel { background:linear-gradient(180deg,#ef2a47,#c8102e); color:#fff; box-shadow:0 4px 14px rgba(227,25,55,.35); }
@@ -591,7 +593,7 @@
   <div class="lyHead">Sur la carte</div>
   <label class="sw2">Zones de danger<input type="checkbox" id="lyZones" checked></label>
   <label class="sw2">Signalements<input type="checkbox" id="lyHz" checked></label>
-  <label class="sw2">Trafic sur toutes les routes <small id="trafficNote"></small><input type="checkbox" id="lyTraffic"></label>
+  <div class="sw2 lyFixed">Trafic en temps réel<span class="onPill">Toujours actif</span><input type="checkbox" id="lyTraffic" checked hidden></div>
   <label class="sw2">Restaurants, cafés, toilettes<input type="checkbox" id="lyPoi"></label>
 
   <div class="lyHead">Bornes de recharge</div>
@@ -1185,8 +1187,7 @@
       } }, aboveRoadsId());
     setVis(['traffic'], $('lyTraffic').checked);
   }
-  setTimeout(function () { fetch(API + '/').then(function (r) { return r.json(); }).then(function (d) { $('trafficNote').textContent = d.traffic ? '' : 'bientôt'; }).catch(function () {}); }, 0);
-  $('lyTraffic').onchange = function () { setVis(['traffic'], this.checked); };
+  // Trafic en temps réel : toujours affiché, sur toutes les routes
 
   // ================= Calques =================
   var zonesBuilt = false, zonesAllowedNow = false;
@@ -2120,7 +2121,7 @@
   })();
   // Les choix « Afficher » sont mémorisés : on les retrouve à la prochaine ouverture
   (function () {
-    var KEEP = ['lyZones', 'lyHz', 'lyTraffic', 'lyPoi'], saved = {};
+    var KEEP = ['lyZones', 'lyHz', 'lyPoi'], saved = {};
     try { saved = JSON.parse(localStorage.getItem('vigie-show') || '{}') || {}; } catch (e) {}
     function save() { var o = {}; KEEP.forEach(function (id) { o[id] = $(id).checked; }); try { localStorage.setItem('vigie-show', JSON.stringify(o)); } catch (e) {} }
     KEEP.forEach(function (id) { $(id).addEventListener('change', save); });
@@ -2606,7 +2607,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794554486';
+  var BUILD = '1794554525';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
