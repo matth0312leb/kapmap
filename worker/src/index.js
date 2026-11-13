@@ -375,6 +375,18 @@ export default {
         return json({ ok: true });
       }
 
+      // Mes amis : mon parrain et mes filleuls (pseudo, voiture, points, signalements, ancienneté)
+      if (request.method === 'GET' && url.pathname === '/me/friends') {
+        const u = await currentUser(request, env);
+        if (!u) return json({ error: 'Non connecté' }, 401);
+        await ensureBilling(env);
+        const cols = 'id, pseudo, car, points, reports_count, created_at, ref_reward_used';
+        const kids = (await env.DB.prepare('SELECT ' + cols + ' FROM users WHERE referred_by = ?1 ORDER BY created_at DESC LIMIT 100').bind(u.id).all()).results || [];
+        const dad = u.referred_by ? await env.DB.prepare('SELECT ' + cols + ' FROM users WHERE id = ?1').bind(u.referred_by).first() : null;
+        const pub = x => ({ pseudo: x.pseudo, car: x.car ? JSON.parse(x.car) : null, points: x.points || 0, reports: x.reports_count || 0, since: x.created_at, rewarded: !!x.ref_reward_used });
+        return json({ parrain: dad ? pub(dad) : null, filleuls: kids.map(pub) });
+      }
+
       // Administration : liste des membres, réservée au compte de l'éditeur (ADMIN_ID, par défaut le compte n°1)
       if (request.method === 'GET' && url.pathname === '/admin/users') {
         const u = await currentUser(request, env);

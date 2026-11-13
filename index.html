@@ -518,6 +518,13 @@
   .pInv { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; margin-top:12px; border-radius:14px; border:1px solid var(--line); background:rgba(127,127,127,.06); font-size:14px; }
   .pInv b { font-size:15px; } .pInv span { color:var(--mut); font-size:12.5px; display:block; margin-top:2px; }
   .pInv button { flex:none; font:inherit; font-size:13px; font-weight:700; padding:8px 14px; border-radius:999px; border:0; background:linear-gradient(180deg,#ef2a47,#c8102e); color:#fff; cursor:pointer; }
+  #frList { max-height:52vh; overflow:auto; margin:4px 0 12px; }
+  .frRow { cursor:pointer; } .frGo { margin-left:auto; font-style:normal; font-size:22px; color:var(--mut); }
+  .frTag { font-style:normal; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px; margin-left:6px; background:rgba(227,25,55,.14); color:#ff5a72; vertical-align:2px; }
+  .frCard { text-align:center; } .frCarBig { display:flex; justify-content:center; margin:4px 0 6px; }
+  .frCarName { font-size:14px; color:var(--mut); margin-bottom:8px; }
+  .frCard .pStats { grid-template-columns:repeat(3,1fr); margin-top:12px; }
+  .pInv button.ghost { background:rgba(127,127,127,.16); color:var(--txt); margin-right:6px; }
   #admList { max-height:52vh; overflow:auto; margin:4px 0 12px; }
   .admRow { display:flex; gap:12px; align-items:center; padding:10px 2px; border-bottom:1px solid var(--line); }
   .admCar { width:40px; flex:none; display:flex; justify-content:center; }
@@ -757,6 +764,14 @@
   <div class="field"><input id="fbMail" type="email" maxlength="120" placeholder="Ton e-mail pour la réponse (facultatif)" autocomplete="email" enterkeyhint="send"></div>
   <button class="btn pri" id="fbSend">Envoyer</button>
   <button class="btn sec" id="fbClose">Annuler</button>
+</div></div>
+
+<div id="friendsBox" class="overlay"><div class="card">
+  <h2 id="frTitle">Mes amis</h2>
+  <p class="lead" id="frSum">Chargement…</p>
+  <div id="frList"></div>
+  <button class="btn pri" id="frInvite">Inviter un ami</button>
+  <button class="btn sec" id="frClose">Fermer</button>
 </div></div>
 
 <div id="adminBox" class="overlay"><div class="card">
@@ -2296,6 +2311,42 @@
     [].forEach.call(document.querySelectorAll('#fbKind button'), function (b) {
       b.onclick = function () { kind = b.getAttribute('data-k'); [].forEach.call(document.querySelectorAll('#fbKind button'), function (x) { x.classList.toggle('sel', x === b); }); };
     });
+    // ---- Mes amis : parrain et filleuls, avec une fiche profil pour chacun ----
+    var frData = null;
+    function friendRow(f, tag, i) {
+      return '<div class="admRow frRow" data-i="' + i + '"><div class="admCar">' + carSvg(f.car || { model: '3', color: '#f2f2f2' }, 40) + '</div><div class="admTxt"><b>' + esc(f.pseudo) + (tag ? ' <em class="frTag">' + tag + '</em>' : '') + '</b>' +
+        '<span>' + levelOf(f.points).name + ' · ' + f.points + ' pts · ' + f.reports + ' signalement' + (f.reports > 1 ? 's' : '') + '</span></div><i class="frGo">›</i></div>';
+    }
+    function friendCard(f, tag) {
+      var lv = levelOf(f.points);
+      $('frTitle').textContent = f.pseudo; $('frSum').textContent = tag || '';
+      $('frList').innerHTML = '<div class="frCard"><div class="frCarBig">' + carSvg(f.car || { model: '3', color: '#f2f2f2' }, 120) + '</div>' +
+        (carName(f.car) ? '<div class="frCarName">' + esc(carName(f.car)) + '</div>' : '') +
+        '<span class="pBadge">' + lv.name + '</span>' +
+        '<div class="pStats"><div><b>' + f.points + '</b><span>points</span></div><div><b>' + f.reports + '</b><span>signalements</span></div><div><b>' + new Date(f.since).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) + '</b><span>membre depuis</span></div></div>' +
+        (tag === 'Ton filleul' ? '<p class="small">' + (f.rewarded ? 'Abonné grâce à toi : 1 mois offert déjà reçu.' : 'S\'il s\'abonne, tu gagnes 1 mois de Premium offert.') + '</p>' : '') +
+        '<button class="btn sec" id="frBack">Retour à mes amis</button></div>';
+      $('frInvite').style.display = 'none';
+      $('frBack').onclick = renderFriends;
+    }
+    function renderFriends() {
+      var d = frData; $('frTitle').textContent = 'Mes amis'; $('frInvite').style.display = '';
+      var n = d.filleuls.length;
+      $('frSum').textContent = n ? n + (n > 1 ? ' amis invités' : ' ami invité') + ' grâce à ton lien' : 'Invite des amis avec ton lien : ils apparaîtront ici.';
+      var rows = [];
+      if (d.parrain) rows.push(friendRow(d.parrain, 'Ton parrain', 'p'));
+      d.filleuls.forEach(function (f, i) { rows.push(friendRow(f, f.rewarded ? 'Abonné' : '', i)); });
+      $('frList').innerHTML = rows.join('');
+      [].forEach.call($('frList').querySelectorAll('.frRow'), function (r) {
+        r.onclick = function () { var i = r.getAttribute('data-i'); if (i === 'p') friendCard(d.parrain, 'Ton parrain'); else friendCard(d.filleuls[+i], 'Ton filleul'); };
+      });
+    }
+    window.openFriends = function () {
+      $('frTitle').textContent = 'Mes amis'; $('frSum').textContent = 'Chargement…'; $('frList').innerHTML = ''; $('friendsBox').classList.add('show');
+      apiJSON('GET', '/me/friends').then(function (d) { frData = d; renderFriends(); }).catch(function (e) { $('frSum').textContent = e.message || 'Chargement impossible'; });
+    };
+    $('frClose').onclick = function () { $('friendsBox').classList.remove('show'); };
+    $('frInvite').onclick = function () { $('friendsBox').classList.remove('show'); openInvite(); };
     // ---- Administration : liste des membres (compte de l'éditeur uniquement, vérifié par le serveur) ----
     window.openAdmin = function () {
       $('admSum').textContent = 'Chargement…'; $('admList').innerHTML = ''; $('adminBox').classList.add('show');
@@ -2780,7 +2831,7 @@
   }
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794608024';
+  var BUILD = '1794609608';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2868,7 +2919,7 @@
         '<span class="pBadge">' + esc(lv0.name) + '</span>' + (isFounder() ? '<span class="pBadge fd">Fondateur</span>' : '') + '</div></div>' +
         '<div class="pSub ' + sub.cls + '"><div class="pSubT"><span>Mon abonnement</span><b>' + sub.t + '</b></div><p>' + sub.d + '</p>' + sub.btn + '</div>' +
         '<div class="pStats"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b id="pWeekRank">–</b><span>rang semaine</span></div><div><b id="pWeekPts">–</b><span>pts semaine</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div></div>' +
-        '<div class="pInv"><div><b>Inviter un ami</b><span>' + (me.invites ? me.invites + (me.invites > 1 ? ' amis inscrits' : ' ami inscrit') + ' grâce à toi' : '1 mois offert pour chaque ami qui s\'abonne') + '</span></div><button id="aInvite">Inviter</button></div>' +
+        '<div class="pInv"><div><b>Inviter un ami</b><span>' + (me.invites ? me.invites + (me.invites > 1 ? ' amis inscrits' : ' ami inscrit') + ' grâce à toi' : '1 mois offert pour chaque ami qui s\'abonne') + '</span></div><button id="aFriends" class="ghost">Mes amis</button><button id="aInvite">Inviter</button></div>' +
         (function () { var lv = lv0;
           return '<div class="pLvl"><span><b>' + lv.name + '</b>' + (lv.next ? ' · encore ' + lv.toNext + ' points pour « ' + lv.next + ' »' : '') + '</span><span>Membre depuis ' + since.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) + '</span></div>' +
             '<div class="pBar"><i style="width:' + lv.pct + '%"></i></div>' +
@@ -2885,6 +2936,7 @@
         '<button class="btn link" id="aDelete" style="color:#ff5a72;font-size:13px">Supprimer mon compte</button>';
       if ($('aSubGo')) $('aSubGo').onclick = function () { closeAccount(); openPremium(); };
       $('aInvite').onclick = function () { closeAccount(); openInvite(); };
+      $('aFriends').onclick = function () { closeAccount(); openFriends(); };
       if ($('aAdmin')) $('aAdmin').onclick = function () { closeAccount(); openAdmin(); };
       if ($('aSubManage')) $('aSubManage').onclick = function () { window.open(PRICES.portal, '_blank'); };
       $('aClose').onclick = closeAccount;
