@@ -32,9 +32,6 @@
   #searchRow { display:flex; gap:8px; align-items:center; }
   #q { flex:1; min-width:0; font:inherit; font-size:19px; padding:15px 18px; border-radius:14px; border:0; outline:none; background:rgba(127,127,127,.14); color:var(--txt); }
   #q::placeholder { color:var(--mut); }
-  #btnMic { width:54px; height:54px; flex:none; border-radius:14px; border:0; background:rgba(127,127,127,.14); color:var(--txt); display:flex; align-items:center; justify-content:center; cursor:pointer; }
-  #btnMic.listening { background:var(--acc); color:#fff; animation:pulse 1s infinite; }
-  #btnMic svg { width:26px; height:26px; }
   #chips { display:flex; gap:8px; margin-top:8px; }
   #chips button { flex:1; font:inherit; font-size:16px; font-weight:600; padding:12px; border-radius:12px; border:0; background:rgba(127,127,127,.12); color:var(--txt); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
   #chips small { font-weight:400; color:var(--mut); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px; }
@@ -225,7 +222,6 @@
   body.navigating #alert { top:calc(var(--navBottom, 96px) + 10px); }
   #bottom { width:min(480px, calc(100% - 32px)); padding:8px; }
   #q { font-size:16px; padding:11px 14px; border-radius:12px; }
-  #btnMic { width:42px; height:42px; border-radius:12px; } #btnMic svg { width:20px; height:20px; }
   #chips { gap:6px; margin-top:6px; } #chips button { font-size:14px; padding:9px; border-radius:10px; } #chips svg { width:16px; height:16px; }
   #chips small { font-size:12px; }
   .res .t b { font-size:15px; } .res .t span { font-size:13px; } .res { padding:9px 8px; }
@@ -663,7 +659,6 @@
 <div id="bottom" class="panel">
   <div id="searchRow">
     <input id="q" type="search" placeholder="Où va-t-on ?" autocomplete="off" enterkeyhint="search">
-    <button id="btnMic" title="Commande vocale"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button>
   </div>
   <div id="chips">
     <button id="goHome"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/></svg>Domicile <small id="homeLbl"></small></button>
@@ -2784,47 +2779,8 @@
     try { var u = new SpeechSynthesisUtterance(text); u.lang = 'fr-FR'; u.rate = 1; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {}
   }
 
-  // ================= Commande vocale =================
-  var Rec = window.SpeechRecognition || window.webkitSpeechRecognition, rec = null;
-  var HZ_WORDS = { police: 'police', gendarmerie: 'police', accident: 'accident', bouchon: 'bouchon', travaux: 'travaux', 'nid de poule': 'nid_de_poule', 'nid-de-poule': 'nid_de_poule', objet: 'objet', 'véhicule': 'vehicule_arrete', 'voiture arrêtée': 'vehicule_arrete', 'météo': 'meteo', verglas: 'meteo', brouillard: 'meteo' };
-  function handleVoice(raw) {
-    var t = raw.toLowerCase().trim(); toast('« ' + raw + ' »');
-    if (/(arr[eê]te|stop|annule).*(navigation|guidage|itin[ée]raire)|^stop$/.test(t)) { if (nav) stopNav(false); return; }
-    if (/(maison|domicile|chez moi)/.test(t)) { goSaved('home'); return; }
-    if (/(travail|boulot|bureau|taf)/.test(t)) { goSaved('work'); return; }
-    if (/signal/.test(t)) {
-      for (var w in HZ_WORDS) if (t.indexOf(w) >= 0) { sendReport(HZ_WORDS[w]); return; }
-      $('sheet').classList.add('show'); return;
-    }
-    if (/(superchargeur|recharge|charger)/.test(t)) { nearestSupercharger(); return; }
-    var m = t.match(/(?:aller|emm[eè]ne[- ]moi|va|direction|itin[ée]raire|navigue|conduis[- ]moi)\s+(?:à|a|au|aux|vers|jusqu'à|pour|chez)?\s*(.+)/);
-    var q = m ? m[1] : t;
-    search(q, function (list) {
-      if (m && list && list.length) startNav(list[0]);
-      else { $('q').value = q; showResults(list); }
-    });
-  }
-  function nearestSupercharger() {
-    if (!scItems || !scItems.length) { toast('Superchargeurs pas encore chargés'); return; }
-    var me = myPos(), best = null, bd = Infinity;
-    scItems.forEach(function (s) { var d = dist(me.lat, me.lon, s[0], s[1]); if (d < bd) { bd = d; best = s; } });
-    startNav({ lat: best[0], lon: best[1], short: 'Superchargeur ' + best[2], title: best[2], sub: '' });
-  }
-  $('btnMic').onclick = function () {
-    unlockAudio();
-    if (!Rec) { toast('La commande vocale n\'est pas disponible sur ce navigateur'); return; }
-    if (rec) { try { rec.stop(); } catch (e) {} return; }
-    rec = new Rec(); rec.lang = 'fr-FR'; rec.interimResults = false; rec.maxAlternatives = 1;
-    var btn = this; btn.classList.add('listening');
-    rec.onresult = function (e) { var txt = e.results[0][0].transcript; if (txt) handleVoice(txt); };
-    rec.onerror = function (e) { toast(e.error === 'not-allowed' ? 'Autorise le micro pour utiliser la voix' : 'Je n\'ai pas compris, réessaie'); };
-    rec.onend = function () { btn.classList.remove('listening'); rec = null; };
-    try { rec.start(); } catch (e) { btn.classList.remove('listening'); rec = null; toast('Micro indisponible'); }
-  };
-
-
   // ================= Mise à jour automatique =================
-  var BUILD = '1794607771';
+  var BUILD = '1794608024';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
