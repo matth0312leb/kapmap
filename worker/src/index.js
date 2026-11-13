@@ -46,7 +46,7 @@ function sameText(a, b) {
 }
 const WEAK_PINS = ['0000', '1111', '1234', '4321', '00000', '12345', '000000', '111111', '123456', '654321', '123123'];
 function publicUser(u) {
-  return { id: u.id, plan: u.plan || null, planUntil: u.plan_until || null, planRenews: !!u.plan_renews,
+  return { id: u.id, invites: u.invites || 0, plan: u.plan || null, planUntil: u.plan_until || null, planRenews: !!u.plan_renews,
     pseudo: u.pseudo, name: u.name || '', reports: u.reports_count || 0, points: u.points || 0, since: u.created_at,
     home: u.home ? JSON.parse(u.home) : null, work: u.work ? JSON.parse(u.work) : null, car: u.car ? JSON.parse(u.car) : null };
 }
@@ -83,6 +83,14 @@ async function payConfirmation(env, rep) {
   if (!rep.confirmed) {
     await env.DB.prepare('UPDATE reports SET confirmed = 1 WHERE id = ?1').bind(rep.id).run();
     await addPoints(env, rep.user_id, PTS_CONFIRMED, 'confirmé');
+    // Parrainage : le parrain gagne 15 points au premier signalement confirmé de son filleul (une seule fois)
+    try {
+      const f = await env.DB.prepare('SELECT referred_by, ref_paid FROM users WHERE id = ?1').bind(rep.user_id).first();
+      if (f && f.referred_by && !f.ref_paid) {
+        await env.DB.prepare('UPDATE users SET ref_paid = 1 WHERE id = ?1').bind(rep.user_id).run();
+        await addPoints(env, f.referred_by, 15, 'parrainage');
+      }
+    } catch (e) {}
   } else if ((rep.paid_extra || 0) < EXTRA_MAX) {
     await env.DB.prepare('UPDATE reports SET paid_extra = paid_extra + 1 WHERE id = ?1').bind(rep.id).run();
     await addPoints(env, rep.user_id, PTS_EXTRA, 'confirmé');
@@ -146,7 +154,7 @@ async function ttFetch(env, kind, u, opts) {
 let billingReady = false;
 async function ensureBilling(env) {
   if (billingReady) return;
-  for (const col of ['plan TEXT', 'plan_until INTEGER', 'plan_renews INTEGER', 'stripe_customer TEXT', 'stripe_sub TEXT']) {
+  for (const col of ['plan TEXT', 'plan_until INTEGER', 'plan_renews INTEGER', 'stripe_customer TEXT', 'stripe_sub TEXT', 'referred_by INTEGER', 'ref_paid INTEGER DEFAULT 0']) {
     try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {}
   }
   billingReady = true;
@@ -198,6 +206,13 @@ export default {
         const salt = randomHex(16), h = await hashPin(pin, salt);
         const res = await env.DB.prepare('INSERT INTO users (pseudo, name, pin_hash, salt, created_at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(pseudo, name, h, salt, now).run();
         const id = res.meta.last_row_id;
+        // Parrainage : lien ?invite=<pseudo du parrain>
+        const inv = String(b.invite || '').trim();
+        if (/^[A-Za-z0-9_.-]{3,20}$/.test(inv) && inv !== pseudo) {
+          await ensureBilling(env);
+          const godfather = await env.DB.prepare('SELECT id FROM users WHERE pseudo = ?1').bind(inv).first();
+          if (godfather) await env.DB.prepare('UPDATE users SET referred_by = ?2 WHERE id = ?1').bind(id, godfather.id).run();
+        }
         const token = await newSession(env, id);
         const u = await env.DB.prepare('SELECT * FROM users WHERE id = ?1').bind(id).first();
         return json({ token, user: publicUser(u) });
@@ -268,6 +283,11 @@ export default {
 
       if (url.pathname === '/me' && request.method === 'GET') {
         await ensureBilling(env);
+        const mu = await currentUser(request, env);
+        if (mu) {
+          const ic = await env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE referred_by = ?1').bind(mu.id).first();
+          return json({ user: publicUser(Object.assign({}, mu, { invites: ic ? ic.n : 0 })) });
+        }
         const u = await currentUser(request, env);
         if (!u) return json({ error: 'Non connecté' }, 401);
         return json({ user: publicUser(u) });
