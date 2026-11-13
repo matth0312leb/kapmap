@@ -522,6 +522,10 @@
   .pInv { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; margin-top:12px; border-radius:14px; border:1px solid var(--line); background:rgba(127,127,127,.06); font-size:14px; }
   .pInv b { font-size:15px; } .pInv span { color:var(--mut); font-size:12.5px; display:block; margin-top:2px; }
   .pInv button { flex:none; font:inherit; font-size:13px; font-weight:700; padding:8px 14px; border-radius:999px; border:0; background:linear-gradient(180deg,#ef2a47,#c8102e); color:#fff; cursor:pointer; }
+  #admList { max-height:52vh; overflow:auto; margin:4px 0 12px; }
+  .admRow { display:flex; gap:12px; align-items:center; padding:10px 2px; border-bottom:1px solid var(--line); }
+  .admCar { width:40px; flex:none; display:flex; justify-content:center; }
+  .admTxt { min-width:0; } .admTxt b { font-size:15px; } .admTxt span { display:block; font-size:12.5px; color:var(--mut); margin-top:2px; }
   .pSub { padding:14px; border-radius:16px; margin-bottom:12px; background:rgba(127,127,127,.08); border:1px solid var(--line); }
   .pSub.on { background:linear-gradient(135deg,rgba(227,25,55,.18),rgba(227,25,55,.04)); border-color:rgba(227,25,55,.5); }
   .pSub.beta { background:linear-gradient(135deg,rgba(212,165,44,.16),rgba(212,165,44,.03)); border-color:rgba(212,165,44,.45); }
@@ -758,6 +762,13 @@
   <div class="field"><input id="fbMail" type="email" maxlength="120" placeholder="Ton e-mail pour la réponse (facultatif)" autocomplete="email" enterkeyhint="send"></div>
   <button class="btn pri" id="fbSend">Envoyer</button>
   <button class="btn sec" id="fbClose">Annuler</button>
+</div></div>
+
+<div id="adminBox" class="overlay"><div class="card">
+  <h2>Membres</h2>
+  <p class="lead" id="admSum">Chargement…</p>
+  <div id="admList"></div>
+  <button class="btn sec" id="admClose">Fermer</button>
 </div></div>
 
 <div id="favBox" class="overlay"><div class="card">
@@ -2290,6 +2301,25 @@
     [].forEach.call(document.querySelectorAll('#fbKind button'), function (b) {
       b.onclick = function () { kind = b.getAttribute('data-k'); [].forEach.call(document.querySelectorAll('#fbKind button'), function (x) { x.classList.toggle('sel', x === b); }); };
     });
+    // ---- Administration : liste des membres (compte de l'éditeur uniquement, vérifié par le serveur) ----
+    window.openAdmin = function () {
+      $('admSum').textContent = 'Chargement…'; $('admList').innerHTML = ''; $('adminBox').classList.add('show');
+      apiJSON('GET', '/admin/users').then(function (d) {
+        var day = 86400000, now = Date.now();
+        var active7 = d.users.filter(function (u) { return u.last_seen && now - u.last_seen < 7 * day; }).length;
+        var new7 = d.users.filter(function (u) { return now - u.created_at < 7 * day; }).length;
+        $('admSum').textContent = d.total + ' membres · ' + new7 + ' nouveaux cette semaine · ' + active7 + ' actifs sur 7 jours';
+        var ago = function (t) { if (!t) return '—'; var m = Math.round((now - t) / 60000); return m < 60 ? 'il y a ' + m + ' min' : m < 1440 ? 'il y a ' + Math.round(m / 60) + ' h' : 'il y a ' + Math.round(m / 1440) + ' j'; };
+        $('admList').innerHTML = d.users.map(function (u) {
+          var car = u.car ? carName(u.car) || 'Voiture' : '';
+          var plan = u.plan_until && u.plan_until > now ? ' · Premium ' + ({ month: 'mensuel', year: 'annuel', life: 'à vie' }[u.plan] || '') : '';
+          return '<div class="admRow"><div class="admCar">' + (u.car ? carSvg(u.car, 40) : '') + '</div><div class="admTxt"><b>' + esc(u.pseudo) + '</b>' +
+            '<span>Inscrit ' + new Date(u.created_at).toLocaleDateString('fr-FR') + ' · vu ' + ago(u.last_seen) + (car ? ' · ' + esc(car) : '') + '</span>' +
+            '<span>' + (u.reports_count || 0) + ' signalements · ' + (u.points || 0) + ' pts' + (u.parrain ? ' · invité par ' + esc(u.parrain) : '') + (u.filleuls ? ' · ' + u.filleuls + ' filleul' + (u.filleuls > 1 ? 's' : '') : '') + plan + '</span></div></div>';
+        }).join('');
+      }).catch(function (e) { $('admSum').textContent = e.message || 'Accès impossible'; });
+    };
+    $('admClose').onclick = function () { $('adminBox').classList.remove('show'); };
     // ---- Parrainage : lien d'invitation + QR code ----
     function inviteUrl() { return location.origin + location.pathname.replace(/index\.html$/, '') + (me ? '?invite=' + encodeURIComponent(me.pseudo) : ''); }
     function qrSvg(text) {
@@ -2794,7 +2824,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794607115';
+  var BUILD = '1794607771';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2894,10 +2924,12 @@
         '<p class="small">« Ici » enregistre ta position actuelle. Pour ajouter un favori (parents, amis…), cherche l\'adresse et touche l\'étoile. Tes adresses suivent ton compte, sur la voiture comme sur ton téléphone.</p>' +
         '<div class="lyHead2">Ma voiture</div>' +
         carPickerHtml() +
+        (me.id === 1 ? '<button class="btn sec" id="aAdmin">Voir les membres</button>' : '') +
         '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>' +
         '<button class="btn link" id="aDelete" style="color:#ff5a72;font-size:13px">Supprimer mon compte</button>';
       if ($('aSubGo')) $('aSubGo').onclick = function () { closeAccount(); openPremium(); };
       $('aInvite').onclick = function () { closeAccount(); openInvite(); };
+      if ($('aAdmin')) $('aAdmin').onclick = function () { closeAccount(); openAdmin(); };
       if ($('aSubManage')) $('aSubManage').onclick = function () { window.open(PRICES.portal, '_blank'); };
       $('aClose').onclick = closeAccount;
       $('aRank').onclick = function () { accountView('rank'); };

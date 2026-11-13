@@ -375,6 +375,18 @@ export default {
         return json({ ok: true });
       }
 
+      // Administration : liste des membres, réservée au compte de l'éditeur (ADMIN_ID, par défaut le compte n°1)
+      if (request.method === 'GET' && url.pathname === '/admin/users') {
+        const u = await currentUser(request, env);
+        if (!u || u.id !== Number(env.ADMIN_ID || 1)) return json({ error: 'Accès réservé' }, 403);
+        await ensureBilling(env);
+        const rows = (await env.DB.prepare(`SELECT u.id, u.pseudo, u.created_at, u.reports_count, u.points, u.car, u.plan, u.plan_until, u.gift_until,
+            p.pseudo AS parrain, (SELECT MAX(COALESCE(s.last_seen, s.created_at)) FROM sessions s WHERE s.user_id = u.id) AS last_seen,
+            (SELECT COUNT(*) FROM users f WHERE f.referred_by = u.id) AS filleuls
+          FROM users u LEFT JOIN users p ON p.id = u.referred_by ORDER BY u.created_at DESC LIMIT 500`).all()).results || [];
+        return json({ total: rows.length, users: rows.map(r => Object.assign(r, { car: r.car ? JSON.parse(r.car) : null })) });
+      }
+
       // Classement (semaine ou général) : pseudo + points uniquement
       if (request.method === 'GET' && url.pathname === '/leaderboard') {
         const week = url.searchParams.get('period') !== 'all';
