@@ -373,7 +373,9 @@ export default {
         const color = /^#[0-9a-fA-F]{6}$/.test(b.color || '') ? b.color : '#f2f2f2';
         const networks = Array.isArray(b.networks) ? b.networks.filter(n => typeof n === 'string' && n.length <= 30).slice(0, 40) : undefined;
         const prev = u.car ? JSON.parse(u.car) : {};
-        await env.DB.prepare('UPDATE users SET car = ?2 WHERE id = ?1').bind(u.id, JSON.stringify({ model, color, label, networks: networks || prev.networks })).run();
+        const ver = /^[a-z0-9]{1,8}$/.test(b.ver || '') ? b.ver : '';
+        const r100 = Math.round(Number(b.r100)) >= 50 && Math.round(Number(b.r100)) <= 1000 ? Math.round(Number(b.r100)) : 0;
+        await env.DB.prepare('UPDATE users SET car = ?2 WHERE id = ?1').bind(u.id, JSON.stringify({ model, color, label, ver, r100, networks: networks || prev.networks })).run();
         return json({ ok: true });
       }
       // Favoris (parents, amis, lieux visités…) : 30 au maximum, avec un nom choisi

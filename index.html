@@ -102,6 +102,21 @@
   .carGrpT { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); margin:14px 0 2px; }
   .pCarName { display:block; font-style:normal; font-size:13px; color:var(--mut); margin:1px 0 4px; }
   .carPick button.sel { background:var(--txt); color:var(--inv); }
+  .carHint { font-size:12px; color:var(--mut); margin:6px 2px 0; line-height:1.35; }
+  #battVal { font-size:56px; font-weight:800; letter-spacing:-.02em; text-align:center; margin:4px 0 2px; font-variant-numeric:tabular-nums; }
+  #battRange { width:100%; accent-color:#e31937; height:34px; margin:6px 0 4px; }
+  #battCar { text-align:center; font-size:13px; color:var(--mut); margin:2px 0 12px; }
+  .battLow { color:#e31937 !important; font-weight:700; }
+  #btnStop.warn { color:#fff; background:rgba(227,25,55,.35) !important; border-color:#e31937 !important; animation:battPulse 1.6s ease-in-out infinite; }
+  @keyframes battPulse { 50% { box-shadow:0 0 18px rgba(227,25,55,.7); } }
+  #habit { display:none; align-items:center; gap:12px; padding:6px 6px 10px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  #habit.show { display:flex; }
+  body.navigating #habit, body.searching #habit, body.kbTop #habit, body.choosing #habit { display:none !important; }
+  #habit .hI { width:38px; height:38px; flex:none; border-radius:11px; display:grid; place-items:center; background:rgba(227,25,55,.14); color:#e31937; }
+  #habit .hT { flex:1; min-width:0; } #habit .hT b { display:block; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #habit .hT span { font-size:13px; color:var(--mut); } #habit .hT em { font-style:normal; color:#e31937; font-weight:700; }
+  #habit .go { font:inherit; font-size:14px; font-weight:700; padding:10px 14px; border-radius:11px; border:0; background:linear-gradient(180deg,#ef2a47,#c8102e); color:#fff; cursor:pointer; }
+  #habit .hx { font:inherit; font-size:18px; line-height:1; padding:8px; border:0; background:transparent; color:var(--mut); cursor:pointer; }
   .swatches { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
   .swatches button { width:34px; height:34px; border-radius:50%; border:2px solid var(--line); cursor:pointer; }
   .swatches button.sel { outline:3px solid var(--txt); outline-offset:2px; }
@@ -678,6 +693,7 @@
   <div class="lyHead">Son et écran</div>
   <label class="sw2">Annonces vocales<input type="checkbox" id="optVoice"></label>
   <label class="sw2">Écran atténué la nuit<input type="checkbox" id="optDim"></label>
+  <label class="sw2">Trajets habituels<input type="checkbox" id="optHabit"></label>
 
   <div class="lyHead">KapMap</div>
   <button class="lyRow" id="btnPremium"><b class="lyIc"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg></b><span>KapMap Premium</span><i>›</i></button>
@@ -691,6 +707,7 @@
 <div id="nav" class="panel"><div id="navIcon"></div><div style="min-width:0"><div id="navDist"></div><div id="navText"></div><div id="navSign"></div><div id="navLanes"></div></div></div>
 
 <div id="bottom" class="panel">
+  <div id="habit"><div class="hI"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="hT"><b id="habitName"></b><span id="habitInfo"></span></div><button class="go" id="habitGo">Y aller</button><button class="hx" id="habitX" title="Masquer">&times;</button></div>
   <div id="searchRow">
     <input id="q" type="search" placeholder="Où va-t-on ?" autocomplete="off" enterkeyhint="search">
     <button id="btnMic" title="Commande vocale"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button>
@@ -834,6 +851,15 @@
   <input id="wpQ" placeholder="Ajouter une étape" autocomplete="off" enterkeyhint="search">
   <div id="wpRes"></div>
   <button class="btn sec" id="wpClose">Fermer</button>
+</div></div>
+
+<div id="battBox" class="overlay"><div class="card">
+  <h2>Batterie</h2>
+  <div id="battVal">80 %</div>
+  <input id="battRange" type="range" min="1" max="100" step="1" value="80">
+  <div id="battCar"></div>
+  <button class="btn pri" id="battOk">Valider</button>
+  <button class="btn link" id="battNo">Ne pas indiquer</button>
 </div></div>
 
 <div id="whenBox" class="overlay"><div class="card">
@@ -1153,6 +1179,18 @@
   carEl.className = 'car';
   var CAR_COLORS = [['#f2f2f2', 'Blanc'], ['#111111', 'Noir'], ['#6b6e73', 'Gris'], ['#b8bcc2', 'Argent'], ['#1f4fa3', 'Bleu'], ['#b3121f', 'Rouge'], ['#2f6b4f', 'Vert'], ['#e0731f', 'Orange'], ['#c9b79c', 'Beige']];
   var CAR_TESLA = [['3', 'Model 3'], ['Y', 'Model Y'], ['S', 'Model S'], ['X', 'Model X'], ['CT', 'Cybertruck']];
+  // Versions Tesla : [id, nom, kWh utiles, conso réelle Wh/km à 90 km/h et 15 °C, autonomie neuve affichée à 100 % (WLTP)]
+  var TESLA_VER = {
+    '3': [['m3sr', 'Propulsion 2019-23', 55, 142, 491], ['m3lr', 'Grande Aut. 2019-23', 75, 150, 614], ['m3p', 'Perf. 2019-23', 75, 165, 567],
+          ['m3h', 'Propulsion 2024+', 57, 132, 513], ['m3hlr', 'Grande Aut. 2024+', 78, 140, 702], ['m3hp', 'Perf. 2024+', 78, 158, 571]],
+    'Y': [['ysr', 'Propulsion 2022-24', 57, 155, 455], ['ylr', 'Grande Aut. 2021-24', 75, 162, 533], ['yp', 'Perf. 2021-24', 75, 178, 514],
+          ['yj', 'Propulsion 2025+', 60, 146, 500], ['yjlr', 'Grande Aut. 2025+', 78, 152, 568]],
+    'S': [['slr', 'Grande Autonomie', 95, 172, 634], ['sp', 'Plaid', 95, 188, 600]],
+    'X': [['xlr', 'Grande Autonomie', 95, 202, 576], ['xp', 'Plaid', 95, 218, 543]],
+    'CT': [['ct', 'Transmission intégrale', 123, 275, 500], ['cb', 'Cyberbeast', 123, 295, 460]]
+  };
+  var TESLA_VER_DEF = { '3': 'm3hlr', 'Y': 'yjlr', 'S': 'slr', 'X': 'xlr', 'CT': 'ct' };
+  function carVer(car) { var l = TESLA_VER[car && car.model] || []; return l.filter(function (v) { return v[0] === car.ver; })[0] || l.filter(function (v) { return v[0] === TESLA_VER_DEF[car.model]; })[0] || []; }
   var CAR_OTHER = [['city', 'Citadine'], ['sedan', 'Berline'], ['suv', 'SUV'], ['wagon', 'Break'], ['van', 'Utilitaire']];
   function isTeslaModel(m) { return CAR_TESLA.some(function (x) { return x[0] === m; }); }
   function carName(car) { if (!car) return ''; if (car.label) return car.label; var t = CAR_TESLA.filter(function (x) { return x[0] === car.model; })[0]; return t ? 'Tesla ' + t[1] : ''; }
@@ -1161,8 +1199,11 @@
     var chips = function (l) { return l.map(function (m) { return '<button data-m="' + m[0] + '">' + m[1] + '</button>'; }).join(''); };
     return '<div id="carPreview"></div>' +
       '<div class="carGrpT">Tesla</div><div class="carPick wrap" id="pickModel">' + chips(CAR_TESLA) + '</div>' +
+      '<div id="carVerF"><div class="carGrpT">Version</div><div class="carPick wrap" id="pickVer"></div></div>' +
       '<div class="carGrpT">Autre voiture</div><div class="carPick wrap" id="pickModel2">' + chips(CAR_OTHER) + '</div>' +
       '<div class="field" id="carLabelF"><input id="carLabel" maxlength="30" placeholder="Marque et modèle (ex. Peugeot e-208)" autocomplete="off" enterkeyhint="done"></div>' +
+      '<div class="carGrpT">Autonomie à 100 % <span style="text-transform:none;letter-spacing:0;font-weight:500">· facultatif</span></div>' +
+      '<div class="field" style="margin-top:6px"><input id="carR100" type="number" inputmode="numeric" min="50" max="1000" placeholder="km" autocomplete="off" enterkeyhint="done"></div><p class="carHint" id="carR100H"></p>' +
       '<div class="carGrpT">Couleur</div><div class="swatches" id="pickColor">' + CAR_COLORS.map(function (c) { return '<button data-c="' + c[0] + '" title="' + c[1] + '" style="background:' + c[0] + '"></button>'; }).join('') + '</div>';
   }
   function wireCarPicker() {
@@ -1171,11 +1212,17 @@
       ['pickModel', 'pickModel2'].forEach(function (g) { [].forEach.call($(g).children, function (b) { b.classList.toggle('sel', b.getAttribute('data-m') === car.model); }); });
       [].forEach.call($('pickColor').children, function (b) { b.classList.toggle('sel', b.getAttribute('data-c') === car.color); });
       $('carLabelF').style.display = isTeslaModel(car.model) ? 'none' : '';
+      var vl = TESLA_VER[car.model] || [];
+      $('carVerF').style.display = vl.length ? '' : 'none';
+      $('pickVer').innerHTML = vl.map(function (v) { return '<button data-v="' + v[0] + '" class="' + (carVer(car)[0] === v[0] ? 'sel' : '') + '">' + v[1] + '</button>'; }).join('');
+      [].forEach.call($('pickVer').children, function (b) { b.onclick = function () { car.ver = b.getAttribute('data-v'); save(); }; });
+      $('carR100H').textContent = isTeslaModel(car.model) ? 'Celle affichée par ta Tesla chargée à 100 % : elle tient compte de l\'usure de ta batterie.' : 'Voiture électrique : l\'autonomie réelle à 100 %. Sert à estimer ta batterie à l\'arrivée.';
       $('carPreview').innerHTML = carSvg(car, 110);
     }
     function save() {
       if (isTeslaModel(car.model)) car.label = '';
-      myCar = { model: car.model, color: car.color, label: car.label || '' }; drawCar(); refresh();
+      if (!TESLA_VER[car.model] || !TESLA_VER[car.model].some(function (v) { return v[0] === car.ver; })) car.ver = '';
+      myCar = { model: car.model, color: car.color, label: car.label || '', ver: car.ver || '', r100: car.r100 || 0 }; drawCar(); refresh();
       try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {}
       if (me) apiJSON('PUT', '/me/car', Object.assign({}, myCar, netOn ? { networks: netOn.concat($('lySc').checked ? ['Tesla'] : []) } : {})).catch(function () {});
     }
@@ -1184,6 +1231,9 @@
     $('carLabel').value = car.label || '';
     $('carLabel').onchange = function () { car.label = this.value.trim().slice(0, 30); save(); };
     $('carLabel').onkeydown = function (e) { if (e.key === 'Enter') this.blur(); };
+    $('carR100').value = car.r100 || '';
+    $('carR100').onchange = function () { var v = parseInt(this.value, 10); car.r100 = v >= 50 && v <= 1000 ? v : 0; if (!car.r100) this.value = ''; save(); };
+    $('carR100').onkeydown = function (e) { if (e.key === 'Enter') this.blur(); };
     refresh();
   }
   var myCar = null;
@@ -2176,7 +2226,7 @@
       var len = rt.kind === 'tomtom' ? rt.length : rt.distance, t = rt.kind === 'tomtom' ? rt.travel : rt.duration, dl = rt.kind === 'tomtom' ? rt.delay : 0;
       if (rt.toll) loadTollPrice(rt);
       var best = (tags[i] || []).map(function (t) { return ' <span class="rtag">' + t + '</span>'; }).join('');
-      return '<div class="res" data-i="' + i + '" style="cursor:pointer;' + (i === pendingSel ? 'background:rgba(127,127,127,.12);border-radius:10px' : '') + '"><div class="t"><b>' + fmtDur(t) + best + '</b><span>' + (planTime && rt.departAt ? (planTime.mode === 'arrive' ? 'Départ ' + hhmm(rt.departAt) : 'Arrivée ' + hhmm(rt.arriveAt)) + ' · ' : '') + formatDist(len) +
+      return '<div class="res" data-i="' + i + '" style="cursor:pointer;' + (i === pendingSel ? 'background:rgba(127,127,127,.12);border-radius:10px' : '') + '"><div class="t"><b>' + fmtDur(t) + best + '</b><span>' + (batt && isEV() ? battTxt(battArrival(rt, batt.pct)) + ' · ' : '') + (planTime && rt.departAt ? (planTime.mode === 'arrive' ? 'Départ ' + hhmm(rt.departAt) : 'Arrivée ' + hhmm(rt.arriveAt)) + ' · ' : '') + formatDist(len) +
         (dl >= 60 ? ' · dont ' + fmtDur(dl) + ' de bouchons' : '') + (rt.toll ? ' · ' + tollText(rt) : '') + '</span></div>' + (i === pendingSel ? '<button class="go">Démarrer</button>' : '') + '</div>';
     }).join('');
     box.innerHTML = '<div style="display:flex;gap:6px;padding:6px 2px 8px">' +
@@ -2184,7 +2234,8 @@
       '<label class="chip2"><input type="checkbox" id="avMoto"' + (routePrefs.motorways ? ' checked' : '') + '> Éviter les autoroutes</label>' +
       '<button id="rtCancel" style="margin-left:auto">Annuler</button></div>' +
       '<div style="display:flex;gap:6px;padding:0 2px 8px"><button class="chip2' + (planStops.length ? ' on' : '') + '" id="rtWp">+ Étape' + (planStops.length ? ' · ' + planStops.length : '') + '</button>' +
-      '<button class="chip2' + (planTime ? ' on' : '') + '" id="rtWhen">' + (planTime ? (planTime.mode === 'arrive' ? 'Arriver à ' : 'Partir à ') + hhmm(planTime.at) + (new Date(planTime.at).getDate() !== new Date().getDate() ? ' demain' : '') : 'Partir maintenant') + '</button></div>' + opts;
+      '<button class="chip2' + (planTime ? ' on' : '') + '" id="rtWhen">' + (planTime ? (planTime.mode === 'arrive' ? 'Arriver à ' : 'Partir à ') + hhmm(planTime.at) + (new Date(planTime.at).getDate() !== new Date().getDate() ? ' demain' : '') : 'Partir maintenant') + '</button>' +
+      (isEV() ? '<button class="chip2' + (batt ? ' on' : '') + '" id="rtBatt">' + (batt ? 'Batterie ' + batt.pct + ' %' : 'Batterie') + '</button>' : '') + '</div>' + opts;
     [].forEach.call(box.querySelectorAll('.res[data-i]'), function (row) {
       row.onclick = function (e) {
         var i = +row.getAttribute('data-i');
@@ -2194,7 +2245,9 @@
     });
     $('rtWp').onclick = function () { openWp('plan'); };
     $('rtWhen').onclick = openWhen;
-    $('rtCancel').onclick = function () { planStops = []; planTime = null; pendingRoutes = null; clearAlts(); clearResults(); if (destMarker) { destMarker.remove(); destMarker = null; } };
+    if ($('rtBatt')) $('rtBatt').onclick = openBatt;
+    document.body.classList.add('choosing'); renderHabit();
+    $('rtCancel').onclick = function () { document.body.classList.remove('choosing'); planStops = []; planTime = null; pendingRoutes = null; clearAlts(); clearResults(); if (destMarker) { destMarker.remove(); destMarker = null; } };
     $('avToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); startNav(pendingDest); };
     $('avMoto').onchange = function () { routePrefs.motorways = this.checked; saveRoutePrefs(); startNav(pendingDest); };
   }
@@ -2522,6 +2575,8 @@
       fetchRoutes(from, nav.dest, 0, navAvoid(), navVias(nav.stops, via, from)).then(function (l) {
         var add = Math.max(0, Math.round(((l[0].travel || l[0].duration) - rem) / 60));
         x.route = l[0]; var e = $('det' + k); if (e) e.textContent = add <= 1 ? 'sans détour' : '+' + add + ' min';
+        var bn = battNow(), base = rangeBase();
+        if (e && bn != null && base && isEV()) { var used = ((x.off < 3000 ? x.ahead : x.off * 1.3 + 0) / 1000) * 1.15 * tempF(battTemp ? battTemp.c : null) / base * 100; var at = Math.round(bn - used); e.innerHTML += ' · <span class="' + (at < 10 ? 'battLow' : '') + '">' + Math.max(0, at) + ' % en arrivant</span>'; }
       }).catch(function () { var e = $('det' + k); if (e) e.textContent = ''; });
     });
     [].forEach.call($('stopList').querySelectorAll('button[data-k]'), function (b) {
@@ -2545,7 +2600,7 @@
     (route ? Promise.resolve(route) : fetchRoutes(here, dest, 0, navAvoid(), navVias(stops, sc, here)).then(function (l) { return l[0]; })).then(function (rt) {
       if (!nav) return;
       var n = prepareRoute(rt); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); n.via = sc; n.stops = stops || []; n.eta0 = keep0;
-      nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic();
+      battAttach(n, nav); nav = n; battWarn(); setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic();
       $('btnStop').classList.toggle('on', !!sc); updateWpBtn(); hideBetter();
       if (msg) toast(msg);
     }).catch(function () { toast('Itinéraire indisponible, réessaie'); });
@@ -2710,7 +2765,135 @@
       window.open(u + (u.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(me.id), '_blank');
     };
   })();
-  window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); }, setMe: function (u) { me = u; }, carView: function () { $('account').classList.add('show'); accountView('car'); }, better: function () { if (nav) nav.lastReroute = 0; checkBetter(); } };   // utilisé par les tests automatiques
+  // ================= Batterie à l'arrivée (facultatif) =================
+  // Estimation : conso de la version × vitesse (limitations du trajet) × température, + 5 % de marge.
+  // L'autonomie affichée à 100 % (si renseignée) corrige l'usure de la batterie.
+  var batt = null, battTemp = null;
+  try { batt = JSON.parse(localStorage.getItem('kap-batt') || 'null'); } catch (e) {}
+  if (batt && Date.now() - batt.at > 3 * 3600e3) batt = null;
+  function saveBatt(pct) { batt = pct == null ? null : { pct: Math.max(0, Math.min(100, Math.round(pct))), at: Date.now() }; try { localStorage.setItem('kap-batt', JSON.stringify(batt)); } catch (e) {} }
+  function isEV() { return !myCar || isTeslaModel(myCar.model) || myCar.r100 > 0; }
+  function rangeBase() {   // km pour 100 % à 90 km/h et 15 °C
+    var car = myCar || { model: '3' };
+    if (isTeslaModel(car.model)) { var v = carVer(car); if (!v.length) return 0; var h = car.r100 ? Math.max(0.6, Math.min(1.05, car.r100 / v[4])) : 0.96; return v[2] * h * 1000 / v[3]; }
+    return car.r100 ? car.r100 * 0.85 : 0;
+  }
+  function speedF(v) { var t = [[0, 0.9], [50, 0.84], [70, 0.88], [90, 1], [110, 1.2], [130, 1.45], [150, 1.75]]; for (var i = 1; i < t.length; i++) if (v <= t[i][0]) return t[i - 1][1] + (t[i][1] - t[i - 1][1]) * (v - t[i - 1][0]) / (t[i][0] - t[i - 1][0]); return 1.75; }
+  function tempF(c) { if (c === null) return 1.05; var t = [[-10, 1.4], [0, 1.25], [5, 1.15], [10, 1.07], [15, 1], [25, 1], [30, 1.04], [38, 1.1]]; if (c <= -10) return 1.4; for (var i = 1; i < t.length; i++) if (c <= t[i][0]) return t[i - 1][1] + (t[i][1] - t[i - 1][1]) * (c - t[i - 1][0]) / (t[i][0] - t[i - 1][0]); return 1.1; }
+  function loadTemp() {
+    if (battTemp && Date.now() - battTemp.at < 3600e3) return;
+    var p = myPos(); battTemp = { c: null, at: Date.now() };
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=' + p.lat.toFixed(2) + '&longitude=' + p.lon.toFixed(2) + '&current=temperature_2m')
+      .then(function (r) { return r.json(); }).then(function (d) { battTemp = { c: d.current.temperature_2m, at: Date.now() }; if (pendingRoutes) showRouteChoice(); }).catch(function () {});
+  }
+  function routeUse(rt) {   // % de batterie consommé sur un itinéraire
+    var base = rangeBase(); if (!base) return null;
+    var pts = rt.kind === 'tomtom' ? rt.points : rt.geometry.coordinates, len = rt.kind === 'tomtom' ? rt.length : rt.distance, tt = rt.kind === 'tomtom' ? rt.travel : rt.duration;
+    var avg = Math.max(30, Math.min(130, len / Math.max(60, tt) * 3.6 * 1.08)), sp = rt.speed || [], km = 0, raw = 0, j = 0;
+    for (var i = 1; i < pts.length; i++) {
+      while (j < sp.length && sp[j].e < i) j++;
+      var v = j < sp.length && sp[j].s < i && sp[j].e >= i ? Math.min(sp[j].v, 130) : avg;
+      var dk = dist(pts[i - 1][1], pts[i - 1][0], pts[i][1], pts[i][0]) / 1000; raw += dk; km += dk * speedF(v);
+    }
+    if (len && raw) km *= len / 1000 / raw;   // recalage sur la longueur officielle du trajet
+    return km * tempF(battTemp ? battTemp.c : null) * 1.05 / base * 100;
+  }
+  function battNow() { if (nav && nav.battStart != null) return Math.max(0, nav.battStart - nav.battUse * Math.min(1, (nav.cum[nav.idx] || 0) / (nav.total || 1))); return batt ? batt.pct : null; }
+  function battArrival(rt, from) { if (from == null || !isEV()) return null; var u = routeUse(rt); return u == null ? null : Math.round(from - u); }
+  function battTxt(a) { return a == null ? '' : a <= 0 ? '<span class="battLow">Batterie insuffisante</span>' : '<span class="' + (a < 10 ? 'battLow' : '') + '">' + a + ' % à l\'arrivée</span>'; }
+  function battAttach(n, prev) {   // nouvel itinéraire (départ, recalcul, étape) : on repart de la batterie estimée
+    var from = prev && prev.battStart != null ? battNow() : (batt ? batt.pct : null);
+    if (from == null || !isEV() || !n.srcRoute && !n.coords) { n.battStart = null; return; }
+    var u = n.srcRoute ? routeUse(n.srcRoute) : null;
+    if (u == null) { n.battStart = null; return; }
+    n.battStart = from; n.battUse = u; n.battArr = Math.round(from - u);
+  }
+  function battWarn() {
+    var low = nav && nav.battArr != null && nav.battArr < 10 && !nav.via;
+    $('btnStop').classList.toggle('warn', !!low);
+    if (low && !nav.battSaid) { nav.battSaid = 1; speak('Batterie juste pour ce trajet. Ajoute un arrêt recharge.'); toast(nav.battArr <= 0 ? 'Batterie insuffisante pour ce trajet' : 'Batterie juste : ' + nav.battArr + ' % à l\'arrivée'); }
+  }
+  function battLabel() { var car = myCar || { model: '3' }, v = carVer(car); return isTeslaModel(car.model) ? carName(car) + (v.length ? ' · ' + v[1] : '') + (car.r100 ? ' · ' + car.r100 + ' km à 100 %' : '') : (car.label || carName(car)) + ' · ' + car.r100 + ' km à 100 %'; }
+  function openBatt() {
+    var v = batt ? batt.pct : 80; $('battRange').value = v; $('battVal').textContent = v + ' %';
+    $('battCar').textContent = battLabel(); $('battBox').classList.add('show'); loadTemp();
+  }
+  $('battRange').oninput = function () { $('battVal').textContent = this.value + ' %'; };
+  $('battOk').onclick = function () { saveBatt(+$('battRange').value); $('battBox').classList.remove('show'); if (pendingRoutes) showRouteChoice(); };
+  $('battNo').onclick = function () { saveBatt(null); $('battBox').classList.remove('show'); if (pendingRoutes) showRouteChoice(); };
+
+  // ================= Trajets habituels =================
+  // Le matin en semaine → Travail, le soir → Domicile, et les trajets que tu refais souvent au même moment (appris sur l'appareil).
+  // Le temps avec le trafic est recalculé au plus toutes les 10 minutes.
+  function tripLog() { try { return JSON.parse(localStorage.getItem('kap-trips') || '[]'); } catch (e) { return []; } }
+  function logTrip(d) {
+    if (!d || !d.lat) return;
+    var l = tripLog().filter(function (x) { return Date.now() - x.t < 42 * 864e5; });
+    l.push({ lat: d.lat, lon: d.lon, short: d.short || d.title || 'Destination', title: d.title || '', sub: d.sub || '', t: Date.now() });
+    try { localStorage.setItem('kap-trips', JSON.stringify(l.slice(-80))); } catch (e) {}
+  }
+  var habitOn = true; try { habitOn = localStorage.getItem('kap-habit') !== '0'; } catch (e) {}
+  $('optHabit').checked = habitOn;
+  $('optHabit').onchange = function () { habitOn = this.checked; try { localStorage.setItem('kap-habit', habitOn ? '1' : '0'); } catch (e) {} checkHabit(); };
+  var habit = null, habitCache = {};
+  function dayKey() { var d = new Date(); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
+  function habitOff(dst) { try { var o = JSON.parse(localStorage.getItem('kap-habit-off') || '{}'); return o.day === dayKey() && (o.keys || []).indexOf(Math.round(dst.lat * 500) + ',' + Math.round(dst.lon * 500)) >= 0; } catch (e) { return false; } }
+  function pickHabit() {
+    if (!last) return null;
+    var now = new Date(), h = now.getHours() + now.getMinutes() / 60, wd = now.getDay() >= 1 && now.getDay() <= 5, cands = [];
+    function far(p) { return dist(last.lat, last.lon, p.lat, p.lon) > 2000; }
+    if (wd && workAddr && h >= 5 && h < 10.5 && far(workAddr) && (!homeAddr || !far(homeAddr))) cands.push({ p: workAddr, name: 'Travail', sc: 2.5 });
+    if (wd && homeAddr && h >= 15.5 && h < 20.5 && far(homeAddr)) cands.push({ p: homeAddr, name: 'Domicile', sc: 2.5 });
+    var groups = [];
+    tripLog().forEach(function (x) {
+      if (Date.now() - x.t > 28 * 864e5) return;
+      var d = new Date(x.t), xh = d.getHours() + d.getMinutes() / 60, xwd = d.getDay() >= 1 && d.getDay() <= 5;
+      if (xwd !== wd || Math.abs(xh - h) > 1) return;
+      var g = groups.filter(function (g) { return dist(g.p.lat, g.p.lon, x.lat, x.lon) < 200; })[0];
+      if (g) { g.n++; g.p = x; } else groups.push({ p: x, n: 1 });
+    });
+    groups.forEach(function (g) {
+      if (g.n < 2 || !far(g.p)) return;
+      var named = homeAddr && dist(homeAddr.lat, homeAddr.lon, g.p.lat, g.p.lon) < 200 ? 'Domicile' : workAddr && dist(workAddr.lat, workAddr.lon, g.p.lat, g.p.lon) < 200 ? 'Travail' : null;
+      var same = cands.filter(function (c) { return dist(c.p.lat, c.p.lon, g.p.lat, g.p.lon) < 200; })[0];
+      if (same) same.sc += g.n; else cands.push({ p: g.p, name: named || g.p.short, sc: g.n });
+    });
+    cands = cands.filter(function (c) { return !habitOff(c.p); }).sort(function (a, b) { return b.sc - a.sc; });
+    return cands[0] || null;
+  }
+  function renderHabit() {
+    var show = habit && habit.travel && habitOn && !nav && !pendingRoutes;
+    $('habit').classList.toggle('show', !!show);
+    if (!show) return;
+    var arr = new Date(Date.now() + habit.travel * 1000);
+    $('habitName').textContent = habit.name;
+    $('habitInfo').innerHTML = fmtDur(habit.travel) + (habit.delay >= 120 ? ' · <em>+' + Math.round(habit.delay / 60) + ' min</em>' : '') + ' · arrivée ' + hhmm(arr);
+  }
+  function checkHabit() {
+    if (!habitOn || nav || pendingRoutes) { renderHabit(); return; }
+    var c = pickHabit();
+    if (!c) { habit = null; renderHabit(); return; }
+    var key = Math.round(c.p.lat * 500) + ',' + Math.round(c.p.lon * 500), hit = habitCache[key];
+    if (hit && Date.now() - hit.at < 600000 && dist(hit.from.lat, hit.from.lon, last.lat, last.lon) < 1500) { habit = Object.assign({}, c, hit); renderHabit(); return; }
+    var from = { lat: last.lat, lon: last.lon };
+    fetchRoutes(from, c.p, 0).then(function (l) {
+      var r = l[0]; if (!r) return;
+      habitCache[key] = { travel: r.travel || r.duration, delay: r.kind === 'tomtom' ? r.delay || 0 : 0, at: Date.now(), from: from };
+      habit = Object.assign({}, c, habitCache[key]); renderHabit();
+    }).catch(function () {});
+  }
+  $('habitGo').onclick = function () { if (habit) { var p = habit.p; $('habit').classList.remove('show'); startNav(p); } };
+  $('habitX').onclick = function () {
+    if (!habit) return;
+    var o = {}; try { o = JSON.parse(localStorage.getItem('kap-habit-off') || '{}'); } catch (e) {}
+    if (o.day !== dayKey()) o = { day: dayKey(), keys: [] };
+    o.keys.push(Math.round(habit.p.lat * 500) + ',' + Math.round(habit.p.lon * 500));
+    try { localStorage.setItem('kap-habit-off', JSON.stringify(o)); } catch (e) {}
+    habit = null; renderHabit(); checkHabit();
+  };
+  (function () { var first = setInterval(function () { if (last) { clearInterval(first); checkHabit(); } }, 2000); setInterval(checkHabit, 300000); })();
+
+  window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); }, setMe: function (u) { me = u; }, carView: function () { $('account').classList.add('show'); accountView('car'); }, better: function () { if (nav) nav.lastReroute = 0; checkBetter(); }, habit: checkHabit, setPos: function (p) { last = { lat: p.lat, lon: p.lon, t: Date.now() }; } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
   $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
   $('prefToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); if (pendingRoutes && pendingDest) startNav(pendingDest); };
@@ -2718,6 +2901,7 @@
   function launchRoute(i) {
     var dest = pendingDest, rt = pendingRoutes[i], from = myPos();
     pendingRoutes = null; clearAlts(); clearResults();
+    document.body.classList.remove('choosing');
     var n = prepareRoute(rt); n.stops = planStops.slice(); planStops = []; planTime = null;
     beginNav(dest, n, false, from);
   }
@@ -2729,6 +2913,7 @@
     setStatus('Calcul de l\'itinéraire…', 'warn');
     if (resumed || !pendingDest || dist(pendingDest.lat, pendingDest.lon, dest.lat, dest.lon) > 30) { planStops = []; planTime = null; }
     var pv = planStops.length ? planStops : null, pw = planTime;
+    if (batt && isEV()) loadTemp();
     fetchRoutes(from, dest, resumed ? 0 : 2, undefined, pv, pw).then(function (list) {
       if (resumed) { beginNav(dest, prepareRoute(list[0]), resumed, from); return list; }
       // Si tous les trajets ont un péage, on demande aussi le meilleur trajet sans péage (souvent le moins cher)
@@ -2787,7 +2972,8 @@
     document.addEventListener('focusout', function (e) { if (!typing(e.target)) return; clearTimeout(t); t = setTimeout(function () { document.body.classList.remove('kbTop'); }, 250); });
   })();
   function beginNav(dest, n, resumed, from) {
-    if (!resumed) addRecent(dest);
+    if (!resumed) { addRecent(dest); logTrip(dest); }
+    battAttach(n, null); $('habit').classList.remove('show');
     var keepEta0 = nav && nav.dest && dest && nav.dest.lat === dest.lat && nav.dest.lon === dest.lon ? nav.eta0 : null;
     nav = n; nav.dest = dest; nav.idx = 0; nav.eta0 = keepEta0; nav.stops = n.stops || []; updateWpBtn(); nav.offCount = 0; nav.lastReroute = Date.now();
     if (n.toll && n.srcRoute) { n.tollPrice = n.srcRoute.tollPrice; n.tollExact = n.srcRoute.tollExact; loadTollPrice(n.srcRoute); }
@@ -2802,9 +2988,11 @@
     try { localStorage.setItem('vigie-nav', JSON.stringify(dest)); } catch (e) {}
     if (!resumed) speak('C\'est parti. ' + formatDist(nav.total) + ' jusqu\'à ' + dest.short + '.');
     if (watchId === null && !demoTimer) $('btnStart').onclick();
+    battWarn();
   }
   function stopNav(silent) {
-    nav = null; hideBetter(); clearRoute(); setManeuverArrow(null); if (destMarker) { destMarker.remove(); destMarker = null; }
+    if (nav && nav.battStart != null) saveBatt(battNow());
+    nav = null; hideBetter(); $('btnStop').classList.remove('warn'); clearRoute(); setManeuverArrow(null); setTimeout(checkHabit, 1500); if (destMarker) { destMarker.remove(); destMarker = null; }
     try { localStorage.removeItem('vigie-nav'); } catch (e) {}
     document.body.classList.remove('navigating'); $('nav').classList.remove('show'); $('trip').classList.remove('show');
     $('alert').style.display = '';
@@ -2962,6 +3150,7 @@
       if (!nav.workAhead && dW < 1500) nav.workAhead = { d: Math.max(0, dW), inside: dW <= 0, cat: w.cat, len: endAlong - Math.max(startAlong, pos.along) };
       if (dW < 1500 && dW > 0 && !w.said) { w.said = true; beep(1); speak((w.cat === 'ROAD_CLOSURE' ? 'Route fermée' : 'Travaux') + ' dans ' + formatDist(dW)); }
     });
+    if (nav.battArr != null) extra.push(battTxt(nav.battArr));
     if (nav.toll) extra.push(typeof nav.tollPrice === 'number' && nav.tollPrice > 0 ? fmtToll(nav.tollPrice, nav.tollExact) : 'Péage');
     if (worksLeft) extra.push(worksLeft + ' zone' + (worksLeft > 1 ? 's' : '') + ' de travaux');
     if (hz) extra.push(hz + ' danger' + (hz > 1 ? 's' : '') + ' signalé' + (hz > 1 ? 's' : ''));
@@ -2986,7 +3175,7 @@
       var keepVia = nav.via, keep0 = nav.eta0, keepStops = nav.stops || [];
       fetchRoutes({ lat: lat, lon: lon }, dest, 0, navAvoid(), navVias(keepStops, keepVia, { lat: lat, lon: lon })).then(function (l) { return l[0]; }).then(function (route) {
         try { ['route-line', 'route-casing', 'route-glow'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', id === 'route-glow' ? (theme === 'light' ? 0.12 : 0.22) : 1); }); } catch (e) {}
-        if (!nav || nav !== navRef) return; var n = prepareRoute(route); n.dest = dest; n.via = keepVia; n.stops = keepStops; n.eta0 = keep0; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
+        if (!nav || nav !== navRef) return; var n = prepareRoute(route); n.dest = dest; n.via = keepVia; n.stops = keepStops; n.eta0 = keep0; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); n.battSaid = nav.battSaid; battAttach(n, nav); nav = n; battWarn(); setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
       }).catch(function () { try { ['route-line', 'route-casing'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 1); }); } catch (e) {}
         if (nav === navRef) { nav.rerouting = false; nav.lastReroute = Date.now() - 2000; setStatus('Recalcul en cours…', 'warn'); } });
     }
@@ -3057,7 +3246,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794611353';
+  var BUILD = '1794611775';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -3090,7 +3279,7 @@
         [].forEach.call($('netList').querySelectorAll('label'), function (l, i) { if (i > 0) l.remove(); });
         buildNetList(); applyNetworks(); setVis(['sc-circle', 'sc-label'], $('lySc').checked);
       }
-      if (me.car) { myCar = { model: me.car.model, color: me.car.color, label: me.car.label || '' }; try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {} drawCar(); }
+      if (me.car) { myCar = { model: me.car.model, color: me.car.color, label: me.car.label || '', ver: me.car.ver || (myCar && myCar.ver) || '', r100: me.car.r100 || (myCar && myCar.r100) || 0 }; try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {} drawCar(); }
       else if (myCar) apiJSON('PUT', '/me/car', myCar).catch(function () {});
     }
   }
