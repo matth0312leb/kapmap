@@ -174,8 +174,11 @@
   #btnCompass { position:absolute; right:22px; top:calc(var(--toolsBottom, 470px) + 12px); z-index:500; width:48px; height:48px; border-radius:50%; border:0; padding:0; cursor:pointer;
     display:flex; align-items:center; justify-content:center; background:rgba(14,14,15,.92); color:#fff; box-shadow:0 4px 16px rgba(0,0,0,.45); }
   body.light #btnCompass { background:#fff; color:#111; }
-  #btnCompass svg { width:30px; height:30px; }
-  #btnCompass svg { transition:transform .25s linear; }
+  #btnCompass { width:58px !important; height:58px !important; border-radius:14px !important; overflow:hidden; }
+  #btnCompass svg { width:20px; height:20px; position:relative; z-index:1; transition:transform .25s linear; }
+  #cmpRing { position:absolute; inset:0; pointer-events:none; }
+  #cmpRing i { position:absolute; left:50%; top:50%; font-style:normal; font-size:9px; font-weight:700; letter-spacing:.02em; opacity:.6; line-height:1; }
+  #cmpRing i.m { font-size:12px; opacity:1; }
   #btnCompass #compassN { position:absolute; top:3px; left:0; right:0; text-align:center; font-size:9px; font-weight:800; color:var(--acc); display:none; }
   #btnCompass.north #compassN { display:block; }
   .hz.tt { border-color:#9aa0a6 !important; }
@@ -577,7 +580,7 @@
   <button class="tbtn rep" id="btnReport" title="Signaler un danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg></button>
 </div>
 
-<button id="btnCompass" title="Orientation de la carte"><svg id="needle" viewBox="0 0 24 24"><path d="M12 2.5l3.2 9.5h-6.4z" fill="#e31937"/><path d="M12 21.5l-3.2-9.5h6.4z" fill="currentColor" opacity=".55"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg><span id="compassN">N</span></button>
+<button id="btnCompass" title="Orientation de la carte"><div id="cmpRing"></div><svg id="needle" viewBox="0 0 24 24"><path d="M12 3l7 17-7-4.2L5 20z" fill="currentColor"/></svg><span id="compassN"></span></button>
 
 <button id="btnRecenter"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg>Recentrer</button>
 
@@ -946,7 +949,18 @@
   // Orientation : « route » (la carte tourne avec la voiture, vue 3D) ou « nord » (nord en haut, vue à plat)
   var orient = 'route';
   try { orient = localStorage.getItem('vigie-orient') || 'route'; } catch (e) {}
-  function refreshCompass() { $('btnCompass').classList.toggle('north', orient === 'north'); $('needle').style.transform = 'rotate(' + (-map.getBearing()) + 'deg)'; }
+  // Boussole façon Tesla : flèche = direction de la voiture, lettres cardinales qui tournent autour
+  var CMP = [['N', 0], ['NE', 45], ['E', 90], ['SE', 135], ['S', 180], ['SO', 225], ['O', 270], ['NO', 315]];
+  $('cmpRing').innerHTML = CMP.map(function (c) { return '<i class="' + (c[0].length === 1 ? 'm' : '') + '">' + c[0] + '</i>'; }).join('');
+  function refreshCompass() {
+    var b = map.getBearing(), hd = (typeof heading === 'number' && heading !== null) ? heading : b;
+    $('btnCompass').classList.toggle('north', orient === 'north');
+    $('needle').style.transform = 'rotate(' + (hd - b) + 'deg)';
+    [].forEach.call($('cmpRing').children, function (el, k) {
+      var a = (CMP[k][1] - b) * Math.PI / 180, r = 21;
+      el.style.transform = 'translate(-50%,-50%) translate(' + (Math.sin(a) * r).toFixed(1) + 'px,' + (-Math.cos(a) * r).toFixed(1) + 'px)';
+    });
+  }
   map.on('rotate', refreshCompass);
   $('btnCompass').onclick = function () {
     if (!follow) { map.easeTo({ bearing: 0, pitch: 0, duration: 500 }); return; }   // carte déplacée à la main : on remet juste le nord en haut
@@ -958,6 +972,7 @@
   };
   setTimeout(refreshCompass, 0);
   function navTo(lat, lon, instant) {
+    refreshCompass();
     var h = map.getContainer().clientHeight;
     var kmh = lastSpeed || 0;
     // Zoom dynamique : vue large quand on roule, on se rapproche à l'approche d'un tournant, d'une sortie ou de l'arrivée
@@ -2610,7 +2625,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794555191';
+  var BUILD = '1794555746';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
