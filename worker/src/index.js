@@ -46,7 +46,7 @@ function sameText(a, b) {
 }
 const WEAK_PINS = ['0000', '1111', '1234', '4321', '00000', '12345', '000000', '111111', '123456', '654321', '123123'];
 function publicUser(u) {
-  return { id: u.id, invites: u.invites || 0, plan: u.plan || null, planUntil: u.plan_until || null, planRenews: !!u.plan_renews,
+  return { id: u.id, invites: u.invites || 0, giftUntil: u.gift_until || null, giftKind: u.gift_kind || null, plan: u.plan || null, planUntil: u.plan_until || null, planRenews: !!u.plan_renews,
     pseudo: u.pseudo, name: u.name || '', reports: u.reports_count || 0, points: u.points || 0, since: u.created_at,
     home: u.home ? JSON.parse(u.home) : null, work: u.work ? JSON.parse(u.work) : null, car: u.car ? JSON.parse(u.car) : null };
 }
@@ -78,8 +78,10 @@ async function falseCount(env, userId) {
   return r ? r.n : 0;
 }
 // Une confirmation d'un autre conducteur sur le signalement `rep` : paie l'auteur
-async function payConfirmation(env, rep) {
+async function payConfirmation(env, rep, voter) {
   if (!rep.user_id) return;
+  // Anti-triche : seules les confirmations d'un compte de plus de 7 jours rapportent des points à l'auteur
+  if (!voter || !voter.created_at || Date.now() - voter.created_at < 7 * DAY) return;
   if (!rep.confirmed) {
     await env.DB.prepare('UPDATE reports SET confirmed = 1 WHERE id = ?1').bind(rep.id).run();
     await addPoints(env, rep.user_id, PTS_CONFIRMED, 'confirmé');
@@ -150,11 +152,29 @@ async function ttFetch(env, kind, u, opts) {
   return r;
 }
 
+// ----- Parrainage -----
+// Filleul : 7 jours de Premium offerts, comptés à partir de la fin de la bêta s'il s'inscrit pendant la bêta.
+// Parrain : quand son filleul s'abonne pour la première fois, il reçoit 1 mois offert (filleul mensuel) ou 6 mois (filleul annuel ou à vie), une seule fois.
+const BETA_END = Date.parse('2027-01-01T00:00:00+01:00');
+const DAY = 86400000;
+async function giveGift(env, userId, days, kind) {
+  await env.DB.prepare('UPDATE users SET gift_until = MAX(COALESCE(gift_until, 0), ?2, ?3) + ?4, gift_kind = ?5 WHERE id = ?1')
+    .bind(userId, Date.now(), BETA_END, days * DAY, kind).run();
+}
+async function rewardGodfather(env, filleulId, days) {
+  const f = await env.DB.prepare('SELECT referred_by FROM users WHERE id = ?1').bind(filleulId).first();
+  if (!f || !f.referred_by) return;
+  const g = await env.DB.prepare('SELECT id, ref_reward_used FROM users WHERE id = ?1').bind(f.referred_by).first();
+  if (!g || g.ref_reward_used) return;
+  await env.DB.prepare('UPDATE users SET ref_reward_used = ?2 WHERE id = ?1').bind(g.id, filleulId).run();
+  await giveGift(env, g.id, days, 'parrainage');
+}
+
 // ----- Abonnements (colonnes ajoutées à la table users au premier besoin) -----
 let billingReady = false;
 async function ensureBilling(env) {
   if (billingReady) return;
-  for (const col of ['plan TEXT', 'plan_until INTEGER', 'plan_renews INTEGER', 'stripe_customer TEXT', 'stripe_sub TEXT', 'referred_by INTEGER', 'ref_paid INTEGER DEFAULT 0']) {
+  for (const col of ['plan TEXT', 'plan_until INTEGER', 'plan_renews INTEGER', 'stripe_customer TEXT', 'stripe_sub TEXT', 'referred_by INTEGER', 'ref_paid INTEGER DEFAULT 0', 'gift_until INTEGER', 'gift_kind TEXT', 'ref_reward_used INTEGER']) {
     try { await env.DB.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {}
   }
   billingReady = true;
@@ -211,7 +231,10 @@ export default {
         if (/^[A-Za-z0-9_.-]{3,20}$/.test(inv) && inv !== pseudo) {
           await ensureBilling(env);
           const godfather = await env.DB.prepare('SELECT id FROM users WHERE pseudo = ?1').bind(inv).first();
-          if (godfather) await env.DB.prepare('UPDATE users SET referred_by = ?2 WHERE id = ?1').bind(id, godfather.id).run();
+          if (godfather) {
+            await env.DB.prepare('UPDATE users SET referred_by = ?2 WHERE id = ?1').bind(id, godfather.id).run();
+            await giveGift(env, id, 7, 'essai');
+          }
         }
         const token = await newSession(env, id);
         const u = await env.DB.prepare('SELECT * FROM users WHERE id = ?1').bind(id).first();
@@ -262,10 +285,12 @@ export default {
             if (o.mode === 'payment') {
               await env.DB.prepare('UPDATE users SET plan = ?2, plan_until = ?3, plan_renews = 0, stripe_customer = COALESCE(?4, stripe_customer) WHERE id = ?1')
                 .bind(uid, 'life', 4102444800000, o.customer || null).run();
+              await rewardGodfather(env, uid, 183);
             } else if (o.mode === 'subscription') {
               const sub = o.subscription ? await stripeGet(env, 'subscriptions/' + o.subscription) : null, si = subInfo(sub);
               await env.DB.prepare('UPDATE users SET plan = ?2, plan_until = ?3, plan_renews = ?4, stripe_customer = ?5, stripe_sub = ?6 WHERE id = ?1')
                 .bind(uid, sub ? si.plan : 'month', si.until || (now + 31 * 86400000), si.renews ? 1 : 0, o.customer || null, o.subscription || null).run();
+              await rewardGodfather(env, uid, sub && si.plan === 'year' ? 183 : 31);
             }
           }
         } else if (ev.type === 'customer.subscription.updated' || ev.type === 'customer.subscription.deleted' || ev.type === 'customer.subscription.created') {
@@ -384,7 +409,7 @@ export default {
           let pts0 = 0;
           // Un autre conducteur (autre compte et autre connexion) qui signale la même chose = une confirmation
           if (dup.ip_hash !== who && (!me0 || me0.id !== dup.user_id)) {
-            await payConfirmation(env, dup);
+            await payConfirmation(env, dup, me0);
             if (me0) pts0 = await addPoints(env, me0.id, 2, 'confirmation');
           }
           return json({ ok: true, id: dup.id, merged: true, points: pts0 });
@@ -428,7 +453,7 @@ export default {
           else await env.DB.prepare('INSERT INTO anon_votes (report_id, ip_hash, at) VALUES (?1, ?2, ?3)').bind(id, vip, now).run();
         }
         if (!counts) return json({ ok: true, points: 0 });
-        if (!body.gone) await payConfirmation(env, row);
+        if (!body.gone) await payConfirmation(env, row, voter);
         if (body.gone) {
           const gone = row.gone_votes + 1;
           const expire = gone >= 2 && gone > row.ok_votes;

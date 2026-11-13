@@ -2199,7 +2199,7 @@
       var u = inviteUrl();
       $('invQr').innerHTML = qrSvg(u);
       $('invLink').textContent = u.replace(/^https?:\/\//, '');
-      $('invLead').textContent = me ? 'Chaque ami qui s\'inscrit avec ton lien et dont le premier signalement est confirmé te rapporte 15 points.' : 'Fais-leur scanner ce code ou envoie-leur le lien. Crée ton compte pour que tes invitations te rapportent des points.';
+      $('invLead').textContent = me ? 'Ton ami reçoit 7 jours de Premium offerts. S\'il s\'abonne, tu gagnes 1 mois offert (abonnement mensuel) ou 6 mois (annuel ou à vie). Une seule fois.' : 'Fais-leur scanner ce code ou envoie-leur le lien. Crée ton compte pour que tes invitations te rapportent du Premium offert.';
       $('invShare').style.display = navigator.share ? '' : 'none';
       $('inviteBox').classList.add('show');
     };
@@ -2333,7 +2333,9 @@
     var pr = PRICES.promo; if (pr && Date.now() < pr.until) return { price: pr.price, link: PRICES.links.lifePromo, tag: pr.label, strike: pr.strike };
     return { price: PRICES.life, link: PRICES.links.life, tag: '' };
   }
-  function hasPremium() { return !!(me && me.planUntil && me.planUntil > Date.now()); }
+  function hasPaid() { return !!(me && me.planUntil && me.planUntil > Date.now()); }
+  function hasGift() { return !!(me && me.giftUntil && me.giftUntil > Date.now()); }
+  function hasPremium() { return hasPaid() || hasGift(); }
   (function () {
     var plan = 'year';
     function link() { return plan === 'life' ? lifeOffer().link : PRICES.links[plan]; }
@@ -2688,7 +2690,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794590431';
+  var BUILD = '1794591155';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2752,12 +2754,14 @@
       var fmtD = function (t) { return new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); };
       var sub = (function () {
         var names = { month: 'Premium mensuel', year: 'Premium annuel', life: 'Premium à vie' };
-        if (hasPremium()) {
+        if (!hasPaid() && hasGift() && !isBeta) return { cls: 'on', t: me.giftKind === 'parrainage' ? 'Premium offert' : 'Essai Premium',
+          d: (me.giftKind === 'parrainage' ? 'Offert grâce à ton filleul, jusqu\'au ' : 'Offert jusqu\'au ') + fmtD(me.giftUntil) + '.', btn: '<button class="btn sec" id="aSubGo">Voir les offres</button>' };
+        if (hasPaid()) {
           if (me.plan === 'life') return { cls: 'on', t: names.life, d: 'Accès illimité, pour toujours.', btn: '' };
           return { cls: 'on', t: names[me.plan] || 'Premium', d: (me.planRenews ? 'Renouvellement le ' : 'Se termine le ') + fmtD(me.planUntil),
             btn: PRICES.portal ? '<button class="btn sec" id="aSubManage">Gérer mon abonnement</button>' : '' };
         }
-        if (isBeta) return { cls: 'beta', t: 'Bêta gratuite', d: 'Tout est offert jusqu\'au ' + BETA.label + '.' + (isFounder() ? ' En tant que Fondateur, l\'accès à vie sera à ' + BETA.founderLife + '.' : ''),
+        if (isBeta) return { cls: 'beta', t: 'Bêta gratuite', d: 'Tout est offert jusqu\'au ' + BETA.label + '.' + (me.giftUntil ? ' Ensuite, Premium offert jusqu\'au ' + fmtD(me.giftUntil) + '.' : '') + (isFounder() ? ' En tant que Fondateur, l\'accès à vie sera à ' + BETA.founderLife + '.' : ''),
           btn: '<button class="btn sec" id="aSubGo">Voir les offres</button>' };
         return { cls: '', t: 'Version gratuite', d: me.planUntil ? 'Ton abonnement s\'est terminé le ' + fmtD(me.planUntil) + '.' : 'Passe à Premium pour tout débloquer.',
           btn: '<button class="btn pri" id="aSubGo">Passer à Premium</button>' };
@@ -2766,7 +2770,7 @@
         '<span class="pBadge">' + esc(lv0.name) + '</span>' + (isFounder() ? '<span class="pBadge fd">Fondateur</span>' : '') + '</div></div>' +
         '<div class="pSub ' + sub.cls + '"><div class="pSubT"><span>Mon abonnement</span><b>' + sub.t + '</b></div><p>' + sub.d + '</p>' + sub.btn + '</div>' +
         '<div class="pStats"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b id="pWeekRank">–</b><span>rang semaine</span></div><div><b id="pWeekPts">–</b><span>pts semaine</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div></div>' +
-        '<div class="pInv"><div><b>Inviter un ami</b><span>' + (me.invites ? me.invites + (me.invites > 1 ? ' amis inscrits' : ' ami inscrit') + ' grâce à toi' : '+15 points par ami actif') + '</span></div><button id="aInvite">Inviter</button></div>' +
+        '<div class="pInv"><div><b>Inviter un ami</b><span>' + (me.invites ? me.invites + (me.invites > 1 ? ' amis inscrits' : ' ami inscrit') + ' grâce à toi' : '7 jours offerts pour ton ami, jusqu\'à 6 mois pour toi') + '</span></div><button id="aInvite">Inviter</button></div>' +
         (function () { var lv = lv0;
           return '<div class="pLvl"><span><b>' + lv.name + '</b>' + (lv.next ? ' · encore ' + lv.toNext + ' points pour « ' + lv.next + ' »' : '') + '</span><span>Membre depuis ' + since.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) + '</span></div>' +
             '<div class="pBar"><i style="width:' + lv.pct + '%"></i></div>' +
@@ -2930,7 +2934,7 @@
   // Lien d'invitation : ?invite=<pseudo du parrain>, gardé jusqu'à l'inscription
   (function () { var inv = (location.search.match(/[?&]invite=([A-Za-z0-9_.-]{3,20})/) || [])[1];
     try { if (inv) localStorage.setItem('vigie-invite', inv); inv = inv || localStorage.getItem('vigie-invite'); } catch (e) {}
-    if (inv && !me) { $('wInv').textContent = 'Invité par ' + inv; $('wInv').style.display = 'inline-block'; } })();
+    if (inv && !me) { $('wInv').textContent = 'Invité par ' + inv + ' · 7 jours Premium offerts'; $('wInv').style.display = 'inline-block'; } })();
   // Aperçu direct d'un écran : ?show=welcome ou ?show=premium
   (function () { var sh = (location.search.match(/[?&]show=(\w+)/) || [])[1];
     if (sh === 'welcome') setTimeout(function () { _showWelcome(true); }, 600);
