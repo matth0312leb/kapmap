@@ -422,7 +422,7 @@
   #tripInfo small { display:block; font-size:12px; color:var(--mut); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #tripInfo { min-width:0; overflow:hidden; }
   /* En navigation (Tesla, PC) : la barre du trajet démarre après le compteur, jamais dessous */
-  @media (min-width: 701px) { body.navigating #bottom { left:calc(var(--speedR, 150px) + 12px); transform:none; width:min(560px, calc(100% - var(--speedR, 150px) - 28px)); } }
+  @media (min-width: 701px) { body.navigating #bottom { left:calc(var(--speedR, 150px) + 12px); transform:none; width:min(640px, calc(100% - var(--speedR, 150px) - 28px)); } }
   /* Thème jour : mêmes codes que la nuit (verre clair, accents rouges) */
   body.light .panel { background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(246,246,248,.98)); border:1px solid rgba(0,0,0,.06); box-shadow:0 12px 34px rgba(0,0,0,.18); }
   body.light .tbtn { background:rgba(0,0,0,.045); border:1px solid rgba(0,0,0,.05); color:#1f2328; }
@@ -440,6 +440,24 @@
   label.chip2 input { position:absolute; opacity:0; pointer-events:none; }
   label.chip2:has(input:checked) { background:rgba(227,25,55,.16); color:var(--txt); border-color:rgba(227,25,55,.65); box-shadow:0 0 12px rgba(227,25,55,.25); }
   #rtCancel { font:inherit; font-size:13px; background:transparent; border:0; color:var(--mut); cursor:pointer; padding:8px 6px; }
+  button.chip2 { font:inherit; font-size:13px; display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--mut); font-weight:600; cursor:pointer; }
+  button.chip2.on { background:rgba(227,25,55,.16); color:var(--txt); border-color:rgba(227,25,55,.65); }
+  #trip button#btnWp { background:rgba(127,127,127,.18); color:var(--txt); padding-left:12px !important; padding-right:12px !important; flex:none !important; position:relative; }
+  body:not(.light) #trip button#btnWp { background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border:1px solid rgba(255,255,255,.1); }
+  #btnWp i { position:absolute; top:-5px; right:-5px; min-width:18px; height:18px; border-radius:9px; background:#e31937; color:#fff; font:700 11px/18px system-ui; font-style:normal; text-align:center; }
+  #wpQ, #whenTime { width:100%; box-sizing:border-box; font:inherit; font-size:16px; padding:13px 14px; border-radius:12px; border:1px solid var(--line); background:rgba(127,127,127,.1); color:var(--txt); margin:12px 0 4px; }
+  #wpRes .stopRow:last-child, #wpList .stopRow:last-child { border-bottom:0; }
+  #whenSeg button, #whenDay button { flex:1; font:inherit; font-size:14px; font-weight:600; padding:11px 6px; border-radius:12px; border:1px solid var(--line); background:rgba(127,127,127,.1); color:var(--txt); cursor:pointer; }
+  #whenSeg button.on, #whenDay button.on { background:rgba(227,25,55,.16); border-color:rgba(227,25,55,.65); }
+  #whenDay { margin-top:8px; }
+  body.betterOn #alert { display:none !important; }
+  #better { position:fixed; left:16px; top:calc(var(--navBottom, 106px) + 10px); z-index:1400; display:none; align-items:center; gap:14px; padding:12px 12px 12px 18px; border-radius:16px;
+    background:linear-gradient(180deg,#1a1a1d,#0c0c0d); border:1px solid rgba(255,255,255,.1); border-left:3px solid #e31937; box-shadow:0 18px 50px rgba(0,0,0,.6); color:#f2f2f2; max-width:calc(100% - 100px); box-sizing:border-box; }
+  #better.show { display:flex; }
+  #better > div { flex:none; white-space:nowrap; } @media (max-width:520px) { #better small { display:none !important; } #better { gap:8px; padding:10px 10px 10px 14px; } #better button { padding:10px 12px; font-size:14px; } #better b { font-size:19px; } }
+  #better b { font-size:22px; color:#fff; white-space:nowrap; } #better small { display:block; font-size:12px; color:#9a9a9f; }
+  #better button { font:inherit; font-size:15px; font-weight:700; padding:11px 16px; border-radius:12px; border:0; cursor:pointer; }
+  #betterGo { background:linear-gradient(180deg,#ef2a47,#c8102e); color:#fff; } #betterNo { background:rgba(255,255,255,.08); color:#ddd; }
   /* Écran de démarrage */
   #splash { position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center; background:radial-gradient(60% 50% at 50% 45%, rgba(227,25,55,.18), transparent 70%), #0a0a0b; transition:opacity .45s ease; }
   #splash.hide { opacity:0; pointer-events:none; }
@@ -678,7 +696,7 @@
     <button id="goFavs" title="Favoris"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.2 9.4l6.1-.8z"/></svg><span>Favoris</span></button>
   </div>
   <div id="results"></div>
-  <div id="trip"><div id="tripEta"></div><div id="tripInfo"></div><button id="btnStop" title="Ajouter un arrêt recharge"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align:-3px;color:#e31937"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></button><button id="shareTrip" style="background:rgba(127,127,127,.18);color:var(--txt)">Partager</button><button id="stopNav">Arrêter</button></div>
+  <div id="trip"><div id="tripEta"></div><div id="tripInfo"></div><button id="btnStop" title="Ajouter un arrêt recharge"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align:-3px;color:#e31937"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></button><button id="btnWp" title="Étapes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-3px"><path d="M12 5v14M5 12h14"/></svg><i id="wpN" style="display:none"></i></button><button id="shareTrip" style="background:rgba(127,127,127,.18);color:var(--txt)">Partager</button><button id="stopNav">Arrêter</button></div>
 </div>
 
 <div id="welcome" class="overlay"><div class="card">
@@ -804,6 +822,24 @@
   <button class="btn sec" id="invCopy">Copier le lien</button>
   <button class="btn link" id="invClose">Fermer</button>
 </div></div>
+
+<div id="wpBox" class="overlay"><div class="card">
+  <h2>Étapes</h2>
+  <div id="wpList"></div>
+  <input id="wpQ" placeholder="Ajouter une étape" autocomplete="off" enterkeyhint="search">
+  <div id="wpRes"></div>
+  <button class="btn sec" id="wpClose">Fermer</button>
+</div></div>
+
+<div id="whenBox" class="overlay"><div class="card">
+  <h2>Heure</h2>
+  <div class="seg" id="whenSeg"><button data-m="now">Maintenant</button><button data-m="depart">Partir à</button><button data-m="arrive">Arriver à</button></div>
+  <div id="whenPick"><input id="whenTime" type="time"><div class="seg" id="whenDay"><button data-d="0">Aujourd'hui</button><button data-d="1">Demain</button></div></div>
+  <button class="btn pri" id="whenOk">Valider</button>
+  <button class="btn link" id="whenClose">Annuler</button>
+</div></div>
+
+<div id="better"><div><b id="betterGain"></b><small>Trajet plus rapide</small></div><button id="betterGo">Prendre</button><button id="betterNo">Ignorer</button></div>
 
 <div id="stopBox" class="overlay"><div class="card">
   <h2>Recharger en route</h2>
@@ -2039,9 +2075,17 @@
   try { routePrefs = Object.assign(routePrefs, JSON.parse(localStorage.getItem('vigie-route') || '{}')); } catch (e) {}
   function avoidParam() { var a = []; if (routePrefs.tolls) a.push('tollRoads'); if (routePrefs.motorways) a.push('motorways'); return a.join(','); }
   // Itinéraires TomTom : guidage en français, trafic, limitations, voies ; repli sur OSRM
-  function fetchRoutes(from, to, alts, avoidOverride, via) {
+  // Étapes : via = un point ou une liste (max 5) ; when = { mode: 'depart'|'arrive', at: Date } pour partir plus tard / arriver à l'heure
+  function isoLocal(d) {
+    var o = -d.getTimezoneOffset(), p = function (n) { return ('0' + Math.floor(Math.abs(n))).slice(-2); };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':00' + (o >= 0 ? '+' : '-') + p(o / 60) + ':' + p(o % 60);
+  }
+  function hhmm(v) { var d = v instanceof Date ? v : new Date(v); return isNaN(d) ? '' : ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function fetchRoutes(from, to, alts, avoidOverride, via, when) {
+    var vl = !via ? [] : Array.isArray(via) ? via : [via];
     var url = API + '/route?from=' + from.lat.toFixed(5) + ',' + from.lon.toFixed(5) + '&to=' + to.lat.toFixed(5) + ',' + to.lon.toFixed(5) +
-      (via ? '&via=' + via.lat.toFixed(5) + ',' + via.lon.toFixed(5) : '') +
+      (vl.length ? '&via=' + vl.slice(0, 5).map(function (v) { return v.lat.toFixed(5) + ',' + v.lon.toFixed(5); }).join(';') : '') +
+      (when && when.at && when.at > Date.now() + 60000 ? '&' + (when.mode === 'arrive' ? 'arrive' : 'depart') + '=' + encodeURIComponent(isoLocal(new Date(when.at))) : '') +
       '&alt=' + (alts || 0) + '&avoid=' + (avoidOverride !== undefined ? avoidOverride : avoidParam()) + (heading !== null && (lastSpeed || 0) > 8 ? '&heading=' + Math.round(heading) : '');
     return fetch(url).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.routes || !d.routes.length) throw new Error('vide');
@@ -2125,13 +2169,15 @@
       var len = rt.kind === 'tomtom' ? rt.length : rt.distance, t = rt.kind === 'tomtom' ? rt.travel : rt.duration, dl = rt.kind === 'tomtom' ? rt.delay : 0;
       if (rt.toll) loadTollPrice(rt);
       var best = (tags[i] || []).map(function (t) { return ' <span class="rtag">' + t + '</span>'; }).join('');
-      return '<div class="res" data-i="' + i + '" style="cursor:pointer;' + (i === pendingSel ? 'background:rgba(127,127,127,.12);border-radius:10px' : '') + '"><div class="t"><b>' + fmtDur(t) + best + '</b><span>' + formatDist(len) +
+      return '<div class="res" data-i="' + i + '" style="cursor:pointer;' + (i === pendingSel ? 'background:rgba(127,127,127,.12);border-radius:10px' : '') + '"><div class="t"><b>' + fmtDur(t) + best + '</b><span>' + (planTime && rt.departAt ? (planTime.mode === 'arrive' ? 'Départ ' + hhmm(rt.departAt) : 'Arrivée ' + hhmm(rt.arriveAt)) + ' · ' : '') + formatDist(len) +
         (dl >= 60 ? ' · dont ' + fmtDur(dl) + ' de bouchons' : '') + (rt.toll ? ' · ' + tollText(rt) : '') + '</span></div>' + (i === pendingSel ? '<button class="go">Démarrer</button>' : '') + '</div>';
     }).join('');
     box.innerHTML = '<div style="display:flex;gap:6px;padding:6px 2px 8px">' +
       '<label class="chip2"><input type="checkbox" id="avToll"' + (routePrefs.tolls ? ' checked' : '') + '> Éviter les péages</label>' +
       '<label class="chip2"><input type="checkbox" id="avMoto"' + (routePrefs.motorways ? ' checked' : '') + '> Éviter les autoroutes</label>' +
-      '<button id="rtCancel" style="margin-left:auto">Annuler</button></div>' + opts;
+      '<button id="rtCancel" style="margin-left:auto">Annuler</button></div>' +
+      '<div style="display:flex;gap:6px;padding:0 2px 8px"><button class="chip2' + (planStops.length ? ' on' : '') + '" id="rtWp">+ Étape' + (planStops.length ? ' · ' + planStops.length : '') + '</button>' +
+      '<button class="chip2' + (planTime ? ' on' : '') + '" id="rtWhen">' + (planTime ? (planTime.mode === 'arrive' ? 'Arriver à ' : 'Partir à ') + hhmm(planTime.at) + (new Date(planTime.at).getDate() !== new Date().getDate() ? ' demain' : '') : 'Partir maintenant') + '</button></div>' + opts;
     [].forEach.call(box.querySelectorAll('.res[data-i]'), function (row) {
       row.onclick = function (e) {
         var i = +row.getAttribute('data-i');
@@ -2139,7 +2185,9 @@
         pendingSel = i; drawAlts(); showRouteChoice();
       };
     });
-    $('rtCancel').onclick = function () { pendingRoutes = null; clearAlts(); clearResults(); if (destMarker) { destMarker.remove(); destMarker = null; } };
+    $('rtWp').onclick = function () { openWp('plan'); };
+    $('rtWhen').onclick = openWhen;
+    $('rtCancel').onclick = function () { planStops = []; planTime = null; pendingRoutes = null; clearAlts(); clearResults(); if (destMarker) { destMarker.remove(); destMarker = null; } };
     $('avToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); startNav(pendingDest); };
     $('avMoto').onchange = function () { routePrefs.motorways = this.checked; saveRoutePrefs(); startNav(pendingDest); };
   }
@@ -2464,7 +2512,7 @@
     var rem = remainingSecs(), from = { lat: last.lat, lon: last.lon };
     list.forEach(function (x, k) {
       var via = { lat: x.it[0], lon: x.it[1] };
-      fetchRoutes(from, nav.dest, 0, undefined, via).then(function (l) {
+      fetchRoutes(from, nav.dest, 0, undefined, navVias(nav.stops, via, from)).then(function (l) {
         var add = Math.max(0, Math.round(((l[0].travel || l[0].duration) - rem) / 60));
         x.route = l[0]; var e = $('det' + k); if (e) e.textContent = add <= 1 ? 'sans détour' : '+' + add + ' min';
       }).catch(function () { var e = $('det' + k); if (e) e.textContent = ''; });
@@ -2474,17 +2522,124 @@
     });
   };
   $('stopClose').onclick = function () { $('stopBox').classList.remove('show'); };
-  function applyVia(via, route) {
+  // Étapes libres (nav.stops, dans l'ordre choisi) + arrêt recharge (nav.via) inséré là où il est le plus proche
+  function navVias(stops, sc, from) {
+    var l = (stops || []).slice(0, 4);
+    if (sc) {
+      var k = l.length;
+      if (from) { var dsc = dist(from.lat, from.lon, sc.lat, sc.lon); for (var i = 0; i < l.length; i++) if (dist(from.lat, from.lon, l[i].lat, l[i].lon) > dsc) { k = i; break; } }
+      l.splice(k, 0, sc);
+    }
+    return l.length ? l : null;
+  }
+  function applyNav(stops, sc, route, msg) {
     if (!nav || !last) return;
-    var dest = nav.dest, keep0 = nav.eta0;
-    (route ? Promise.resolve(route) : fetchRoutes({ lat: last.lat, lon: last.lon }, dest, 0, undefined, via).then(function (l) { return l[0]; })).then(function (rt) {
+    var dest = nav.dest, keep0 = nav.eta0, here = { lat: last.lat, lon: last.lon };
+    (route ? Promise.resolve(route) : fetchRoutes(here, dest, 0, undefined, navVias(stops, sc, here)).then(function (l) { return l[0]; })).then(function (rt) {
       if (!nav) return;
-      var n = prepareRoute(rt); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); n.via = via; n.eta0 = keep0;
+      var n = prepareRoute(rt); n.dest = dest; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); n.via = sc; n.stops = stops || []; n.eta0 = keep0;
       nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic();
-      $('btnStop').classList.toggle('on', !!via);
-      toast(via ? 'Arrêt ajouté : ' + via.name : 'Arrêt retiré');
+      $('btnStop').classList.toggle('on', !!sc); updateWpBtn(); hideBetter();
+      if (msg) toast(msg);
     }).catch(function () { toast('Itinéraire indisponible, réessaie'); });
   }
+  function applyVia(via, route) { applyNav(nav ? nav.stops : [], via, route, via ? 'Arrêt ajouté : ' + via.name : 'Arrêt retiré'); }
+  function updateWpBtn() { var k = nav && nav.stops ? nav.stops.length : 0; $('wpN').textContent = k; $('wpN').style.display = k ? '' : 'none'; $('btnWp').classList.toggle('on', !!k); }
+  // ---------- Étapes : ajout depuis une recherche, avant le départ ('plan') ou en roulant ('nav') ----------
+  var planStops = [], planTime = null, wpMode = null, wpTimer = null;
+  function curStops() { return wpMode === 'nav' ? (nav ? nav.stops || [] : []) : planStops; }
+  function setStops(l, msg) {
+    if (wpMode === 'nav') applyNav(l, nav ? nav.via : null, null, msg);
+    else { planStops = l; if (pendingDest) startNav(pendingDest); }
+    renderWp(l);
+  }
+  function renderWp(l) {
+    l = l || curStops();
+    $('wpList').innerHTML = l.map(function (s, k) {
+      return '<div class="stopRow"><div><b>' + (k + 1) + '. ' + esc(s.name) + '</b><small>' + esc(s.sub || '') + '</small></div><button class="btn sec" data-k="' + k + '">Retirer</button></div>';
+    }).join('');
+    [].forEach.call($('wpList').querySelectorAll('button[data-k]'), function (b) {
+      b.onclick = function () { var c = curStops().slice(); c.splice(+b.getAttribute('data-k'), 1); setStops(c, 'Étape retirée'); };
+    });
+    $('wpQ').style.display = l.length >= 4 ? 'none' : '';
+  }
+  function openWp(mode) { wpMode = mode; $('wpQ').value = ''; $('wpRes').innerHTML = ''; renderWp(); $('wpBox').classList.add('show'); }
+  $('btnWp').onclick = function () { if (nav) openWp('nav'); };
+  $('wpClose').onclick = function () { $('wpBox').classList.remove('show'); };
+  $('wpQ').oninput = function () {
+    clearTimeout(wpTimer); var q = this.value.trim();
+    if (q.length < 3) { $('wpRes').innerHTML = ''; return; }
+    wpTimer = setTimeout(function () {
+      search(q, function (list) {
+        if (!list || !list.length) { $('wpRes').innerHTML = '<p class="lead">' + (list ? 'Aucun résultat' : 'Recherche indisponible') + '</p>'; return; }
+        $('wpRes').innerHTML = list.map(function (p, k) {
+          return '<div class="stopRow"><div><b>' + esc(p.title) + '</b><small>' + esc(p.sub || '') + '</small></div><button class="btn pri" data-k="' + k + '">Ajouter</button></div>';
+        }).join('');
+        [].forEach.call($('wpRes').querySelectorAll('button[data-k]'), function (b) {
+          b.onclick = function () {
+            var p = list[+b.getAttribute('data-k')];
+            $('wpQ').value = ''; $('wpRes').innerHTML = '';
+            setStops(curStops().concat([{ lat: p.lat, lon: p.lon, name: p.short || p.title, sub: p.sub || '' }]), 'Étape ajoutée : ' + (p.short || p.title));
+            $('wpBox').classList.remove('show');
+          };
+        });
+      });
+    }, 350);
+  };
+  // ---------- Partir plus tard / arriver à une heure ----------
+  var whenSel = 'now', whenDay = 0;
+  function whenUi() {
+    [].forEach.call($('whenSeg').children, function (b) { b.classList.toggle('on', b.getAttribute('data-m') === whenSel); });
+    [].forEach.call($('whenDay').children, function (b) { b.classList.toggle('on', +b.getAttribute('data-d') === whenDay); });
+    $('whenPick').style.display = whenSel === 'now' ? 'none' : '';
+  }
+  function openWhen() {
+    whenSel = planTime ? planTime.mode : 'now';
+    var d = planTime ? new Date(planTime.at) : new Date(Date.now() + 30 * 60000);
+    whenDay = d.getDate() !== new Date().getDate() ? 1 : 0;
+    $('whenTime').value = hhmm(d); whenUi(); $('whenBox').classList.add('show');
+  }
+  [].forEach.call($('whenSeg').children, function (b) { b.onclick = function () { whenSel = b.getAttribute('data-m'); whenUi(); }; });
+  [].forEach.call($('whenDay').children, function (b) { b.onclick = function () { whenDay = +b.getAttribute('data-d'); whenUi(); }; });
+  $('whenClose').onclick = function () { $('whenBox').classList.remove('show'); };
+  $('whenOk').onclick = function () {
+    $('whenBox').classList.remove('show');
+    if (whenSel === 'now') planTime = null;
+    else {
+      var m = ($('whenTime').value || '').match(/^(\d\d):(\d\d)/); if (!m) return;
+      var d = new Date(); d.setHours(+m[1], +m[2], 0, 0); if (whenDay) d.setDate(d.getDate() + 1);
+      if (d.getTime() < Date.now() + 60000) { d.setDate(d.getDate() + 1); }
+      planTime = { mode: whenSel, at: d.getTime() };
+    }
+    if (pendingDest) startNav(pendingDest);
+  };
+  // ---------- Itinéraire plus rapide trouvé en roulant (vérifié toutes les 3 min) ----------
+  var betterRt = null, betterTimer = null;
+  function hideBetter() { betterRt = null; $('better').classList.remove('show'); document.body.classList.remove('betterOn'); clearTimeout(betterTimer); }
+  function checkBetter() {
+    if (!nav || nav.rerouting || !last || betterRt || nav.via || (nav.stops && nav.stops.length) || !nav.srcRoute) return;
+    if (Date.now() - nav.lastReroute < 90000 || Date.now() < (nav.betterMute || 0)) return;
+    var c = nav.coords, i0 = Math.min(nav.idx + 1, c.length - 1), rest = c.length - i0;
+    if (rest < 6 || nav.total - (nav.cum[i0] || 0) < 8000) return;
+    var step = Math.max(1, Math.ceil(rest / 390)), pts = [[+last.lon.toFixed(5), +last.lat.toFixed(5)]];
+    for (var i = i0; i < c.length - 1; i += step) pts.push(c[i]);
+    pts.push(c[c.length - 1]);
+    var navRef = nav;
+    fetch(API + '/better-route', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pts: pts, avoid: avoidParam(), heading: heading !== null && (lastSpeed || 0) > 8 ? Math.round(heading) : null }) })
+      .then(function (r) { return r.json(); }).then(function (d) {
+        if (nav !== navRef || !d || !d.better || !d.current) return;
+        var gain = d.current - d.better.travel; if (gain < 180) return;
+        d.better.kind = 'tomtom'; betterRt = d.better;
+        $('betterGain').textContent = '−' + Math.round(gain / 60) + ' min';
+        $('better').classList.add('show'); document.body.classList.add('betterOn'); beep(1);
+        speak('Itinéraire plus rapide trouvé. ' + Math.round(gain / 60) + ' minutes gagnées.');
+        clearTimeout(betterTimer); betterTimer = setTimeout(function () { if (nav) nav.betterMute = Date.now() + 600000; hideBetter(); }, 20000);
+      }).catch(function () {});
+  }
+  setInterval(checkBetter, 180000);
+  $('betterGo').onclick = function () { var rt = betterRt; hideBetter(); if (rt && nav) { applyNav(nav.stops, nav.via, rt, null); speak('Nouvel itinéraire.'); } };
+  $('betterNo').onclick = function () { if (nav) nav.betterMute = Date.now() + 600000; hideBetter(); };
   // Écran atténué la nuit (option) : un voile sombre sur tout, sauf le guidage et les alertes de danger
   (function () {
     var on = false; try { on = localStorage.getItem('vigie-dim') === '1'; } catch (e) {}
@@ -2548,7 +2703,7 @@
       window.open(u + (u.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(me.id), '_blank');
     };
   })();
-  window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); }, setMe: function (u) { me = u; }, carView: function () { $('account').classList.add('show'); accountView('car'); } };   // utilisé par les tests automatiques
+  window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); }, setMe: function (u) { me = u; }, carView: function () { $('account').classList.add('show'); accountView('car'); }, better: function () { if (nav) nav.lastReroute = 0; checkBetter(); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
   $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
   $('prefToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); if (pendingRoutes && pendingDest) startNav(pendingDest); };
@@ -2556,7 +2711,8 @@
   function launchRoute(i) {
     var dest = pendingDest, rt = pendingRoutes[i], from = myPos();
     pendingRoutes = null; clearAlts(); clearResults();
-    beginNav(dest, prepareRoute(rt), false, from);
+    var n = prepareRoute(rt); n.stops = planStops.slice(); planStops = []; planTime = null;
+    beginNav(dest, n, false, from);
   }
   function startNav(dest, resumed) {
     clearResults(); $('q').value = ''; $('q').blur();
@@ -2564,12 +2720,14 @@
     var from = myPos();
     if (!last && !resumed) toast('GPS pas encore actif : itinéraire calculé depuis le centre de la carte');
     setStatus('Calcul de l\'itinéraire…', 'warn');
-    fetchRoutes(from, dest, resumed ? 0 : 2).then(function (list) {
+    if (resumed || !pendingDest || dist(pendingDest.lat, pendingDest.lon, dest.lat, dest.lon) > 30) { planStops = []; planTime = null; }
+    var pv = planStops.length ? planStops : null, pw = planTime;
+    fetchRoutes(from, dest, resumed ? 0 : 2, undefined, pv, pw).then(function (list) {
       if (resumed) { beginNav(dest, prepareRoute(list[0]), resumed, from); return list; }
       // Si tous les trajets ont un péage, on demande aussi le meilleur trajet sans péage (souvent le moins cher)
       if (!routePrefs.tolls && list[0].kind === 'tomtom' && list.every(function (r) { return r.toll; })) {
         var av = avoidParam() ? avoidParam() + ',tollRoads' : 'tollRoads';
-        return fetchRoutes(from, dest, 0, av).then(function (l2) {
+        return fetchRoutes(from, dest, 0, av, pv, pw).then(function (l2) {
           var r2 = l2[0];
           if (r2 && r2.kind === 'tomtom' && !r2.toll) { list = list.slice(0, 2).concat([r2]); }
           return list;
@@ -2618,7 +2776,7 @@
   function beginNav(dest, n, resumed, from) {
     if (!resumed) addRecent(dest);
     var keepEta0 = nav && nav.dest && dest && nav.dest.lat === dest.lat && nav.dest.lon === dest.lon ? nav.eta0 : null;
-    nav = n; nav.dest = dest; nav.idx = 0; nav.eta0 = keepEta0; nav.offCount = 0; nav.lastReroute = Date.now();
+    nav = n; nav.dest = dest; nav.idx = 0; nav.eta0 = keepEta0; nav.stops = n.stops || []; updateWpBtn(); nav.offCount = 0; nav.lastReroute = Date.now();
     if (n.toll && n.srcRoute) { n.tollPrice = n.srcRoute.tollPrice; n.tollExact = n.srcRoute.tollExact; loadTollPrice(n.srcRoute); }
     setRoute(nav.coords);
     if (destMarker) destMarker.remove();
@@ -2633,7 +2791,7 @@
     if (watchId === null && !demoTimer) $('btnStart').onclick();
   }
   function stopNav(silent) {
-    nav = null; clearRoute(); setManeuverArrow(null); if (destMarker) { destMarker.remove(); destMarker = null; }
+    nav = null; hideBetter(); clearRoute(); setManeuverArrow(null); if (destMarker) { destMarker.remove(); destMarker = null; }
     try { localStorage.removeItem('vigie-nav'); } catch (e) {}
     document.body.classList.remove('navigating'); $('nav').classList.remove('show'); $('trip').classList.remove('show');
     $('alert').style.display = '';
@@ -2718,6 +2876,15 @@
     if (!next) next = nav.steps[nav.steps.length - 1];
     var dNext = Math.max(0, nav.cum[next.idx] - pos.along);
     nav.dNext = dNext; nav.nextIsArrive = next.type === 'arrive';
+    if (nav.stops && nav.stops.length) {
+      var here0 = { lat: pos.lat || last.lat, lon: pos.lon || last.lon }, left = [];
+      nav.stops.forEach(function (s) {
+        if (s._n !== nav) { s._n = nav; var bi = 0, bd = Infinity; for (var q = 0; q < nav.coords.length; q++) { var dd = dist(s.lat, s.lon, nav.coords[q][1], nav.coords[q][0]); if (dd < bd) { bd = dd; bi = q; } } s.ci = bi; }
+        if (dist(here0.lat, here0.lon, s.lat, s.lon) < 150) { speak('Étape atteinte : ' + s.name + '.'); beep(1); }
+        else if (!(nav.idx > s.ci + 3)) left.push(s);   // étape déjà dépassée : on l'oublie
+      });
+      if (left.length !== nav.stops.length) { nav.stops = left; updateWpBtn(); }
+    }
     if (nav.via && dist(pos.lat || last.lat, pos.lon || last.lon, nav.via.lat, nav.via.lon) < 150) { speak('Arrivée au Superchargeur.'); beep(1); nav.via = null; $('btnStop').classList.remove('on'); }
     $('navIcon').innerHTML = maneuverIcon(next);
     $('navDist').textContent = formatDist(dNext);
@@ -2803,10 +2970,10 @@
       // l'ancien tracé s'estompe pendant le calcul
       try { ['route-line', 'route-casing', 'route-glow'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 0.25); }); } catch (e) {}
       var dest = nav.dest, navRef = nav;
-      var keepVia = nav.via, keep0 = nav.eta0;
-      fetchRoutes({ lat: lat, lon: lon }, dest, 0, undefined, keepVia).then(function (l) { return l[0]; }).then(function (route) {
+      var keepVia = nav.via, keep0 = nav.eta0, keepStops = nav.stops || [];
+      fetchRoutes({ lat: lat, lon: lon }, dest, 0, undefined, navVias(keepStops, keepVia, { lat: lat, lon: lon })).then(function (l) { return l[0]; }).then(function (route) {
         try { ['route-line', 'route-casing', 'route-glow'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', id === 'route-glow' ? (theme === 'light' ? 0.12 : 0.22) : 1); }); } catch (e) {}
-        if (!nav || nav !== navRef) return; var n = prepareRoute(route); n.dest = dest; n.via = keepVia; n.eta0 = keep0; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
+        if (!nav || nav !== navRef) return; var n = prepareRoute(route); n.dest = dest; n.via = keepVia; n.stops = keepStops; n.eta0 = keep0; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
       }).catch(function () { try { ['route-line', 'route-casing'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 1); }); } catch (e) {}
         if (nav === navRef) { nav.rerouting = false; nav.lastReroute = Date.now() - 2000; setStatus('Recalcul en cours…', 'warn'); } });
     }
@@ -2877,7 +3044,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794609881';
+  var BUILD = '1794610830';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {

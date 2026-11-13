@@ -153,6 +153,29 @@ async function ttFetch(env, kind, u, opts) {
   return r;
 }
 
+// Mise en forme d'un itinéraire TomTom pour l'appli (tracé compact, guidage, limitations, voies, péages, trafic)
+function formatRoute(rt) {
+          const pts = [];
+          rt.legs.forEach(l => l.points.forEach(p => pts.push([Math.round(p.longitude * 1e5) / 1e5, Math.round(p.latitude * 1e5) / 1e5])));
+          const sec = rt.sections || [];
+          return {
+            length: rt.summary.lengthInMeters, travel: rt.summary.travelTimeInSeconds, delay: rt.summary.trafficDelayInSeconds || 0,
+            departAt: rt.summary.departureTime || null, arriveAt: rt.summary.arrivalTime || null,
+            points: pts,
+            instr: ((rt.guidance && rt.guidance.instructions) || []).map(i => ({
+              i: i.pointIndex, off: i.routeOffsetInMeters, m: i.maneuver || '', msg: i.message || '', ex: i.roundaboutExitNumber || null,
+              street: i.street || '', exit: i.exitNumber || '', sign: i.signpostText || '', roads: (i.roadNumbers || []).slice(0, 2),
+              ang: typeof i.turnAngleInDecimalDegrees === 'number' ? i.turnAngleInDecimalDegrees : null })),
+            speed: sec.filter(x => x.sectionType === 'SPEED_LIMIT').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
+              v: x.maxSpeedLimitInKmh || x.maxSpeedLimitInKilometersPerHour || (x.speedRestrictions && x.speedRestrictions[0] && x.speedRestrictions[0].maxSpeedLimitInKilometersPerHour) || null })).filter(x => x.v),
+            toll: sec.some(x => x.sectionType === 'TOLL_ROAD'),
+            tollSecs: sec.filter(x => x.sectionType === 'TOLL_ROAD').map(x => [x.startPointIndex, x.endPointIndex]),
+            jams: sec.filter(x => x.sectionType === 'TRAFFIC').map(x => ({ s: x.startPointIndex, e: x.endPointIndex, cat: x.simpleCategory || 'JAM', mag: x.magnitudeOfDelay || 0 })),
+            lanes: sec.filter(x => x.sectionType === 'LANES').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
+              l: (x.lanes || []).map(ln => ({ d: ln.directions || [], f: ln.follow || null })) })).filter(x => x.l.length > 1),
+          };
+        }
+
 // ----- Parrainage -----
 // Essai : après la bêta, chaque nouveau compte a 48 h de Premium, une seule fois par appareil (identifiant d'appareil
 // gardé par le navigateur) : recréer un compte sur la même voiture ne redonne pas d'essai.
@@ -568,38 +591,46 @@ export default {
         const alts = Math.max(0, Math.min(2, parseInt(url.searchParams.get('alt') || '0', 10) || 0));
         const heading = parseInt(url.searchParams.get('heading') || '', 10);
         // étapes facultatives (ex. arrêt Superchargeur) : via=lat,lon;lat,lon
-        const via = (url.searchParams.get('via') || '').split(';').filter(Boolean).slice(0, 3).map(v => v.split(',').map(Number)).filter(v => validCoord(v[0], v[1]));
+        const via = (url.searchParams.get('via') || '').split(';').filter(Boolean).slice(0, 5).map(v => v.split(',').map(Number)).filter(v => validCoord(v[0], v[1]));
         let q = 'traffic=true&routeType=fastest&travelMode=car&instructionsType=text&language=fr-FR' +
           '&sectionType=traffic&sectionType=speedLimit&sectionType=lanes&sectionType=tollRoad&maxAlternatives=' + alts;
         avoid.forEach(a => { q += '&avoid=' + a; });
         if (heading >= 0 && heading < 360) q += '&vehicleHeading=' + heading;
         if (via.length) q = q.replace(/maxAlternatives=\d/, 'maxAlternatives=0');
+        // Partir plus tard / arriver à une heure donnée (trafic prévu) : depart=… ou arrive=… au format ISO
+        const dep = url.searchParams.get('depart'), arr = url.searchParams.get('arrive');
+        const iso = v => v && /^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?([+-]\d\d:\d\d|Z)$/.test(v) ? v : null;
+        if (iso(arr)) q += '&arriveAt=' + encodeURIComponent(iso(arr)) + '&computeTravelTimeFor=all';
+        else if (iso(dep)) q += '&departAt=' + encodeURIComponent(iso(dep)) + '&computeTravelTimeFor=all';
         const locs = [f].concat(via, [t]).map(v => v[0] + ',' + v[1]).join(':');
         const r = await ttFetch(env, 'route', 'https://api.tomtom.com/routing/1/calculateRoute/' + locs + '/json?' + q + '&key=' + env.TOMTOM_KEY);
         if (!r.ok) return json({ error: 'Itinéraire indisponible' }, 502);
         const d = await r.json();
-        const routes = (d.routes || []).map(rt => {
-          const pts = [];
-          rt.legs.forEach(l => l.points.forEach(p => pts.push([Math.round(p.longitude * 1e5) / 1e5, Math.round(p.latitude * 1e5) / 1e5])));
-          const sec = rt.sections || [];
-          return {
-            length: rt.summary.lengthInMeters, travel: rt.summary.travelTimeInSeconds, delay: rt.summary.trafficDelayInSeconds || 0,
-            points: pts,
-            instr: ((rt.guidance && rt.guidance.instructions) || []).map(i => ({
-              i: i.pointIndex, off: i.routeOffsetInMeters, m: i.maneuver || '', msg: i.message || '', ex: i.roundaboutExitNumber || null,
-              street: i.street || '', exit: i.exitNumber || '', sign: i.signpostText || '', roads: (i.roadNumbers || []).slice(0, 2),
-              ang: typeof i.turnAngleInDecimalDegrees === 'number' ? i.turnAngleInDecimalDegrees : null })),
-            speed: sec.filter(x => x.sectionType === 'SPEED_LIMIT').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
-              v: x.maxSpeedLimitInKmh || x.maxSpeedLimitInKilometersPerHour || (x.speedRestrictions && x.speedRestrictions[0] && x.speedRestrictions[0].maxSpeedLimitInKilometersPerHour) || null })).filter(x => x.v),
-            toll: sec.some(x => x.sectionType === 'TOLL_ROAD'),
-            tollSecs: sec.filter(x => x.sectionType === 'TOLL_ROAD').map(x => [x.startPointIndex, x.endPointIndex]),
-            jams: sec.filter(x => x.sectionType === 'TRAFFIC').map(x => ({ s: x.startPointIndex, e: x.endPointIndex, cat: x.simpleCategory || 'JAM', mag: x.magnitudeOfDelay || 0 })),
-            lanes: sec.filter(x => x.sectionType === 'LANES').map(x => ({ s: x.startPointIndex, e: x.endPointIndex,
-              l: (x.lanes || []).map(ln => ({ d: ln.directions || [], f: ln.follow || null })) })).filter(x => x.l.length > 1),
-          };
-        });
+        const routes = (d.routes || []).map(formatRoute);
         if (!routes.length) return json({ error: 'Aucun itinéraire' }, 404);
         return json({ routes });
+      }
+
+      // ----- Itinéraire plus rapide trouvé en roulant -----
+      // On redonne à TomTom le trajet en cours (points d'appui) : il renvoie son temps avec le trafic actuel et, s'il existe,
+      // un trajet meilleur d'au moins 3 minutes (alternativeType=betterRoute).
+      if (request.method === 'POST' && url.pathname === '/better-route') {
+        if (!env.TOMTOM_KEY) return json({ error: 'Clé absente' }, 503);
+        let b; try { b = await request.json(); } catch (e) { return json({ error: 'Requête invalide' }, 400); }
+        const pts = (Array.isArray(b.pts) ? b.pts : []).filter(p => Array.isArray(p) && validCoord(p[1], p[0])).slice(0, 400);
+        if (pts.length < 2) return json({ error: 'Tracé invalide' }, 400);
+        const avoid = String(b.avoid || '').split(',').filter(a => ['tollRoads', 'motorways', 'ferries'].includes(a));
+        let q = 'traffic=true&routeType=fastest&travelMode=car&instructionsType=text&language=fr-FR&sectionType=traffic&sectionType=speedLimit&sectionType=lanes&sectionType=tollRoad' +
+          '&maxAlternatives=1&alternativeType=betterRoute&minDeviationTime=180&minDeviationDistance=200';
+        avoid.forEach(a => { q += '&avoid=' + a; });
+        const hd = parseInt(b.heading, 10); if (hd >= 0 && hd < 360) q += '&vehicleHeading=' + hd;
+        const first = pts[0], lastP = pts[pts.length - 1];
+        const r = await ttFetch(env, 'route', 'https://api.tomtom.com/routing/1/calculateRoute/' + first[1] + ',' + first[0] + ':' + lastP[1] + ',' + lastP[0] + '/json?' + q + '&key=' + env.TOMTOM_KEY,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ supportingPoints: pts.map(p => ({ latitude: p[1], longitude: p[0] })) }) });
+        if (!r.ok) return json({ error: 'Indisponible' }, 502);
+        const d = await r.json(), rs = d.routes || [];
+        if (!rs.length) return json({ error: 'Aucun itinéraire' }, 404);
+        return json({ current: rs[0].summary.travelTimeInSeconds, better: rs[1] ? formatRoute(rs[1]) : null });
       }
 
       // ----- Prix des péages d'un trajet (HERE Routing v8 : import du tracé puis calcul des péages) -----
