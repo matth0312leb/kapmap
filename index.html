@@ -174,18 +174,18 @@
   #sheet .grid button.off .shOff { display:block; }
   #sheet .grid b { width:46px; height:46px; border-radius:50%; box-shadow:0 0 0 4px color-mix(in srgb, var(--c) 22%, transparent), 0 6px 18px color-mix(in srgb, var(--c) 45%, transparent); display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff; }
   #sheet .cancel { margin-top:12px; width:100%; font:inherit; font-size:16px; padding:14px; border-radius:12px; border:0; background:rgba(255,255,255,.08); color:var(--txt); cursor:pointer; }
-  #btnCompass { position:absolute; right:22px; top:calc(var(--toolsBottom, 470px) + 12px); z-index:500; width:48px; height:48px; border-radius:50%; border:0; padding:0; cursor:pointer;
+  #btnCompass { position:absolute; right:24px; top:calc(var(--toolsBottom, 470px) + 12px); z-index:500; width:48px; height:48px; border-radius:50%; border:0; padding:0; cursor:pointer;
     display:flex; align-items:center; justify-content:center; background:rgba(14,14,15,.92); color:#fff; box-shadow:0 4px 16px rgba(0,0,0,.45); }
   body.light #btnCompass { background:#fff; color:#111; }
-  #btnCompass { width:58px !important; height:58px !important; border-radius:50% !important; overflow:hidden;
-    background:radial-gradient(circle at 50% 35%, rgba(44,44,48,.97), rgba(12,12,14,.97)) !important; border:1px solid rgba(255,255,255,.12) !important;
-    box-shadow:0 6px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06) !important; }
-  body.light #btnCompass { background:radial-gradient(circle at 50% 35%, #fff, #eceef1) !important; border-color:rgba(0,0,0,.1) !important; box-shadow:0 6px 16px rgba(0,0,0,.18) !important; }
-  #btnCompass #needle { width:16px; height:16px; position:relative; z-index:1; transition:transform .25s linear; filter:drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
+  /* Boussole discrète : petit disque translucide, flèche fine, lettres légères */
+  #btnCompass { width:44px !important; height:44px !important; border-radius:50% !important; overflow:hidden;
+    background:rgba(18,18,20,.72) !important; border:1px solid rgba(255,255,255,.08) !important; box-shadow:0 2px 10px rgba(0,0,0,.3) !important; }
+  body.light #btnCompass { background:rgba(255,255,255,.85) !important; border-color:rgba(0,0,0,.08) !important; box-shadow:0 2px 8px rgba(0,0,0,.12) !important; }
+  #btnCompass #needle { width:12px; height:12px; position:relative; z-index:1; opacity:.9; transition:transform .25s linear; }
   #cmpRing { position:absolute; inset:0; pointer-events:none; }
-  #cmpRing .cmpDial { position:absolute; inset:0; width:100%; height:100%; transition:transform .25s linear; }
-  #cmpRing i { position:absolute; left:50%; top:50%; font-style:normal; font-size:10px; font-weight:700; line-height:1; opacity:.55; transition:transform .25s linear; }
-  #cmpRing i.n { opacity:1; color:#ff3b55; font-weight:800; }
+  #cmpRing .cmpDial { display:none; }
+  #cmpRing i { position:absolute; left:50%; top:50%; font-style:normal; font-size:8px; font-weight:600; line-height:1; opacity:.4; transition:transform .25s linear; }
+  #cmpRing i.n { opacity:.95; color:#ff3b55; font-weight:700; font-size:9px; }
   #btnCompass #compassN { position:absolute; top:3px; left:0; right:0; text-align:center; font-size:9px; font-weight:800; color:var(--acc); display:none; }
   #btnCompass.north #compassN { display:block; }
   .hz.tt { border-color:#9aa0a6 !important; }
@@ -966,7 +966,7 @@
     $('needle').style.transform = 'rotate(' + (hd - b) + 'deg)';
     $('cmpRing').firstChild.style.transform = 'rotate(' + (-b) + 'deg)';
     [].forEach.call($('cmpRing').querySelectorAll('i'), function (el, k) {
-      var a = (CMP[k][1] - b) * Math.PI / 180, r = 17.5;
+      var a = (CMP[k][1] - b) * Math.PI / 180, r = 14;
       el.style.transform = 'translate(-50%,-50%) translate(' + (Math.sin(a) * r).toFixed(1) + 'px,' + (-Math.cos(a) * r).toFixed(1) + 'px)';
     });
   }
@@ -2638,7 +2638,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794556264';
+  var BUILD = '1794572633';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
