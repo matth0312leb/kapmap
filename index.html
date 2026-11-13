@@ -1913,7 +1913,7 @@
   function fetchRoutes(from, to, alts, avoidOverride, via) {
     var url = API + '/route?from=' + from.lat.toFixed(5) + ',' + from.lon.toFixed(5) + '&to=' + to.lat.toFixed(5) + ',' + to.lon.toFixed(5) +
       (via ? '&via=' + via.lat.toFixed(5) + ',' + via.lon.toFixed(5) : '') +
-      '&alt=' + (alts || 0) + '&avoid=' + (avoidOverride !== undefined ? avoidOverride : avoidParam()) + (heading !== null ? '&heading=' + Math.round(heading) : '');
+      '&alt=' + (alts || 0) + '&avoid=' + (avoidOverride !== undefined ? avoidOverride : avoidParam()) + (heading !== null && (lastSpeed || 0) > 8 ? '&heading=' + Math.round(heading) : '');
     return fetch(url).then(function (r) { return r.json(); }).then(function (d) {
       if (!d.routes || !d.routes.length) throw new Error('vide');
       return d.routes.map(function (rt) { rt.kind = 'tomtom'; return rt; });
@@ -2604,15 +2604,24 @@
     if (dNext < 600 && dNext > 350 && !next.said.far) { next.said.far = 1; speak('Dans ' + formatDist(dNext) + ', ' + (isArr ? 'vous arriverez à destination' : lowerFirst(instruction(next)))); }
     if (dNext <= 120 && !next.said.near && !isArr) { next.said.near = 1; speak(instruction(next)); }
     if (remaining < 30) { shareTick(lat, lon, 0, true); speak('Vous êtes arrivé.'); stopNav(true); toast('Vous êtes arrivé'); return; }
-    // Hors trajet : recalcul
-    if (pos.off > 70) nav.offCount++; else nav.offCount = 0;
-    if (nav.offCount >= 3 && Date.now() - nav.lastReroute > 15000) {
-      nav.lastReroute = Date.now(); nav.offCount = 0; setStatus('Nouvel itinéraire…', 'warn');
-      var dest = nav.dest;
+    // Hors trajet : recalcul rapide. Écart franc (> 120 m) = tout de suite ; écart moyen (> 45 m) ou voiture qui roule
+    // à contresens du tracé = 2 positions de suite. Un seul calcul à la fois, nouvel essai 4 s après un échec.
+    var segB = null, cc = nav.coords, ii = Math.min(pos.idx, cc.length - 2);
+    if (ii >= 0) segB = bearing(cc[ii][1], cc[ii][0], cc[ii + 1][1], cc[ii + 1][0]);
+    var wrongWay = segB !== null && heading !== null && (lastSpeed || 0) > 12 && Math.abs(((heading - segB + 540) % 360) - 180) > 110;
+    if (pos.off > 45 || wrongWay) nav.offCount++; else nav.offCount = 0;
+    var offNow = pos.off > 120 || nav.offCount >= 2;
+    if (offNow && !nav.rerouting && Date.now() - nav.lastReroute > 6000) {
+      nav.rerouting = true; nav.lastReroute = Date.now(); nav.offCount = 0; setStatus('Nouvel itinéraire…', 'warn');
+      // l'ancien tracé s'estompe pendant le calcul
+      try { ['route-line', 'route-casing', 'route-glow'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 0.25); }); } catch (e) {}
+      var dest = nav.dest, navRef = nav;
       var keepVia = nav.via, keep0 = nav.eta0;
       fetchRoutes({ lat: lat, lon: lon }, dest, 0, undefined, keepVia).then(function (l) { return l[0]; }).then(function (route) {
-        if (!nav) return; var n = prepareRoute(route); n.dest = dest; n.via = keepVia; n.eta0 = keep0; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
-      }).catch(function () {});
+        try { ['route-line', 'route-casing', 'route-glow'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', id === 'route-glow' ? (theme === 'light' ? 0.12 : 0.22) : 1); }); } catch (e) {}
+        if (!nav || nav !== navRef) return; var n = prepareRoute(route); n.dest = dest; n.via = keepVia; n.eta0 = keep0; n.idx = 0; n.offCount = 0; n.lastReroute = Date.now(); nav = n; setRoute(nav.coords); if (nav.tt) applyRouteTT(nav); else refreshRouteTraffic(); speak('Nouvel itinéraire.'); setStatus('Itinéraire recalculé', 'ok');
+      }).catch(function () { try { ['route-line', 'route-casing'].forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, 'line-opacity', 1); }); } catch (e) {}
+        if (nav === navRef) { nav.rerouting = false; nav.lastReroute = Date.now() - 2000; setStatus('Recalcul en cours…', 'warn'); } });
     }
   }
   function lowerFirst(t) { return t.charAt(0).toLowerCase() + t.slice(1); }
@@ -2679,7 +2688,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794589945';
+  var BUILD = '1794590431';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
