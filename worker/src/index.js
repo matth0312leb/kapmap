@@ -333,11 +333,12 @@ export default {
         const u = await currentUser(request, env);
         if (!u) return json({ error: 'Non connecté' }, 401);
         const b = await request.json().catch(() => ({}));
-        const model = ['3', 'Y', 'S', 'X'].includes(b.model) ? b.model : '3';
+        const model = ['3', 'Y', 'S', 'X', 'CT', 'city', 'sedan', 'suv', 'wagon', 'van'].includes(b.model) ? b.model : '3';
+        const label = String(b.label || '').replace(/[<>]/g, '').trim().slice(0, 30);
         const color = /^#[0-9a-fA-F]{6}$/.test(b.color || '') ? b.color : '#f2f2f2';
         const networks = Array.isArray(b.networks) ? b.networks.filter(n => typeof n === 'string' && n.length <= 30).slice(0, 40) : undefined;
         const prev = u.car ? JSON.parse(u.car) : {};
-        await env.DB.prepare('UPDATE users SET car = ?2 WHERE id = ?1').bind(u.id, JSON.stringify({ model, color, networks: networks || prev.networks })).run();
+        await env.DB.prepare('UPDATE users SET car = ?2 WHERE id = ?1').bind(u.id, JSON.stringify({ model, color, label, networks: networks || prev.networks })).run();
         return json({ ok: true });
       }
       if (url.pathname === '/me/places' && request.method === 'PUT') {

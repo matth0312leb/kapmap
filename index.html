@@ -92,6 +92,10 @@
   .small { color:var(--mut); font-size:12px; margin-top:14px; line-height:1.45; }
   .carPick { display:flex; gap:6px; margin-top:8px; }
   .carPick button { flex:1; font:inherit; font-size:15px; font-weight:600; padding:10px 0; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; }
+  .carPick.wrap { flex-wrap:wrap; }
+  .carPick.wrap button { flex:1 1 30%; font-size:14px; padding:9px 4px; }
+  .carGrpT { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); margin:14px 0 2px; }
+  .pCarName { display:block; font-style:normal; font-size:13px; color:var(--mut); margin:1px 0 4px; }
   .carPick button.sel { background:var(--txt); color:var(--inv); }
   .swatches { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
   .swatches button { width:34px; height:34px; border-radius:50%; border:2px solid var(--line); cursor:pointer; }
@@ -1056,7 +1060,41 @@
 
   var carEl = document.createElement('div');
   carEl.className = 'car';
-  var CAR_COLORS = [['#f2f2f2', 'Blanc'], ['#111111', 'Noir'], ['#6b6e73', 'Gris'], ['#b8bcc2', 'Argent'], ['#1f4fa3', 'Bleu'], ['#b3121f', 'Rouge']];
+  var CAR_COLORS = [['#f2f2f2', 'Blanc'], ['#111111', 'Noir'], ['#6b6e73', 'Gris'], ['#b8bcc2', 'Argent'], ['#1f4fa3', 'Bleu'], ['#b3121f', 'Rouge'], ['#2f6b4f', 'Vert'], ['#e0731f', 'Orange'], ['#c9b79c', 'Beige']];
+  var CAR_TESLA = [['3', 'Model 3'], ['Y', 'Model Y'], ['S', 'Model S'], ['X', 'Model X'], ['CT', 'Cybertruck']];
+  var CAR_OTHER = [['city', 'Citadine'], ['sedan', 'Berline'], ['suv', 'SUV'], ['wagon', 'Break'], ['van', 'Utilitaire']];
+  function isTeslaModel(m) { return CAR_TESLA.some(function (x) { return x[0] === m; }); }
+  function carName(car) { if (!car) return ''; if (car.label) return car.label; var t = CAR_TESLA.filter(function (x) { return x[0] === car.model; })[0]; return t ? 'Tesla ' + t[1] : ''; }
+  // Sélecteur de voiture (profil et premier lancement) : Tesla ou autre voiture, couleur, marque et modèle libres
+  function carPickerHtml() {
+    var chips = function (l) { return l.map(function (m) { return '<button data-m="' + m[0] + '">' + m[1] + '</button>'; }).join(''); };
+    return '<div id="carPreview"></div>' +
+      '<div class="carGrpT">Tesla</div><div class="carPick wrap" id="pickModel">' + chips(CAR_TESLA) + '</div>' +
+      '<div class="carGrpT">Autre voiture</div><div class="carPick wrap" id="pickModel2">' + chips(CAR_OTHER) + '</div>' +
+      '<div class="field" id="carLabelF"><input id="carLabel" maxlength="30" placeholder="Marque et modèle (ex. Peugeot e-208)" autocomplete="off" enterkeyhint="done"></div>' +
+      '<div class="carGrpT">Couleur</div><div class="swatches" id="pickColor">' + CAR_COLORS.map(function (c) { return '<button data-c="' + c[0] + '" title="' + c[1] + '" style="background:' + c[0] + '"></button>'; }).join('') + '</div>';
+  }
+  function wireCarPicker() {
+    var car = Object.assign({ model: '3', color: '#f2f2f2', label: '' }, myCar || {});
+    function refresh() {
+      ['pickModel', 'pickModel2'].forEach(function (g) { [].forEach.call($(g).children, function (b) { b.classList.toggle('sel', b.getAttribute('data-m') === car.model); }); });
+      [].forEach.call($('pickColor').children, function (b) { b.classList.toggle('sel', b.getAttribute('data-c') === car.color); });
+      $('carLabelF').style.display = isTeslaModel(car.model) ? 'none' : '';
+      $('carPreview').innerHTML = carSvg(car, 110);
+    }
+    function save() {
+      if (isTeslaModel(car.model)) car.label = '';
+      myCar = { model: car.model, color: car.color, label: car.label || '' }; drawCar(); refresh();
+      try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {}
+      if (me) apiJSON('PUT', '/me/car', Object.assign({}, myCar, netOn ? { networks: netOn.concat($('lySc').checked ? ['Tesla'] : []) } : {})).catch(function () {});
+    }
+    ['pickModel', 'pickModel2'].forEach(function (g) { [].forEach.call($(g).children, function (b) { b.onclick = function () { car.model = b.getAttribute('data-m'); save(); }; }); });
+    [].forEach.call($('pickColor').children, function (b) { b.onclick = function () { car.color = b.getAttribute('data-c'); save(); }; });
+    $('carLabel').value = car.label || '';
+    $('carLabel').onchange = function () { car.label = this.value.trim().slice(0, 30); save(); };
+    $('carLabel').onkeydown = function (e) { if (e.key === 'Enter') this.blur(); };
+    refresh();
+  }
   var myCar = null;
   try { myCar = JSON.parse(localStorage.getItem('vigie-car') || 'null'); } catch (e) {}
   var carUid = 0;
@@ -1068,7 +1106,8 @@
   // Voiture en 3D vue de trois quarts arrière (comme l'écran Tesla) : carrosserie avec épaisseur, toit vitré, feux, ombre
   function carSvg(car, size) {
     var c = car.color, id = 'cv' + (++carUid), dark = ['#111111', '#1f4fa3', '#b3121f', '#6b6e73'].indexOf(c) >= 0;
-    var M = { '3': [15, 58, 0], 'S': [15.5, 62, 0], 'Y': [16.5, 58, 1], 'X': [17.5, 62, 1] }[car.model] || [15, 58, 0];
+    var M = { '3': [15, 58, 0], 'S': [15.5, 62, 0], 'Y': [16.5, 58, 1], 'X': [17.5, 62, 1], CT: [18, 63, 1],
+      city: [14, 50, 0], sedan: [15.5, 60, 0], suv: [17, 60, 1], wagon: [15.5, 65, 0], van: [18, 68, 1] }[car.model] || [15, 58, 0];
     var hw = M[0], L = M[1], suv = M[2], cx = 25, top = 12, bot = top + L;
     var fw = hw * 0.80;                     // l'avant paraît plus étroit (perspective)
     function f(v) { return Math.round(v * 100) / 100; }
@@ -2364,7 +2403,7 @@
       window.open(u + (u.indexOf('?') < 0 ? '?' : '&') + 'client_reference_id=' + encodeURIComponent(me.id), '_blank');
     };
   })();
-  window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); }, setMe: function (u) { me = u; } };   // utilisé par les tests automatiques
+  window.KapMapDebug = { map: map, launchRoute: function (i) { launchRoute(i || 0); }, setMe: function (u) { me = u; }, carView: function () { $('account').classList.add('show'); accountView('car'); } };   // utilisé par les tests automatiques
   function saveRoutePrefs() { try { localStorage.setItem('vigie-route', JSON.stringify(routePrefs)); } catch (e) {} $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways; }
   $('prefToll').checked = routePrefs.tolls; $('prefMoto').checked = routePrefs.motorways;
   $('prefToll').onchange = function () { routePrefs.tolls = this.checked; saveRoutePrefs(); if (pendingRoutes && pendingDest) startNav(pendingDest); };
@@ -2690,7 +2729,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794592227';
+  var BUILD = '1794592644';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2723,7 +2762,7 @@
         [].forEach.call($('netList').querySelectorAll('label'), function (l, i) { if (i > 0) l.remove(); });
         buildNetList(); applyNetworks(); setVis(['sc-circle', 'sc-label'], $('lySc').checked);
       }
-      if (me.car) { myCar = { model: me.car.model, color: me.car.color }; try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {} drawCar(); }
+      if (me.car) { myCar = { model: me.car.model, color: me.car.color, label: me.car.label || '' }; try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {} drawCar(); }
       else if (myCar) apiJSON('PUT', '/me/car', myCar).catch(function () {});
     }
   }
@@ -2748,6 +2787,13 @@
   function closeAccount() { $('account').classList.remove('show'); }
   function accountView(view) {
     var c = $('accountCard');
+    if (view === 'car') {
+      c.innerHTML = '<h2>Ta voiture</h2><p class="lead">Elle devient ta photo de profil et ta voiture sur la carte.</p>' + carPickerHtml() +
+        '<button class="btn pri" id="carDone">C\'est parti</button><button class="btn link" id="carLater">Plus tard</button>';
+      wireCarPicker();
+      $('carDone').onclick = $('carLater').onclick = function () { closeAccount(); };
+      return;
+    }
     if (view === 'me' && me) {
       var since = new Date(me.since || Date.now());
       var lv0 = levelOf(me.points || 0);
@@ -2766,7 +2812,7 @@
         return { cls: '', t: 'Version gratuite', d: me.planUntil ? 'Ton abonnement s\'est terminé le ' + fmtD(me.planUntil) + '.' : 'Passe à Premium pour tout débloquer.',
           btn: '<button class="btn pri" id="aSubGo">Passer à Premium</button>' };
       })();
-      c.innerHTML = '<div class="pHero"><div class="pHeroCar">' + carSvg(myCar || { model: '3', color: '#f2f2f2' }, 96) + '</div><div class="pHeroTxt"><small>' + esc(hello()) + '</small><b>' + esc(me.pseudo) + '</b>' +
+      c.innerHTML = '<div class="pHero"><div class="pHeroCar">' + carSvg(myCar || { model: '3', color: '#f2f2f2' }, 96) + '</div><div class="pHeroTxt"><small>' + esc(hello()) + '</small><b>' + esc(me.pseudo) + '</b>' + (carName(myCar) ? '<em class="pCarName">' + esc(carName(myCar)) + '</em>' : '') +
         '<span class="pBadge">' + esc(lv0.name) + '</span>' + (isFounder() ? '<span class="pBadge fd">Fondateur</span>' : '') + '</div></div>' +
         '<div class="pSub ' + sub.cls + '"><div class="pSubT"><span>Mon abonnement</span><b>' + sub.t + '</b></div><p>' + sub.d + '</p>' + sub.btn + '</div>' +
         '<div class="pStats"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b id="pWeekRank">–</b><span>rang semaine</span></div><div><b id="pWeekPts">–</b><span>pts semaine</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div></div>' +
@@ -2780,9 +2826,7 @@
         '<div class="pAddr"><div><b>Travail</b><span>' + esc(workAddr ? workAddr.short : 'Non défini') + '</span></div><button id="aWork">Ici</button></div>' +
         '<p class="small">« Ici » enregistre ta position actuelle. Tes adresses suivent ton compte, sur la voiture comme sur ton téléphone.</p>' +
         '<div class="lyHead2">Ma voiture</div>' +
-        '<div class="carPick" id="pickModel">' + ['3', 'Y', 'S', 'X'].map(function (m) { return '<button data-m="' + m + '">Model ' + m + '</button>'; }).join('') + '</div>' +
-        '<div class="swatches" id="pickColor">' + CAR_COLORS.map(function (c) { return '<button data-c="' + c[0] + '" title="' + c[1] + '" style="background:' + c[0] + '"></button>'; }).join('') + '</div>' +
-        '<div id="carPreview"></div>' +
+        carPickerHtml() +
         '<button class="btn sec" id="aClose">Fermer</button><button class="btn link" id="aLogout">Se déconnecter</button>' +
         '<button class="btn link" id="aDelete" style="color:#ff5a72;font-size:13px">Supprimer mon compte</button>';
       if ($('aSubGo')) $('aSubGo').onclick = function () { closeAccount(); openPremium(); };
@@ -2796,20 +2840,7 @@
         if ($('pWeekPts')) $('pWeekPts').textContent = m.points != null ? m.points : '–';
       }).catch(function () {});
       $('aHome').onclick = function () { closeAccount(); saveHere('home'); };
-      var car = myCar || { model: '3', color: '#f2f2f2' };
-      function refreshPick() {
-        [].forEach.call($('pickModel').children, function (b) { b.classList.toggle('sel', b.getAttribute('data-m') === car.model); });
-        [].forEach.call($('pickColor').children, function (b) { b.classList.toggle('sel', b.getAttribute('data-c') === car.color); });
-        $('carPreview').innerHTML = carSvg(car, 110);
-      }
-      function saveCar() {
-        myCar = { model: car.model, color: car.color }; drawCar(); refreshPick();
-        try { localStorage.setItem('vigie-car', JSON.stringify(myCar)); } catch (e) {}
-        apiJSON('PUT', '/me/car', Object.assign({}, myCar, netOn ? { networks: netOn.concat($('lySc').checked ? ['Tesla'] : []) } : {})).catch(function () {});
-      }
-      [].forEach.call($('pickModel').children, function (b) { b.onclick = function () { car.model = b.getAttribute('data-m'); saveCar(); }; });
-      [].forEach.call($('pickColor').children, function (b) { b.onclick = function () { car.color = b.getAttribute('data-c'); saveCar(); }; });
-      refreshPick();
+      wireCarPicker();
       $('aWork').onclick = function () { closeAccount(); saveHere('work'); };
       $('aDelete').onclick = function () {
         var bt = $('aDelete');
@@ -2866,7 +2897,8 @@
         var btn = this; btn.disabled = true; btn.textContent = '…';
         apiJSON('POST', reg ? '/auth/register' : '/auth/login', reg ? { pseudo: pseudo, name: $('fName').value.trim(), pin: pin, device: deviceId(), invite: (function () { try { return localStorage.getItem('vigie-invite') || ''; } catch (e) { return ''; } })() } : { pseudo: pseudo, pin: pin })
           .then(function (d) {
-            setSession(d.token, d.user); closeAccount(); showWelcome(false);
+            setSession(d.token, d.user); showWelcome(false);
+            if (reg) accountView('car'); else closeAccount();
             try { localStorage.setItem('vigie-welcomed', '1'); } catch (e) {}
             toast(reg ? 'Bienvenue ' + hello() + ' !' : 'Content de te revoir, ' + hello());
           })
