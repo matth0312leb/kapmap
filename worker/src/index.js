@@ -48,7 +48,8 @@ const WEAK_PINS = ['0000', '1111', '1234', '4321', '00000', '12345', '000000', '
 function publicUser(u) {
   return { id: u.id, invites: u.invites || 0, giftUntil: u.gift_until || null, giftKind: u.gift_kind || null, plan: u.plan || null, planUntil: u.plan_until || null, planRenews: !!u.plan_renews,
     pseudo: u.pseudo, name: u.name || '', reports: u.reports_count || 0, points: u.points || 0, since: u.created_at,
-    home: u.home ? JSON.parse(u.home) : null, work: u.work ? JSON.parse(u.work) : null, car: u.car ? JSON.parse(u.car) : null };
+    home: u.home ? JSON.parse(u.home) : null, work: u.work ? JSON.parse(u.work) : null, car: u.car ? JSON.parse(u.car) : null,
+    favs: u.favs ? JSON.parse(u.favs) : null };
 }
 async function currentUser(request, env) {
   const auth = request.headers.get('Authorization') || '';
@@ -340,6 +341,19 @@ export default {
         const prev = u.car ? JSON.parse(u.car) : {};
         await env.DB.prepare('UPDATE users SET car = ?2 WHERE id = ?1').bind(u.id, JSON.stringify({ model, color, label, networks: networks || prev.networks })).run();
         return json({ ok: true });
+      }
+      // Favoris (parents, amis, lieux visités…) : 30 au maximum, avec un nom choisi
+      if (url.pathname === '/me/favs' && request.method === 'PUT') {
+        const u = await currentUser(request, env);
+        if (!u) return json({ error: 'Non connecté' }, 401);
+        const b = await request.json().catch(() => ({}));
+        try { await env.DB.prepare('ALTER TABLE users ADD COLUMN favs TEXT').run(); } catch (e) {}
+        const favs = (Array.isArray(b.favs) ? b.favs : []).slice(0, 30).map(f => {
+          const c = cleanPlace(f); if (!c) return null;
+          const o = JSON.parse(c); o.name = String(f.name || o.short || 'Favori').replace(/[<>]/g, '').trim().slice(0, 40); return o;
+        }).filter(Boolean);
+        await env.DB.prepare('UPDATE users SET favs = ?2 WHERE id = ?1').bind(u.id, JSON.stringify(favs)).run();
+        return json({ ok: true, favs });
       }
       if (url.pathname === '/me/places' && request.method === 'PUT') {
         const u = await currentUser(request, env);
