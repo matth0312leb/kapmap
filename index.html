@@ -1601,7 +1601,7 @@
     if (!last) { toast('Position GPS pas encore trouvée, réessaie dans un instant'); return; }
     fetch(API + '/reports', { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ lat: last.lat, lon: last.lon, type: type }) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-      .then(function (x) { if (x.ok && me && !x.d.merged) me.reports = (me.reports || 0) + 1; if (x.ok && x.d.points) setTimeout(function () { gainedPoints(x.d.points); }, 1600); toast(x.ok ? (x.d.merged ? 'Déjà signalé : ta confirmation est ajoutée' : 'Danger signalé, merci') : (x.d.error || 'Envoi impossible')); loadHazards(last.lat, last.lon, true); })
+      .then(function (x) { if (x.ok && me && !x.d.merged) me.reports = (me.reports || 0) + 1; if (x.ok && x.d.points) setTimeout(function () { gainedPoints(x.d.points); if (x.d.pending) setTimeout(function () { toast('+' + x.d.pending + ' points de plus dès qu\'un autre conducteur confirme'); }, 2200); }, 1600); toast(x.ok ? (x.d.merged ? 'Déjà signalé : ta confirmation est ajoutée' : 'Signalement envoyé, merci') : (x.d.error || 'Envoi impossible')); loadHazards(last.lat, last.lon, true); })
       .catch(function () { toast('Serveur indisponible pour le moment'); });
   }
   function hazardAhead(lat, lon) {
@@ -2607,7 +2607,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794554525';
+  var BUILD = '1794555023';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2737,7 +2737,7 @@
       c.innerHTML = '<h2>Classement</h2><p class="lead">Les pseudos qui font avancer la communauté.</p>' +
         '<div id="themeRow" style="padding:0"><button data-p="week">Cette semaine</button><button data-p="all">Général</button></div>' +
         '<div id="rankList" style="margin-top:12px">Chargement…</div>' +
-        '<p class="small">Signaler un danger : +10 · confirmer celui d\'un autre : +2 (et +2 pour son auteur) · dire « plus là » : +1. Seul ton pseudo apparaît.</p>' +
+        '<p class="small">Signalement : +2, puis +8 quand un autre conducteur le confirme · Donner ton avis : +1 · Faux signalement démenti : −2. Seuls les signalements confirmés font grimper au classement. Seul ton pseudo apparaît.</p>' +
         '<button class="btn sec" id="rBack">Retour</button>';
       [].forEach.call(c.querySelectorAll('[data-p]'), function (b) {
         b.classList.toggle('sel', b.getAttribute('data-p') === period);

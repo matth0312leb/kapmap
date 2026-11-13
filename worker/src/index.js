@@ -58,6 +58,37 @@ async function currentUser(request, env) {
   if (row) await env.DB.prepare('UPDATE sessions SET last_seen = ?2 WHERE token = ?1').bind(token, Date.now()).run();
   return row ? Object.assign(row, { _token: token }) : null;
 }
+// ---------- Points vérifiés : un signalement ne rapporte vraiment que s'il est confirmé par un autre conducteur ----------
+// Création : +2 tout de suite. Première confirmation par un autre compte (autre connexion) : +8. Confirmations suivantes : +1 (5 max).
+// Signalement démenti par les autres (2 « plus là » de plus que de confirmations, sans aucune confirmation) : -2 et compté comme faux.
+// 5 faux signalements sur 7 jours : plus aucun point gagné en signalant pendant 7 jours.
+const PTS_CREATE = 2, PTS_CONFIRMED = 8, PTS_EXTRA = 1, EXTRA_MAX = 5;
+let reportColsReady = false;
+async function ensureReportCols(env) {
+  if (reportColsReady) return;
+  for (const col of ['confirmed INTEGER DEFAULT 0', 'paid_extra INTEGER DEFAULT 0', 'false_flag INTEGER DEFAULT 0']) {
+    try { await env.DB.prepare('ALTER TABLE reports ADD COLUMN ' + col).run(); } catch (e) {}
+  }
+  try { await env.DB.prepare('ALTER TABLE votes ADD COLUMN ip_hash TEXT').run(); } catch (e) {}
+  try { await env.DB.prepare('CREATE TABLE IF NOT EXISTS anon_votes (report_id INTEGER NOT NULL, ip_hash TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (report_id, ip_hash))').run(); } catch (e) {}
+  reportColsReady = true;
+}
+async function falseCount(env, userId) {
+  const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM reports WHERE user_id = ?1 AND false_flag = 1 AND created_at > ?2').bind(userId, Date.now() - 7 * 86400000).first();
+  return r ? r.n : 0;
+}
+// Une confirmation d'un autre conducteur sur le signalement `rep` : paie l'auteur
+async function payConfirmation(env, rep) {
+  if (!rep.user_id) return;
+  if (!rep.confirmed) {
+    await env.DB.prepare('UPDATE reports SET confirmed = 1 WHERE id = ?1').bind(rep.id).run();
+    await addPoints(env, rep.user_id, PTS_CONFIRMED, 'confirmé');
+  } else if ((rep.paid_extra || 0) < EXTRA_MAX) {
+    await env.DB.prepare('UPDATE reports SET paid_extra = paid_extra + 1 WHERE id = ?1').bind(rep.id).run();
+    await addPoints(env, rep.user_id, PTS_EXTRA, 'confirmé');
+  }
+}
+
 // ---------- Points (plafond quotidien contre les abus) ----------
 const DAILY_CAP = 300;
 async function addPoints(env, userId, pts, reason) {
@@ -312,6 +343,7 @@ export default {
         const body = await request.json().catch(() => ({}));
         const lat = Number(body.lat), lon = Number(body.lon), type = String(body.type || '');
         if (!validCoord(lat, lon) || !TYPES[type]) return json({ error: 'Signalement invalide' }, 400);
+        await ensureReportCols(env);
         if (type === 'police' && env.POLICE_ENABLED === '0') return json({ error: 'Signalement indisponible pour le moment' }, 403);
         const who = await ipHash(request);
         const recent = await env.DB.prepare(
@@ -323,13 +355,18 @@ export default {
         // Même danger déjà signalé à moins de 150 m : on le confirme au lieu de le dupliquer
         const d = 150 / 111000;
         const dup = await env.DB.prepare(
-          'SELECT id FROM reports WHERE type = ?1 AND expires_at > ?2 AND lat BETWEEN ?3 AND ?4 AND lon BETWEEN ?5 AND ?6 LIMIT 1'
+          'SELECT id, user_id, ip_hash, confirmed, paid_extra FROM reports WHERE type = ?1 AND expires_at > ?2 AND lat BETWEEN ?3 AND ?4 AND lon BETWEEN ?5 AND ?6 LIMIT 1'
         ).bind(type, now, lat - d, lat + d, lon - d * 1.5, lon + d * 1.5).first();
         if (dup) {
           await env.DB.prepare('UPDATE reports SET ok_votes = ok_votes + 1, expires_at = MAX(expires_at, ?2) WHERE id = ?1')
             .bind(dup.id, now + TYPES[type] * 60000).run();
           const me0 = await currentUser(request, env);
-          const pts0 = me0 ? await addPoints(env, me0.id, 3, 'confirmation') : 0;
+          let pts0 = 0;
+          // Un autre conducteur (autre compte et autre connexion) qui signale la même chose = une confirmation
+          if (dup.ip_hash !== who && (!me0 || me0.id !== dup.user_id)) {
+            await payConfirmation(env, dup);
+            if (me0) pts0 = await addPoints(env, me0.id, 2, 'confirmation');
+          }
           return json({ ok: true, id: dup.id, merged: true, points: pts0 });
         }
         const me = await currentUser(request, env);
@@ -337,9 +374,12 @@ export default {
           'INSERT INTO reports (lat, lon, type, created_at, expires_at, ip_hash, user_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)'
         ).bind(Math.round(lat * 1e5) / 1e5, Math.round(lon * 1e5) / 1e5, type, now, now + TYPES[type] * 60000, who, me ? me.id : null).run();
         let pts1 = 0;
-        if (me) { await env.DB.prepare('UPDATE users SET reports_count = reports_count + 1 WHERE id = ?1').bind(me.id).run(); pts1 = await addPoints(env, me.id, 10, 'signalement'); }
+        if (me) {
+          await env.DB.prepare('UPDATE users SET reports_count = reports_count + 1 WHERE id = ?1').bind(me.id).run();
+          if ((await falseCount(env, me.id)) < 5) pts1 = await addPoints(env, me.id, PTS_CREATE, 'signalement');
+        }
         await env.DB.prepare('DELETE FROM reports WHERE expires_at < ?1').bind(now - 86400000).run();
-        return json({ ok: true, id: res.meta.last_row_id, points: pts1 });
+        return json({ ok: true, id: res.meta.last_row_id, points: pts1, pending: me && pts1 ? PTS_CONFIRMED : 0 });
       }
 
       // Vote « toujours là » / « plus là »
@@ -347,21 +387,37 @@ export default {
       if (request.method === 'POST' && m) {
         const body = await request.json().catch(() => ({}));
         const id = Number(m[1]);
-        const row = await env.DB.prepare('SELECT type, ok_votes, gone_votes, user_id FROM reports WHERE id = ?1').bind(id).first();
+        await ensureReportCols(env);
+        const row = await env.DB.prepare('SELECT id, type, ok_votes, gone_votes, user_id, ip_hash, created_at, confirmed, paid_extra, false_flag FROM reports WHERE id = ?1').bind(id).first();
         if (!row) return json({ error: 'Introuvable' }, 404);
-        const voter = await currentUser(request, env);
-        let pts = 0;
+        const voter = await currentUser(request, env), vip = await ipHash(request);
+        if (vip === row.ip_hash) return json({ error: 'Tu ne peux pas confirmer ton propre signalement' }, 400);
+        let pts = 0, counts = true;
         if (voter) {
           if (row.user_id === voter.id) return json({ error: 'Tu ne peux pas confirmer ton propre signalement' }, 400);
-          const already = await env.DB.prepare('SELECT 1 FROM votes WHERE report_id = ?1 AND user_id = ?2').bind(id, voter.id).first();
+          const already = (await env.DB.prepare('SELECT 1 FROM votes WHERE report_id = ?1 AND (user_id = ?2 OR ip_hash = ?3)').bind(id, voter.id, vip).first())
+            || (await env.DB.prepare('SELECT 1 FROM anon_votes WHERE report_id = ?1 AND ip_hash = ?2').bind(id, vip).first());
           if (already) return json({ error: 'Tu as déjà donné ton avis sur ce signalement' }, 409);
-          await env.DB.prepare('INSERT INTO votes (report_id, user_id, at) VALUES (?1, ?2, ?3)').bind(id, voter.id, now).run();
-          pts = await addPoints(env, voter.id, body.gone ? 1 : 2, 'vote');
-          if (!body.gone && row.user_id) await addPoints(env, row.user_id, 2, 'confirmé');
+          await env.DB.prepare('INSERT INTO votes (report_id, user_id, at, ip_hash) VALUES (?1, ?2, ?3, ?4)').bind(id, voter.id, now, vip).run();
+          pts = await addPoints(env, voter.id, 1, 'vote');
+        } else {
+          // Sans compte : un seul avis par connexion, sans points
+          const already = (await env.DB.prepare('SELECT 1 FROM anon_votes WHERE report_id = ?1 AND ip_hash = ?2').bind(id, vip).first())
+            || (await env.DB.prepare('SELECT 1 FROM votes WHERE report_id = ?1 AND ip_hash = ?2').bind(id, vip).first());
+          if (already) counts = false;
+          else await env.DB.prepare('INSERT INTO anon_votes (report_id, ip_hash, at) VALUES (?1, ?2, ?3)').bind(id, vip, now).run();
         }
+        if (!counts) return json({ ok: true, points: 0 });
+        if (!body.gone) await payConfirmation(env, row);
         if (body.gone) {
           const gone = row.gone_votes + 1;
           const expire = gone >= 2 && gone > row.ok_votes;
+          // Démenti alors que personne ne l'a confirmé : faux signalement, l'auteur perd ses points de création
+          if (expire && !row.confirmed && !row.false_flag && row.user_id) {
+            await env.DB.prepare('UPDATE reports SET false_flag = 1 WHERE id = ?1').bind(id).run();
+            await env.DB.prepare('INSERT INTO points_log (user_id, pts, reason, at) VALUES (?1, ?2, ?3, ?4)').bind(row.user_id, -PTS_CREATE, 'démenti', now).run();
+            await env.DB.prepare('UPDATE users SET points = MAX(0, points - ?2) WHERE id = ?1').bind(row.user_id, PTS_CREATE).run();
+          }
           await env.DB.prepare('UPDATE reports SET gone_votes = ?2' + (expire ? ', expires_at = ?3' : '') + ' WHERE id = ?1')
             .bind(...(expire ? [id, gone, now] : [id, gone])).run();
           return json({ ok: true, removed: expire, points: pts });
