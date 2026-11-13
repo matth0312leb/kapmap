@@ -417,6 +417,11 @@
   #results { max-height:min(46vh, calc(100vh - var(--toolsBottom, 400px) - 150px)) !important; min-height:0; }
   @media (max-width: 700px) { #results { max-height:max(140px, calc(100vh - var(--toolsBottom, 400px) - 150px)) !important; } }
   body.searching #btnRecenter { display:none !important; }
+  /* Écran tactile large (Tesla, tablette) : le clavier virtuel couvre le bas de l'écran, la recherche monte en haut pendant la saisie */
+  body.kbTop #bottom { top:16px !important; bottom:auto !important; }
+  body.kbTop .overlay.show { align-items:flex-start !important; padding-top:16px; } body.kbTop .overlay.show .card { max-height:52vh; overflow:auto; }
+  body.kbTop #results { max-height:max(120px, calc(54vh - 150px)) !important; }
+  body.kbTop #btnSettings, body.kbTop #speedBox, body.kbTop #statusPill { display:none !important; }
   @media (min-width: 701px) { #tripInfo b { font-size:16px; } #tripInfo small { font-size:13px !important; } }
   #tripInfo b { display:block; font-weight:600; color:var(--txt); white-space:nowrap; }
   #tripInfo small { display:block; font-size:12px; color:var(--mut); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -2773,6 +2778,12 @@
     });
   }
   $('q').addEventListener('focus', showRecents);
+  (function () {   // clavier virtuel de la Tesla : on remonte la barre de recherche pour voir ce qu'on tape
+    var t = null, big = function () { return (navigator.maxTouchPoints > 0 || /Tesla|QtCarBrowser/.test(navigator.userAgent)) && innerWidth > 700; };
+    function typing(el) { return el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/checkbox|radio|range|button|submit|color/.test(el.type))); }
+    document.addEventListener('focusin', function (e) { if (!typing(e.target)) return; clearTimeout(t); if (big()) document.body.classList.add('kbTop'); });
+    document.addEventListener('focusout', function (e) { if (!typing(e.target)) return; clearTimeout(t); t = setTimeout(function () { document.body.classList.remove('kbTop'); }, 250); });
+  })();
   function beginNav(dest, n, resumed, from) {
     if (!resumed) addRecent(dest);
     var keepEta0 = nav && nav.dest && dest && nav.dest.lat === dest.lat && nav.dest.lon === dest.lon ? nav.eta0 : null;
@@ -3044,7 +3055,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794610830';
+  var BUILD = '1794611133';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
