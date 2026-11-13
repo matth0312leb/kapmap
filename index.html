@@ -2199,7 +2199,7 @@
       var u = inviteUrl();
       $('invQr').innerHTML = qrSvg(u);
       $('invLink').textContent = u.replace(/^https?:\/\//, '');
-      $('invLead').textContent = me ? 'Ton ami reçoit 7 jours de Premium offerts. S\'il s\'abonne, tu gagnes 1 mois offert (abonnement mensuel) ou 6 mois (annuel ou à vie). Une seule fois.' : 'Fais-leur scanner ce code ou envoie-leur le lien. Crée ton compte pour que tes invitations te rapportent du Premium offert.';
+      $('invLead').textContent = me ? 'Ton ami reçoit 7 jours de Premium offerts. Chaque ami qui s\'abonne te fait gagner 1 mois de Premium offert.' : 'Fais-leur scanner ce code ou envoie-leur le lien. Crée ton compte pour que tes invitations te rapportent du Premium offert.';
       $('invShare').style.display = navigator.share ? '' : 'none';
       $('inviteBox').classList.add('show');
     };
@@ -2690,7 +2690,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794591155';
+  var BUILD = '1794591359';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -2770,7 +2770,7 @@
         '<span class="pBadge">' + esc(lv0.name) + '</span>' + (isFounder() ? '<span class="pBadge fd">Fondateur</span>' : '') + '</div></div>' +
         '<div class="pSub ' + sub.cls + '"><div class="pSubT"><span>Mon abonnement</span><b>' + sub.t + '</b></div><p>' + sub.d + '</p>' + sub.btn + '</div>' +
         '<div class="pStats"><div><b>' + (me.points || 0) + '</b><span>points</span></div><div><b id="pWeekRank">–</b><span>rang semaine</span></div><div><b id="pWeekPts">–</b><span>pts semaine</span></div><div><b>' + (me.reports || 0) + '</b><span>signalements</span></div></div>' +
-        '<div class="pInv"><div><b>Inviter un ami</b><span>' + (me.invites ? me.invites + (me.invites > 1 ? ' amis inscrits' : ' ami inscrit') + ' grâce à toi' : '7 jours offerts pour ton ami, jusqu\'à 6 mois pour toi') + '</span></div><button id="aInvite">Inviter</button></div>' +
+        '<div class="pInv"><div><b>Inviter un ami</b><span>' + (me.invites ? me.invites + (me.invites > 1 ? ' amis inscrits' : ' ami inscrit') + ' grâce à toi' : '7 jours offerts pour ton ami, 1 mois pour toi s\'il s\'abonne') + '</span></div><button id="aInvite">Inviter</button></div>' +
         (function () { var lv = lv0;
           return '<div class="pLvl"><span><b>' + lv.name + '</b>' + (lv.next ? ' · encore ' + lv.toNext + ' points pour « ' + lv.next + ' »' : '') + '</span><span>Membre depuis ' + since.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) + '</span></div>' +
             '<div class="pBar"><i style="width:' + lv.pct + '%"></i></div>' +

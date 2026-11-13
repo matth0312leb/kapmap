@@ -154,20 +154,21 @@ async function ttFetch(env, kind, u, opts) {
 
 // ----- Parrainage -----
 // Filleul : 7 jours de Premium offerts, comptés à partir de la fin de la bêta s'il s'inscrit pendant la bêta.
-// Parrain : quand son filleul s'abonne pour la première fois, il reçoit 1 mois offert (filleul mensuel) ou 6 mois (filleul annuel ou à vie), une seule fois.
+// Parrain : 1 mois offert pour chaque filleul qui paie pour la première fois (quelle que soit la formule), sans limite de filleuls.
 const BETA_END = Date.parse('2027-01-01T00:00:00+01:00');
 const DAY = 86400000;
 async function giveGift(env, userId, days, kind) {
   await env.DB.prepare('UPDATE users SET gift_until = MAX(COALESCE(gift_until, 0), ?2, ?3) + ?4, gift_kind = ?5 WHERE id = ?1')
     .bind(userId, Date.now(), BETA_END, days * DAY, kind).run();
 }
-async function rewardGodfather(env, filleulId, days) {
-  const f = await env.DB.prepare('SELECT referred_by FROM users WHERE id = ?1').bind(filleulId).first();
-  if (!f || !f.referred_by) return;
-  const g = await env.DB.prepare('SELECT id, ref_reward_used FROM users WHERE id = ?1').bind(f.referred_by).first();
-  if (!g || g.ref_reward_used) return;
-  await env.DB.prepare('UPDATE users SET ref_reward_used = ?2 WHERE id = ?1').bind(g.id, filleulId).run();
-  await giveGift(env, g.id, days, 'parrainage');
+async function rewardGodfather(env, filleulId) {
+  // ref_reward_used est posé sur le filleul : son parrain n'est récompensé qu'une fois pour lui
+  const f = await env.DB.prepare('SELECT referred_by, ref_reward_used FROM users WHERE id = ?1').bind(filleulId).first();
+  if (!f || !f.referred_by || f.ref_reward_used) return;
+  const g = await env.DB.prepare('SELECT id FROM users WHERE id = ?1').bind(f.referred_by).first();
+  if (!g) return;
+  await env.DB.prepare('UPDATE users SET ref_reward_used = 1 WHERE id = ?1').bind(filleulId).run();
+  await giveGift(env, g.id, 31, 'parrainage');
 }
 
 // ----- Abonnements (colonnes ajoutées à la table users au premier besoin) -----
@@ -285,12 +286,12 @@ export default {
             if (o.mode === 'payment') {
               await env.DB.prepare('UPDATE users SET plan = ?2, plan_until = ?3, plan_renews = 0, stripe_customer = COALESCE(?4, stripe_customer) WHERE id = ?1')
                 .bind(uid, 'life', 4102444800000, o.customer || null).run();
-              await rewardGodfather(env, uid, 183);
+              await rewardGodfather(env, uid);
             } else if (o.mode === 'subscription') {
               const sub = o.subscription ? await stripeGet(env, 'subscriptions/' + o.subscription) : null, si = subInfo(sub);
               await env.DB.prepare('UPDATE users SET plan = ?2, plan_until = ?3, plan_renews = ?4, stripe_customer = ?5, stripe_sub = ?6 WHERE id = ?1')
                 .bind(uid, sub ? si.plan : 'month', si.until || (now + 31 * 86400000), si.renews ? 1 : 0, o.customer || null, o.subscription || null).run();
-              await rewardGodfather(env, uid, sub && si.plan === 'year' ? 183 : 31);
+              await rewardGodfather(env, uid);
             }
           }
         } else if (ev.type === 'customer.subscription.updated' || ev.type === 'customer.subscription.deleted' || ev.type === 'customer.subscription.created') {
