@@ -378,6 +378,15 @@
   #layers .lyHead::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--red); box-shadow:0 0 10px var(--red); }
   body:not(.light) #layers .lyTop button:active { box-shadow:0 0 16px rgba(227,25,55,.45); }
   #btnStart { display:none !important; }
+  /* Roue crantée des paramètres : coin haut gauche, cachée pendant la navigation (le bandeau de guidage y est) */
+  #btnSettings { position:absolute; top:16px; left:16px; z-index:520; width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    color:var(--txt); background:linear-gradient(180deg, rgba(30,30,33,.95), rgba(10,10,11,.95)); border:1px solid rgba(255,255,255,.1); box-shadow:0 4px 16px rgba(0,0,0,.4); }
+  body.light #btnSettings { background:#fff; border-color:rgba(0,0,0,.08); box-shadow:0 4px 14px rgba(0,0,0,.15); }
+  #btnSettings svg { width:24px; height:24px; transition:transform .4s; }
+  #btnSettings.on svg { transform:rotate(60deg); }
+  #btnSettings.on { border-color:rgba(227,25,55,.6); color:#ff5a72; }
+  body.navigating #btnSettings, body.searching #btnSettings, body.sheet-open #btnSettings { display:none; }
+  body:not(.navigating) #alert { left:80px; }
   #btnRecenter { position:absolute; right:22px; bottom:calc(var(--bottomH, 120px) + 12px); z-index:560; display:none; align-items:center; gap:8px; padding:12px 18px; border:0; border-radius:999px; cursor:pointer;
     font:inherit; font-size:15px; font-weight:700; color:#fff; background:linear-gradient(180deg,#ef2a47,#c8102e); box-shadow:0 8px 26px rgba(227,25,55,.45), inset 0 1px 0 rgba(255,255,255,.25); animation:kIn .2s ease-out; }
   body.free #btnRecenter { display:flex; }
@@ -580,7 +589,8 @@
   <div class="zvTrack"><i id="zvFill"></i></div>
   <div class="zvLeft"><b id="zvRem">–</b><small>restants</small></div>
 </div>
-<div id="alert" class="panel off">
+  <button id="btnSettings" title="Paramètres"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+<div id="alert" class="panel off" style="display:none">
   <div id="alertIcon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/></svg></div>
   <div style="flex:1;min-width:0">
     <div id="alertTitle">Bienvenue</div>
@@ -593,7 +603,6 @@
   <button class="tbtn go" id="btnStart" hidden title="Démarrer / recentrer"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg></button>
   <button class="tbtn" id="btnAccount" title="Mon compte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
   <button class="tbtn" id="btnLayers" title="Calques"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
-  <button class="tbtn" id="btnSettings" title="Paramètres"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
   <button class="tbtn on" id="btnSound" title="Son"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16 9a4 4 0 010 6M18.5 6.5a7.5 7.5 0 010 11"/></svg></button>
   <button class="tbtn" id="btnPause" title="Pause"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h11v5a5 5 0 01-5 5h-1a5 5 0 01-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 010 5H16M8 3v3M11 3v3"/></svg></button>
   <button class="tbtn rep" id="btnReport" title="Signaler un danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 9v6M9 12h6"/></svg></button>
@@ -2731,7 +2740,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794593130';
+  var BUILD = '1794593495';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
@@ -3161,7 +3170,8 @@
   function setStatus(txt, cls) { $('statusTxt').textContent = txt; $('dot').className = 'dot ' + (cls || ''); $('statusPill').classList.toggle('quiet', cls === 'ok' || /^Choisis/.test(txt)); }
   function setAlert(mode, title, sub) {
     $('alert').className = 'panel ' + mode; $('alertTitle').textContent = title; $('alertSub').textContent = sub;
-    $('alert').style.display = (nav && (mode === '' || mode === 'off')) ? 'none' : '';
+    // Rien à signaler (« Route dégagée ») : on n'affiche rien
+    $('alert').style.display = (mode === '' || mode === 'off') ? 'none' : '';
   }
 
   // ================= Limitation de vitesse permanente =================
