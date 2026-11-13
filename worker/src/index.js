@@ -711,6 +711,16 @@ export default {
         const me = await currentUser(request, env);
         await env.DB.prepare('INSERT INTO feedback (kind, text, user_id, pseudo, ua, version, created_at, ip_hash, email) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)')
           .bind(kind, text, me ? me.id : null, me ? me.pseudo : null, String(request.headers.get('User-Agent') || '').slice(0, 200), String(body.version || '').slice(0, 20), now, who, email || null).run();
+        // Copie sur Discord : salon dédié (secret DISCORD_WEBHOOK_MESSAGES), sinon le salon des inscriptions
+        const hook = env.DISCORD_WEBHOOK_MESSAGES || env.DISCORD_WEBHOOK;
+        if (hook) {
+          const KIND = { question: 'Question', idee: 'Idée', bug: 'Bug', abonnement: 'Abonnement', autre: 'Message' };
+          const head = '**' + (KIND[kind] || 'Message') + '** de ' + (me ? '**' + me.pseudo + '**' : 'un visiteur sans compte') + (email ? ' · ' + email : '');
+          try {
+            await fetch(hook.trim(), { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: (head + '\n>>> ' + text).slice(0, 1990), allowed_mentions: { parse: [] } }) });
+          } catch (e) {}
+        }
         return json({ ok: true });
       }
 
