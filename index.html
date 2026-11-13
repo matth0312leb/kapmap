@@ -723,7 +723,7 @@
 
 <div id="stopBox" class="overlay"><div class="card">
   <h2>Recharger en route</h2>
-  <p class="lead">Superchargeurs le long de ton trajet, avec le temps ajouté par le détour.</p>
+  <p class="lead">Les Superchargeurs sur ton trajet ou les plus proches, avec le temps ajouté.</p>
   <div id="stopList"></div>
   <button class="btn sec" id="stopClose">Fermer</button>
 </div></div>
@@ -2163,20 +2163,30 @@
     setTimeout(function () { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) {} }, 300);
   });
   // ---------- Arrêt Superchargeur sur le trajet ----------
+  // Superchargeurs pour un arrêt : d'abord ceux sur le trajet (à moins de 3 km), puis, s'il y en a moins de 3,
+  // les plus proches du trajet même avec un détour (jusqu'à 60 km)
+  function frName(n) { var m = { Switzerland: 'Suisse', Germany: 'Allemagne', Italy: 'Italie', Belgium: 'Belgique', Spain: 'Espagne', Netherlands: 'Pays-Bas', Austria: 'Autriche' };
+    return String(n || '').replace(/, (Switzerland|Germany|Italy|Belgium|Spain|Netherlands|Austria)$/, function (_, c) { return ', ' + m[c]; }); }
   function stationsAlongRoute() {
     if (!nav || !scItems || !last) return [];
-    var c = nav.coords, cum = nav.cum, here = nav.cum[nav.idx] || 0, out = [];
+    var c = nav.coords, cum = nav.cum, here = nav.cum[nav.idx] || 0, step = Math.max(1, Math.floor((c.length - nav.idx) / 800));
+    var mnLa = 90, mxLa = -90, mnLo = 180, mxLo = -180;
+    for (var q = nav.idx; q < c.length; q += step) { mnLa = Math.min(mnLa, c[q][1]); mxLa = Math.max(mxLa, c[q][1]); mnLo = Math.min(mnLo, c[q][0]); mxLo = Math.max(mxLo, c[q][0]); }
+    var on = [], off = [];
     scItems.forEach(function (it) {
+      if (it[0] < mnLa - 0.6 || it[0] > mxLa + 0.6 || it[1] < mnLo - 0.85 || it[1] > mxLo + 0.85) return;
       var best = null;
-      for (var i = nav.idx; i < c.length; i += 3) {
-        if (Math.abs(c[i][1] - it[0]) > 0.05 || Math.abs(c[i][0] - it[1]) > 0.07) continue;
+      for (var i = nav.idx; i < c.length; i += step) {
         var d = dist(it[0], it[1], c[i][1], c[i][0]);
-        if (d < 3000 && (!best || d < best.d)) best = { d: d, along: cum[i] };
+        if (!best || d < best.d) best = { d: d, along: cum[i] };
       }
-      if (best && best.along > here + 1500) out.push({ it: it, off: best.d, ahead: best.along - here });
+      if (!best || best.d > 60000) return;
+      var x = { it: it, off: best.d, ahead: Math.max(0, best.along - here) };
+      if (best.d < 3000 && best.along > here + 1500) on.push(x); else off.push(x);
     });
-    out.sort(function (a, b) { return a.ahead - b.ahead; });
-    return out.slice(0, 6);
+    on.sort(function (a, b) { return a.ahead - b.ahead; });
+    off.sort(function (a, b) { return a.off - b.off; });
+    return on.slice(0, 6).concat(on.length < 3 ? off.slice(0, 3 - on.length) : []);
   }
   function remainingSecs() { return nav && nav.duration ? nav.duration * Math.max(0, 1 - (nav.cum[nav.idx] || 0) / nav.total) : 0; }
   $('btnStop').onclick = function () {
@@ -2187,10 +2197,10 @@
       $('stopBox').classList.add('show'); return;
     }
     var list = stationsAlongRoute();
-    if (!list.length) { $('stopList').innerHTML = '<p class="lead">Aucun Superchargeur à moins de 3 km de ton trajet.</p>'; $('stopBox').classList.add('show'); return; }
+    if (!list.length) { $('stopList').innerHTML = '<p class="lead">' + (scItems ? 'Aucun Superchargeur à moins de 60 km de ton trajet.' : 'Superchargeurs en cours de chargement, réessaie dans un instant.') + '</p>'; $('stopBox').classList.add('show'); return; }
     $('stopList').innerHTML = list.map(function (x, k) {
       var it = x.it;
-      return '<div class="stopRow"><div><b>' + esc(it[2]) + '</b><small>dans ' + formatDist(x.ahead) + ' · ' + (it[3] ? it[3] + ' bornes' : '') + (it[4] ? ' · ' + it[4] + ' kW' : '') +
+      return '<div class="stopRow"><div><b>' + esc(frName(it[2])) + '</b><small>' + (x.off < 3000 ? 'dans ' + formatDist(x.ahead) : 'à ' + formatDist(x.off) + ' de ton trajet') + (it[3] ? ' · ' + it[3] + ' bornes' : '') + (it[4] ? ' · ' + it[4] + ' kW' : '') +
         ' · <span id="det' + k + '">calcul…</span></small></div><button class="btn pri" data-k="' + k + '">Ajouter</button></div>';
     }).join('');
     $('stopBox').classList.add('show');
@@ -2203,7 +2213,7 @@
       }).catch(function () { var e = $('det' + k); if (e) e.textContent = ''; });
     });
     [].forEach.call($('stopList').querySelectorAll('button[data-k]'), function (b) {
-      b.onclick = function () { var x = list[+b.getAttribute('data-k')]; $('stopBox').classList.remove('show'); applyVia({ lat: x.it[0], lon: x.it[1], name: x.it[2] }, x.route); };
+      b.onclick = function () { var x = list[+b.getAttribute('data-k')]; $('stopBox').classList.remove('show'); applyVia({ lat: x.it[0], lon: x.it[1], name: frName(x.it[2]) }, x.route); };
     });
   };
   $('stopClose').onclick = function () { $('stopBox').classList.remove('show'); };
@@ -2596,7 +2606,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794526949';
+  var BUILD = '1794554486';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
