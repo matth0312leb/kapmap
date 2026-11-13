@@ -169,6 +169,9 @@
   @media (max-width:560px) { #sheet .grid { grid-template-columns:repeat(3, 1fr); gap:8px; } }
   #sheet .grid button { font:inherit; font-size:14px; font-weight:600; line-height:1.2; text-align:center; color:var(--txt); background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03)); border:1px solid var(--line); border-radius:16px; padding:14px 6px 12px; display:flex; flex-direction:column; align-items:center; gap:9px; cursor:pointer; }
   #sheet .grid button:active { background:rgba(255,255,255,.12); }
+  #sheet .grid button.off { opacity:.45; filter:grayscale(1); }
+  #sheet .grid .shOff { display:none; font-size:11px; font-weight:500; color:var(--mut); margin-top:-4px; }
+  #sheet .grid button.off .shOff { display:block; }
   #sheet .grid b { width:46px; height:46px; border-radius:50%; box-shadow:0 0 0 4px color-mix(in srgb, var(--c) 22%, transparent), 0 6px 18px color-mix(in srgb, var(--c) 45%, transparent); display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff; }
   #sheet .cancel { margin-top:12px; width:100%; font:inherit; font-size:16px; padding:14px; border-radius:12px; border:0; background:rgba(255,255,255,.08); color:var(--txt); cursor:pointer; }
   #btnCompass { position:absolute; right:22px; top:calc(var(--toolsBottom, 470px) + 12px); z-index:500; width:48px; height:48px; border-radius:50%; border:0; padding:0; cursor:pointer;
@@ -1604,13 +1607,17 @@
   var SHEET = [['police', '#1e5bd8'], ['accident', '#e31937'], ['bouchon', '#ef6c1a'], ['travaux', '#f2a20c'], ['vehicule_arrete', '#8e5cf6'], ['objet', '#0ea5a4'], ['nid_de_poule', '#7a6a58'], ['meteo', '#3b9cf0']];
   SHEET.forEach(function (x) {
     var k = x[0], b = document.createElement('button');
-    b.innerHTML = '<b style="background:' + x[1] + ';--c:' + x[1] + '">' + hzIcon(k, x[1]) + '</b>' + HZ[k][2];
+    b.innerHTML = '<b style="background:' + x[1] + ';--c:' + x[1] + '">' + hzIcon(k, x[1]) + '</b>' + HZ[k][2] + (k === 'police' ? '<small class="shOff">Interdit dans ce pays</small>' : '');
     b.setAttribute('data-t', k);
-    b.onclick = function () { sendReport(k); };
+    b.onclick = function () {
+      if (b.classList.contains('off')) { toast('Signaler la police n\'est autorisé qu\'en France'); return; }
+      sendReport(k);
+    };
     $('sheetGrid').appendChild(b);
   });
   function updateSheet() {
-    [].forEach.call($('sheetGrid').children, function (b) { var t = b.getAttribute('data-t'); if (t === 'zone_danger' || t === 'police') b.style.display = allowedCache ? '' : 'none'; });
+    // Police : visible partout, mais grisée hors de France
+    [].forEach.call($('sheetGrid').children, function (b) { if (b.getAttribute('data-t') === 'police') b.classList.toggle('off', !allowedCache); });
   }
   $('btnReport').onclick = function () { updateSheet(); $('sheet').classList.toggle('show'); };
   $('sheetCancel').onclick = function () { $('sheet').classList.remove('show'); };
@@ -2625,7 +2632,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794555746';
+  var BUILD = '1794556053';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
