@@ -668,9 +668,7 @@
   <input type="checkbox" id="optSat" hidden>
 
   <div class="lyHead">Sur la carte</div>
-  <label class="sw2">Zones de danger<input type="checkbox" id="lyZones" checked></label>
-  <label class="sw2">Signalements<input type="checkbox" id="lyHz" checked></label>
-  <div class="sw2 lyFixed">Trafic en temps réel<small style="color:var(--mut);font-size:12px;margin-left:6px">sur ton trajet</small><span class="onPill">Toujours actif</span></div>
+  <input type="checkbox" id="lyZones" checked hidden><input type="checkbox" id="lyHz" checked hidden>
   <label class="sw2">Trafic sur les routes autour<input type="checkbox" id="lyTraffic"></label>
   <label class="sw2">Restaurants, cafés, toilettes<input type="checkbox" id="lyPoi"></label>
 
@@ -2375,7 +2373,7 @@
   })();
   // Les choix « Afficher » sont mémorisés : on les retrouve à la prochaine ouverture
   (function () {
-    var KEEP = ['lyZones', 'lyHz', 'lyTraffic', 'lyPoi'], saved = {};
+    var KEEP = ['lyTraffic', 'lyPoi'], saved = {};
     try { saved = JSON.parse(localStorage.getItem('vigie-show') || '{}') || {}; } catch (e) {}
     function save() { var o = {}; KEEP.forEach(function (id) { o[id] = $(id).checked; }); try { localStorage.setItem('vigie-show', JSON.stringify(o)); } catch (e) {} }
     KEEP.forEach(function (id) { $(id).addEventListener('change', save); });
@@ -3151,7 +3149,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794633592';
+  var BUILD = '1794633706';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
