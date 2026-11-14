@@ -453,7 +453,7 @@
   label.chip2 input { position:absolute; opacity:0; pointer-events:none; }
   label.chip2:has(input:checked) { background:rgba(227,25,55,.16); color:var(--txt); border-color:rgba(227,25,55,.65); box-shadow:0 0 12px rgba(227,25,55,.25); }
   #rtCancel { font:inherit; font-size:13px; background:transparent; border:0; color:var(--mut); cursor:pointer; padding:8px 6px; }
-  button.chip2 { font:inherit; font-size:13px; display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--mut); font-weight:600; cursor:pointer; }
+  button.chip2 { white-space:nowrap; font:inherit; font-size:13px; display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--mut); font-weight:600; cursor:pointer; }
   button.chip2.on { background:rgba(227,25,55,.16); color:var(--txt); border-color:rgba(227,25,55,.65); }
   #trip button#btnWp { background:rgba(127,127,127,.18); color:var(--txt); padding-left:12px !important; padding-right:12px !important; flex:none !important; position:relative; }
   body:not(.light) #trip button#btnWp { background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border:1px solid rgba(255,255,255,.1); }
@@ -2193,7 +2193,7 @@
       '<label class="chip2"><input type="checkbox" id="avToll"' + (routePrefs.tolls ? ' checked' : '') + '> Éviter les péages</label>' +
       '<label class="chip2"><input type="checkbox" id="avMoto"' + (routePrefs.motorways ? ' checked' : '') + '> Éviter les autoroutes</label>' +
       '<button id="rtCancel" style="margin-left:auto">Annuler</button></div>' +
-      '<div style="display:flex;gap:6px;padding:0 2px 8px"><button class="chip2' + (planStops.length ? ' on' : '') + '" id="rtWp">' + (planStops.length ? 'Arrêts · ' + planStops.length : 'Ajouter des arrêts') + '</button>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 2px 8px"><button class="chip2' + (planStops.length ? ' on' : '') + '" id="rtWp">' + (planStops.length ? 'Arrêts · ' + planStops.length : 'Ajouter des arrêts') + '</button>' +
       '<button class="chip2' + (planTime ? ' on' : '') + '" id="rtWhen">' + (planTime ? (planTime.mode === 'arrive' ? 'Arriver à ' : 'Partir à ') + hhmm(planTime.at) + (new Date(planTime.at).getDate() !== new Date().getDate() ? ' demain' : '') : 'Partir maintenant / plus tard') + '</button></div>' + opts;
     [].forEach.call(box.querySelectorAll('.res[data-i]'), function (row) {
       row.onclick = function (e) {
@@ -3141,7 +3141,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794623509';
+  var BUILD = '1794623530';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
