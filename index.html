@@ -946,6 +946,16 @@
     center: [6.45, 46.35], zoom: 11, attributionControl: false, maxPitch: 70
   });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+  // Le (i) OpenStreetMap reste replié à l'ouverture ; un appui dessus l'affiche
+  (function () {
+    var t0 = Date.now();
+    function fold() {
+      var e = document.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact');
+      if (e) { e.classList.remove('maplibregl-compact-show'); }
+      if (e || Date.now() - t0 > 30000) { map.off('sourcedata', fold); map.off('styledata', fold); }
+    }
+    map.on('sourcedata', fold); map.on('styledata', fold); map.once('idle', fold);
+  })();
   var mapReady = false, pending = [];
   function whenReady(fn) { if (mapReady) fn(); else pending.push(fn); }
   // juste au-dessus des routes (tracé, trafic) : sinon les routes de la carte recouvrent le trajet
@@ -3141,7 +3151,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794623530';
+  var BUILD = '1794633592';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
