@@ -2194,7 +2194,7 @@
       '<label class="chip2"><input type="checkbox" id="avMoto"' + (routePrefs.motorways ? ' checked' : '') + '> Éviter les autoroutes</label>' +
       '<button id="rtCancel" style="margin-left:auto">Annuler</button></div>' +
       '<div style="display:flex;gap:6px;padding:0 2px 8px"><button class="chip2' + (planStops.length ? ' on' : '') + '" id="rtWp">+ Étape' + (planStops.length ? ' · ' + planStops.length : '') + '</button>' +
-      '<button class="chip2' + (planTime ? ' on' : '') + '" id="rtWhen">' + (planTime ? (planTime.mode === 'arrive' ? 'Arriver à ' : 'Partir à ') + hhmm(planTime.at) + (new Date(planTime.at).getDate() !== new Date().getDate() ? ' demain' : '') : 'Partir maintenant') + '</button></div>' + opts;
+      '<button class="chip2' + (planTime ? ' on' : '') + '" id="rtWhen">' + (planTime ? (planTime.mode === 'arrive' ? 'Arriver à ' : 'Partir à ') + hhmm(planTime.at) + (new Date(planTime.at).getDate() !== new Date().getDate() ? ' demain' : '') : 'Partir maintenant / plus tard') + '</button></div>' + opts;
     [].forEach.call(box.querySelectorAll('.res[data-i]'), function (row) {
       row.onclick = function (e) {
         var i = +row.getAttribute('data-i');
@@ -3141,7 +3141,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794623343';
+  var BUILD = '1794623464';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
