@@ -711,7 +711,7 @@
     <button id="goFavs" title="Favoris"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.2 9.4l6.1-.8z"/></svg><span>Favoris</span></button>
   </div>
   <div id="results"></div>
-  <div id="trip"><div id="tripEta"></div><div id="tripInfo"></div><button id="btnStop" title="Ajouter un arrêt recharge"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align:-3px;color:#e31937"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></button><button id="btnWp" title="Étapes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-3px"><path d="M12 5v14M5 12h14"/></svg><i id="wpN" style="display:none"></i></button><button id="shareTrip" style="background:rgba(127,127,127,.18);color:var(--txt)">Partager</button><button id="stopNav">Arrêter</button></div>
+  <div id="trip"><div id="tripEta"></div><div id="tripInfo"></div><button id="btnStop" title="Ajouter un arrêt recharge"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align:-3px;color:#e31937"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></button><button id="btnWp" title="Ajouter des arrêts"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="vertical-align:-3px"><path d="M12 5v14M5 12h14"/></svg><i id="wpN" style="display:none"></i></button><button id="shareTrip" style="background:rgba(127,127,127,.18);color:var(--txt)">Partager</button><button id="stopNav">Arrêter</button></div>
 </div>
 
 <div id="welcome" class="overlay"><div class="card">
@@ -839,9 +839,9 @@
 </div></div>
 
 <div id="wpBox" class="overlay"><div class="card">
-  <h2>Étapes</h2>
+  <h2>Arrêts</h2>
   <div id="wpList"></div>
-  <input id="wpQ" placeholder="Ajouter une étape" autocomplete="off" enterkeyhint="search">
+  <input id="wpQ" placeholder="Ajouter un arrêt" autocomplete="off" enterkeyhint="search">
   <div id="wpRes"></div>
   <button class="btn sec" id="wpClose">Fermer</button>
 </div></div>
@@ -2193,7 +2193,7 @@
       '<label class="chip2"><input type="checkbox" id="avToll"' + (routePrefs.tolls ? ' checked' : '') + '> Éviter les péages</label>' +
       '<label class="chip2"><input type="checkbox" id="avMoto"' + (routePrefs.motorways ? ' checked' : '') + '> Éviter les autoroutes</label>' +
       '<button id="rtCancel" style="margin-left:auto">Annuler</button></div>' +
-      '<div style="display:flex;gap:6px;padding:0 2px 8px"><button class="chip2' + (planStops.length ? ' on' : '') + '" id="rtWp">+ Étape' + (planStops.length ? ' · ' + planStops.length : '') + '</button>' +
+      '<div style="display:flex;gap:6px;padding:0 2px 8px"><button class="chip2' + (planStops.length ? ' on' : '') + '" id="rtWp">' + (planStops.length ? 'Arrêts · ' + planStops.length : 'Ajouter des arrêts') + '</button>' +
       '<button class="chip2' + (planTime ? ' on' : '') + '" id="rtWhen">' + (planTime ? (planTime.mode === 'arrive' ? 'Arriver à ' : 'Partir à ') + hhmm(planTime.at) + (new Date(planTime.at).getDate() !== new Date().getDate() ? ' demain' : '') : 'Partir maintenant / plus tard') + '</button></div>' + opts;
     [].forEach.call(box.querySelectorAll('.res[data-i]'), function (row) {
       row.onclick = function (e) {
@@ -2577,7 +2577,7 @@
       return '<div class="stopRow"><div><b>' + (k + 1) + '. ' + esc(s.name) + '</b><small>' + esc(s.sub || '') + '</small></div><button class="btn sec" data-k="' + k + '">Retirer</button></div>';
     }).join('');
     [].forEach.call($('wpList').querySelectorAll('button[data-k]'), function (b) {
-      b.onclick = function () { var c = curStops().slice(); c.splice(+b.getAttribute('data-k'), 1); setStops(c, 'Étape retirée'); };
+      b.onclick = function () { var c = curStops().slice(); c.splice(+b.getAttribute('data-k'), 1); setStops(c, 'Arrêt retiré'); };
     });
     $('wpQ').style.display = l.length >= 4 ? 'none' : '';
   }
@@ -2597,7 +2597,7 @@
           b.onclick = function () {
             var p = list[+b.getAttribute('data-k')];
             $('wpQ').value = ''; $('wpRes').innerHTML = '';
-            setStops(curStops().concat([{ lat: p.lat, lon: p.lon, name: p.short || p.title, sub: p.sub || '' }]), 'Étape ajoutée : ' + (p.short || p.title));
+            setStops(curStops().concat([{ lat: p.lat, lon: p.lon, name: p.short || p.title, sub: p.sub || '' }]), 'Arrêt ajouté : ' + (p.short || p.title));
             $('wpBox').classList.remove('show');
           };
         });
@@ -2977,7 +2977,7 @@
       var here0 = { lat: pos.lat || last.lat, lon: pos.lon || last.lon }, left = [];
       nav.stops.forEach(function (s) {
         if (s._n !== nav) { s._n = nav; var bi = 0, bd = Infinity; for (var q = 0; q < nav.coords.length; q++) { var dd = dist(s.lat, s.lon, nav.coords[q][1], nav.coords[q][0]); if (dd < bd) { bd = dd; bi = q; } } s.ci = bi; }
-        if (dist(here0.lat, here0.lon, s.lat, s.lon) < 150) { speak('Étape atteinte : ' + s.name + '.'); beep(1); }
+        if (dist(here0.lat, here0.lon, s.lat, s.lon) < 150) { speak('Arrêt atteint : ' + s.name + '.'); beep(1); }
         else if (!(nav.idx > s.ci + 3)) left.push(s);   // étape déjà dépassée : on l'oublie
       });
       if (left.length !== nav.stops.length) { nav.stops = left; updateWpBtn(); }
@@ -3141,7 +3141,7 @@
 
 
   // ================= Mise à jour automatique =================
-  var BUILD = '1794623464';
+  var BUILD = '1794623509';
   function checkUpdate() {
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
       if (!SIM && d.v && d.v !== BUILD && (lastSpeed || 0) < 5) {
